@@ -67,6 +67,8 @@
   <script type="module">
     import { runSchemaTests } from './cv-schema.test.js';
     import { runATSTests } from './ats-scorer.test.js';
+    import { runCountryRulesTests } from './country-rules.test.js';
+    import { runJobMatcherTests } from './job-matcher.test.js';
 
     const resultsContainer = document.getElementById('test-results');
     const summaryContainer = document.getElementById('test-summary');
@@ -114,6 +116,8 @@
     // Execute suites
     runSchemaTests(assert);
     runATSTests(assert);
+    runCountryRulesTests(assert);
+    runJobMatcherTests(assert);
 
     // Update Summary
     summaryContainer.innerHTML = `

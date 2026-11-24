@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>European CV Builder — DIN 5008 & ATS Studio</title>
+  <title>European CV Builder — DIN 5008, UK & European ATS Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -19,7 +19,7 @@
       <div class="brand-logo">EU</div>
       <div class="brand-title">
         European CV Builder
-        <span class="brand-badge">DIN 5008 · ATS Ready</span>
+        <span class="brand-badge">DIN 5008 · Multi-Country ATS</span>
       </div>
       <span id="autosave-indicator" style="font-size: 11px; color: #10b981; opacity: 0.7; transition: opacity 0.3s; margin-left: 8px;">
         Auto-Save aktiv
@@ -27,8 +27,17 @@
     </div>
 
     <div class="nav-actions">
+      <!-- Target European Country Selector -->
+      <label style="font-size: 12px; color: #94a3b8;">Zielmarkt:</label>
+      <select id="select-country" class="select-control">
+        <option value="DE">🇩🇪 Deutschland (DIN 5008)</option>
+        <option value="UK">🇬🇧 UK & Ireland (Anti-Bias)</option>
+        <option value="FR">🇫🇷 France (1-Page Compact)</option>
+        <option value="NL">🇳🇱 Netherlands (Direct)</option>
+      </select>
+
       <!-- Template Selector -->
-      <label style="font-size: 12px; color: #94a3b8;">Design:</label>
+      <label style="font-size: 12px; color: #94a3b8; margin-left: 4px;">Design:</label>
       <select id="select-template" class="select-control">
         <option value="german-din-5008">🇩🇪 German Classic (DIN 5008)</option>
         <option value="modern-european">🇪🇺 Modern European</option>
@@ -36,26 +45,26 @@
       </select>
 
       <!-- Accent Color -->
-      <label style="font-size: 12px; color: #94a3b8; margin-left: 4px;">Akzent:</label>
-      <input type="color" id="input-accent-color" value="#1e3a8a" title="Akzentfarbe wählen" style="width: 28px; height: 28px; padding: 0; border: none; background: transparent; cursor: pointer; border-radius: 4px;">
+      <input type="color" id="input-accent-color" value="#1e3a8a" title="Akzentfarbe wählen" style="width: 26px; height: 26px; padding: 0; border: none; background: transparent; cursor: pointer; border-radius: 4px; margin-left: 2px;">
+
+      <!-- Job Matcher Trigger -->
+      <button class="btn btn-secondary" id="btn-open-job-matcher" title="Stellenanzeige analysieren und abgleichen" style="border-color: rgba(59, 130, 246, 0.4); color: #60a5fa;">
+        🎯 Job-Matcher (ATS)
+      </button>
 
       <!-- Data Actions -->
       <button class="btn btn-secondary" id="btn-load-sample" title="Musterdaten laden">
-        Muster laden
+        Muster
       </button>
 
       <button class="btn btn-secondary" id="btn-export-json" title="Als JSON sichern">
-        Export JSON
+        Export
       </button>
 
       <button class="btn btn-secondary" id="btn-import-json" title="JSON laden">
-        Import JSON
+        Import
       </button>
       <input type="file" id="input-import-json" accept=".json" style="display: none;">
-
-      <button class="btn btn-secondary" id="btn-clear-cv" title="Felder leeren" style="color: #ef4444;">
-        Leeren
-      </button>
 
       <!-- PDF Download Button -->
       <button class="btn btn-primary" id="btn-export-pdf" title="Drucken / Als A4 PDF speichern">
@@ -68,6 +77,14 @@
       </button>
     </div>
   </header>
+
+  <!-- Country Compliance Notification Banner -->
+  <div id="country-compliance-banner" class="no-print" style="background-color: #1e293b; border-bottom: 1px solid #334155; padding: 6px 20px; font-size: 11.5px; color: #94a3b8; display: flex; align-items: center; justify-content: space-between;">
+    <span id="compliance-note-text">
+      🇩🇪 DIN 5008 Standard: Foto & Unterschriftenblock sind in Deutschland und Österreich traditionell üblich.
+    </span>
+    <span style="color: #60a5fa; font-weight: 500;">Automatischer Rechtsstandard aktiv</span>
+  </div>
 
   <!-- Main Split Workbench -->
   <main class="main-layout">
@@ -107,6 +124,60 @@
       </div>
     </section>
   </main>
+
+  <!-- Job Description ATS Keyword Matcher Modal -->
+  <div class="modal-overlay no-print" id="job-matcher-modal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 18px;">🎯</span>
+          <div>
+            <h2 style="font-size: 16px; font-weight: 700; color: #f8fafc; margin: 0;">Job-Matcher (ATS Stellenanalyse)</h2>
+            <p style="font-size: 12px; color: #94a3b8; margin: 0;">Gleichen Sie Ihren Lebenslauf direkt mit den Anforderungen einer Stellenanzeige ab.</p>
+          </div>
+        </div>
+        <button class="btn-close-modal" id="btn-close-job-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="input-group" style="margin-bottom: 14px;">
+          <label class="input-label">Stellenanzeige / Anforderungsprofil hier einfügen:</label>
+          <textarea id="job-description-input" class="input-field" rows="6" placeholder="Fügen Sie hier den Text der Stellenanzeige von LinkedIn, StepStone, Indeed ein..."></textarea>
+        </div>
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
+          <button class="btn btn-primary" id="btn-analyze-job">Anforderungen abgleichen</button>
+        </div>
+
+        <!-- Job Analysis Results Section -->
+        <div id="job-analysis-results" style="display: none; border-top: 1px solid #334155; padding-top: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <span style="font-size: 13px; font-weight: 600; color: #f8fafc;">Übereinstimmungsgrad (ATS Match):</span>
+            <span id="job-match-badge" style="font-size: 14px; font-weight: 800; padding: 4px 12px; border-radius: 9999px; background: rgba(16, 185, 129, 0.2); color: #34d399;">
+              0%
+            </span>
+          </div>
+
+          <!-- Matched Keywords -->
+          <div style="margin-bottom: 12px;">
+            <div style="font-size: 12px; font-weight: 600; color: #34d399; margin-bottom: 6px;">
+              ✓ Bereits im Lebenslauf vorhanden:
+            </div>
+            <div id="job-matched-tags" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+          </div>
+
+          <!-- Missing Keywords -->
+          <div style="margin-bottom: 14px;">
+            <div style="font-size: 12px; font-weight: 600; color: #f87171; margin-bottom: 6px;">
+              ✗ Fehlen noch im Lebenslauf (Klicken zum Hinzufügen):
+            </div>
+            <div id="job-missing-tags" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+          </div>
+
+          <!-- Recommendations -->
+          <div id="job-match-recs" style="font-size: 12px; color: #cbd5e1; background: #0f172a; padding: 10px; border-radius: 4px; border-left: 3px solid #3b82f6;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Application Module Script -->
   <script type="module" src="js/app.js"></script>

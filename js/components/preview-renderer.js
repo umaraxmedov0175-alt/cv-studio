@@ -4,24 +4,28 @@
  */
 
 import { TEMPLATE_IDS } from '../model/cv-schema.js';
+import { adaptCVForCountry, COUNTRY_STANDARDS } from '../engines/country-rules.js';
 
 export function renderCVPreview(cv, containerElement) {
   if (!containerElement || !cv) return;
 
+  const countryCode = cv.meta?.targetCountry || 'DE';
+  const adaptedCV = adaptCVForCountry(cv, countryCode);
+
   const templateId = cv.meta?.template || TEMPLATE_IDS.GERMAN_DIN;
-  containerElement.className = `a4-sheet template-${templateId}`;
+  containerElement.className = `a4-sheet template-${templateId} country-${countryCode.toLowerCase()}`;
   containerElement.style.setProperty('--cv-accent', cv.meta?.accentColor || '#1e3a8a');
 
   switch (templateId) {
     case TEMPLATE_IDS.MODERN_EUROPEAN:
-      containerElement.innerHTML = buildModernEuropeanHTML(cv);
+      containerElement.innerHTML = buildModernEuropeanHTML(adaptedCV);
       break;
     case TEMPLATE_IDS.MINIMAL_SWISS:
-      containerElement.innerHTML = buildMinimalSwissHTML(cv);
+      containerElement.innerHTML = buildMinimalSwissHTML(adaptedCV);
       break;
     case TEMPLATE_IDS.GERMAN_DIN:
     default:
-      containerElement.innerHTML = buildGermanDINHTML(cv);
+      containerElement.innerHTML = buildGermanDINHTML(adaptedCV);
       break;
   }
 }
@@ -31,30 +35,39 @@ export function renderCVPreview(cv, containerElement) {
  */
 function buildGermanDINHTML(cv) {
   const p = cv.personal || {};
-  const isDe = (cv.meta?.language || 'de') === 'de';
+  const countryCode = cv.meta?.targetCountry || 'DE';
+  const rules = cv.rules || {};
 
-  // Section Labels
-  const L = isDe ? {
-    experience: 'Berufserfahrung',
-    education: 'Ausbildung & Studium',
-    skills: 'Kenntnisse & Qualifikationen',
-    languages: 'Sprachkenntnisse',
-    certifications: 'Zertifikate & Weiterbildung',
-    projects: 'Projekte',
-    birth: 'Geburtsdaten',
-    nationality: 'Staatsangehörigkeit',
-    signatureLabel: 'Unterschrift (Unterschrift & Ort)'
-  } : {
-    experience: 'Professional Experience',
-    education: 'Education',
-    skills: 'Skills & Qualifications',
-    languages: 'Languages',
-    certifications: 'Certifications',
-    projects: 'Key Projects',
-    birth: 'Date of Birth',
-    nationality: 'Nationality',
-    signatureLabel: 'Signature & Place'
-  };
+  // Localized Labels based on Country Standard
+  let L;
+  if (countryCode === 'FR') {
+    L = {
+      experience: 'Expériences professionnelles',
+      education: 'Formation & Diplômes',
+      skills: 'Compétences & Outils',
+      languages: 'Langues vivantes',
+      birth: 'Date de naissance',
+      nationality: 'Nationalité'
+    };
+  } else if (countryCode === 'UK') {
+    L = {
+      experience: 'Employment History',
+      education: 'Education & Qualifications',
+      skills: 'Key Skills & Technologies',
+      languages: 'Languages',
+      birth: 'Date of Birth',
+      nationality: 'Nationality'
+    };
+  } else {
+    L = {
+      experience: 'Berufserfahrung',
+      education: 'Ausbildung & Studium',
+      skills: 'Kenntnisse & Qualifikationen',
+      languages: 'Sprachkenntnisse',
+      birth: 'Geburtsdaten',
+      nationality: 'Staatsangehörigkeit'
+    };
+  }
 
   // Header & Personal details
   let headerContactHTML = `
@@ -62,14 +75,14 @@ function buildGermanDINHTML(cv) {
       ${p.email ? `<div class="contact-row"><span class="contact-label">E-Mail:</span><span class="contact-value">${escapeHTML(p.email)}</span></div>` : ''}
       ${p.phone ? `<div class="contact-row"><span class="contact-label">Tel.:</span><span class="contact-value">${escapeHTML(p.phone)}</span></div>` : ''}
       ${p.city ? `<div class="contact-row"><span class="contact-label">Wohnort:</span><span class="contact-value">${p.postalCode ? escapeHTML(p.postalCode) + ' ' : ''}${escapeHTML(p.city)}${p.country ? ', ' + escapeHTML(p.country) : ''}</span></div>` : ''}
-      ${p.birthDate ? `<div class="contact-row"><span class="contact-label">${L.birth}:</span><span class="contact-value">${escapeHTML(p.birthDate)}${p.birthPlace ? ' in ' + escapeHTML(p.birthPlace) : ''}</span></div>` : ''}
-      ${p.nationality ? `<div class="contact-row"><span class="contact-label">${L.nationality}:</span><span class="contact-value">${escapeHTML(p.nationality)}</span></div>` : ''}
+      ${rules.allowBirthDate && p.birthDate ? `<div class="contact-row"><span class="contact-label">${L.birth}:</span><span class="contact-value">${escapeHTML(p.birthDate)}${p.birthPlace ? ' in ' + escapeHTML(p.birthPlace) : ''}</span></div>` : ''}
+      ${rules.allowNationality && p.nationality ? `<div class="contact-row"><span class="contact-label">${L.nationality}:</span><span class="contact-value">${escapeHTML(p.nationality)}</span></div>` : ''}
       ${p.linkedin ? `<div class="contact-row"><span class="contact-label">LinkedIn:</span><span class="contact-value">${escapeHTML(p.linkedin)}</span></div>` : ''}
     </div>
   `;
 
   let photoHTML = '';
-  if (cv.meta?.showPhoto) {
+  if (rules.allowPhoto && cv.meta?.showPhoto) {
     if (p.photoUrl) {
       photoHTML = `<div class="photo-frame"><img src="${p.photoUrl}" alt="Bewerbungsfoto"></div>`;
     } else {
@@ -169,7 +182,7 @@ function buildGermanDINHTML(cv) {
 
   // Signature Block (Crucial German DIN 5008 Requirement)
   let signatureHTML = '';
-  if (cv.meta?.includeSignatureBlock) {
+  if (rules.allowSignatureBlock && cv.meta?.includeSignatureBlock) {
     const place = cv.signature?.place || p.city || 'Berlin';
     const date = cv.signature?.date || new Date().toLocaleDateString('de-DE');
     const name = cv.signature?.signeeName || `${p.firstName || ''} ${p.lastName || ''}`.trim();
