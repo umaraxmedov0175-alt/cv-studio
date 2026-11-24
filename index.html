@@ -3,181 +3,121 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>European CV Builder — DIN 5008, UK & European ATS Studio</title>
+  <title>European CV Studio — DIN 5008 & Editorial Typography</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/print-a4.css">
   <link rel="stylesheet" href="css/templates.css">
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
 
-  <!-- Top Navigation Bar -->
-  <header class="top-navbar no-print">
-    <div class="brand-section">
-      <div class="brand-logo">EU</div>
-      <div class="brand-title">
-        European CV Builder
-        <span class="brand-badge">DIN 5008 · Multi-Country ATS</span>
-      </div>
-      <span id="autosave-indicator" style="font-size: 11px; color: #10b981; opacity: 0.7; transition: opacity 0.3s; margin-left: 8px;">
-        Auto-Save aktiv
-      </span>
+  <!-- Minimal Top Header -->
+  <header class="studio-header no-print">
+    <div class="brand-badge">
+      <span class="brand-badge-pill">EU</span>
+      <span>European CV Studio</span>
+      <span style="font-weight: 400; color: #9ca3af; margin-left: 4px;">· Direct Typographic Editor</span>
     </div>
 
-    <div class="nav-actions">
-      <!-- Target European Country Selector -->
-      <label style="font-size: 12px; color: #94a3b8;">Zielmarkt:</label>
-      <select id="select-country" class="select-control">
-        <option value="DE">🇩🇪 Deutschland (DIN 5008)</option>
-        <option value="UK">🇬🇧 UK & Ireland (Anti-Bias)</option>
-        <option value="FR">🇫🇷 France (1-Page Compact)</option>
-        <option value="NL">🇳🇱 Netherlands (Direct)</option>
-      </select>
-
-      <!-- Template Selector -->
-      <label style="font-size: 12px; color: #94a3b8; margin-left: 4px;">Design:</label>
-      <select id="select-template" class="select-control">
-        <option value="german-din-5008">🇩🇪 German Classic (DIN 5008)</option>
-        <option value="modern-european">🇪🇺 Modern European</option>
-        <option value="minimal-swiss">🇨🇭 Minimal Swiss</option>
-      </select>
-
-      <!-- Accent Color -->
-      <input type="color" id="input-accent-color" value="#1e3a8a" title="Akzentfarbe wählen" style="width: 26px; height: 26px; padding: 0; border: none; background: transparent; cursor: pointer; border-radius: 4px; margin-left: 2px;">
-
-      <!-- Job Matcher Trigger -->
-      <button class="btn btn-secondary" id="btn-open-job-matcher" title="Stellenanzeige analysieren und abgleichen" style="border-color: rgba(59, 130, 246, 0.4); color: #60a5fa;">
-        🎯 Job-Matcher (ATS)
-      </button>
-
-      <!-- Data Actions -->
-      <button class="btn btn-secondary" id="btn-load-sample" title="Musterdaten laden">
-        Muster
-      </button>
-
-      <button class="btn btn-secondary" id="btn-export-json" title="Als JSON sichern">
-        Export
-      </button>
-
-      <button class="btn btn-secondary" id="btn-import-json" title="JSON laden">
-        Import
-      </button>
-      <input type="file" id="input-import-json" accept=".json" style="display: none;">
-
-      <!-- PDF Download Button -->
-      <button class="btn btn-primary" id="btn-export-pdf" title="Drucken / Als A4 PDF speichern">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-          <polyline points="7 10 12 15 17 10"></polyline>
-          <line x1="12" y1="15" x2="12" y2="3"></line>
-        </svg>
-        PDF herunterladen
-      </button>
+    <div class="compliance-status">
+      <span id="compliance-note-text">🇩🇪 DIN 5008 Standard (Deutschland & Österreich)</span>
+      <span id="autosave-indicator" style="font-size: 11px; color: #059669; margin-left: 8px;">✓ Gespeichert</span>
     </div>
   </header>
 
-  <!-- Country Compliance Notification Banner -->
-  <div id="country-compliance-banner" class="no-print" style="background-color: #1e293b; border-bottom: 1px solid #334155; padding: 6px 20px; font-size: 11.5px; color: #94a3b8; display: flex; align-items: center; justify-content: space-between;">
-    <span id="compliance-note-text">
-      🇩🇪 DIN 5008 Standard: Foto & Unterschriftenblock sind in Deutschland und Österreich traditionell üblich.
-    </span>
-    <span style="color: #60a5fa; font-weight: 500;">Automatischer Rechtsstandard aktiv</span>
-  </div>
-
-  <!-- Main Split Workbench -->
-  <main class="main-layout">
-    <!-- Left Editor Sidebar -->
-    <aside class="editor-sidebar no-print">
-      <div class="editor-scroll-area" id="form-container">
-        <!-- Injected via form-builder.js -->
-      </div>
-    </aside>
-
-    <!-- Right Live Preview Pane -->
-    <section class="preview-container">
-      <div class="preview-toolbar no-print">
-        <div class="zoom-controls">
-          <span style="font-size: 11px; color: #94a3b8; margin-right: 4px;">Zoom:</span>
-          <button class="zoom-btn" id="zoom-out">−</button>
-          <button class="zoom-btn" id="zoom-fit">Passend</button>
-          <button class="zoom-btn" id="zoom-in">+</button>
-        </div>
-
-        <!-- ATS Score Pill -->
-        <div class="ats-badge-container" id="ats-badge" title="Klicken für detaillierte ATS-Tipps">
-          <!-- Injected via ats-gauge.js -->
-        </div>
-      </div>
-
-      <!-- Live A4 Sheet Preview -->
-      <div class="a4-sheet-wrapper">
-        <div class="a4-sheet template-german-din-5008" id="preview-sheet">
-          <!-- Injected via preview-renderer.js -->
-        </div>
-      </div>
-
-      <!-- ATS Recommendations Dropdown Panel -->
-      <div class="ats-drawer no-print" id="ats-drawer">
-        <!-- Injected via ats-gauge.js -->
-      </div>
-    </section>
+  <!-- Document Desk (Direct Manipulation WYSIWYG) -->
+  <main class="desk-canvas">
+    <div class="a4-sheet template-german-din-5008" id="preview-sheet">
+      <!-- Direct editing document rendered here -->
+    </div>
   </main>
 
-  <!-- Job Description ATS Keyword Matcher Modal -->
-  <div class="modal-overlay no-print" id="job-matcher-modal" style="display: none;">
-    <div class="modal-card">
-      <div class="modal-header">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 18px;">🎯</span>
-          <div>
-            <h2 style="font-size: 16px; font-weight: 700; color: #f8fafc; margin: 0;">Job-Matcher (ATS Stellenanalyse)</h2>
-            <p style="font-size: 12px; color: #94a3b8; margin: 0;">Gleichen Sie Ihren Lebenslauf direkt mit den Anforderungen einer Stellenanzeige ab.</p>
-          </div>
-        </div>
-        <button class="btn-close-modal" id="btn-close-job-modal">&times;</button>
+  <!-- Floating Executive Command Dock -->
+  <footer class="floating-dock no-print">
+    <!-- Country Target -->
+    <select id="select-country" class="dock-select" title="Europäischer Zielmarkt & Rechtsstandard">
+      <option value="DE">🇩🇪 Deutschland (DIN 5008)</option>
+      <option value="UK">🇬🇧 UK & Ireland (Anti-Bias)</option>
+      <option value="FR">🇫🇷 France (1-Page)</option>
+      <option value="NL">🇳🇱 Netherlands</option>
+    </select>
+
+    <!-- Template -->
+    <select id="select-template" class="dock-select" title="Typografischer Stil">
+      <option value="german-din-5008">Frankfurt (DIN 5008)</option>
+      <option value="minimal-swiss">Zurich (Swiss Modernist)</option>
+      <option value="modern-european">Paris (Editorial Serif)</option>
+    </select>
+
+    <!-- ATS Pill / Drawer Trigger -->
+    <div class="ats-pill" id="ats-badge" title="Stellenanzeigen-Abgleich & ATS Score">
+      <span id="ats-score-num">98</span>
+      <span>ATS Match</span>
+    </div>
+
+    <button class="dock-btn" id="btn-open-job-matcher" title="Stellenanzeige abgleichen">
+      🎯 Job Matcher
+    </button>
+
+    <button class="dock-btn" id="btn-load-sample" title="Muster laden">
+      Muster
+    </button>
+
+    <!-- Vector PDF Export -->
+    <button class="dock-btn dock-btn-primary" id="btn-export-pdf" title="Drucken / Als A4 PDF sichern">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+      A4 PDF herunterladen
+    </button>
+  </footer>
+
+  <!-- Slide-Over Drawer: Job Description Keyword Matcher -->
+  <aside class="slide-drawer no-print" id="job-drawer">
+    <div class="drawer-header">
+      <div>
+        <h3 style="font-size: 15px; font-weight: 700; color: #111827; margin: 0;">ATS Stellenanalyse</h3>
+        <p style="font-size: 12px; color: #6b7280; margin: 2px 0 0 0;">Gleichen Sie Ihren Lebenslauf mit einer echten Stellenanzeige ab.</p>
       </div>
-      <div class="modal-body">
-        <div class="input-group" style="margin-bottom: 14px;">
-          <label class="input-label">Stellenanzeige / Anforderungsprofil hier einfügen:</label>
-          <textarea id="job-description-input" class="input-field" rows="6" placeholder="Fügen Sie hier den Text der Stellenanzeige von LinkedIn, StepStone, Indeed ein..."></textarea>
+      <button id="btn-close-drawer" style="background: none; border: none; font-size: 20px; color: #9ca3af; cursor: pointer;">&times;</button>
+    </div>
+
+    <div class="drawer-body">
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 11px; font-weight: 600; color: #4b5563; display: block; margin-bottom: 4px;">Stellenanzeigentext einfügen:</label>
+        <textarea id="job-description-input" style="width: 100%; height: 110px; border: 1px solid #d1d5db; border-radius: 4px; padding: 8px; font-size: 12px; font-family: inherit; resize: vertical;" placeholder="Fügen Sie hier Anforderungen von LinkedIn, StepStone oder Indeed ein..."></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
+        <button class="dock-btn dock-btn-primary" id="btn-analyze-job" style="padding: 5px 12px; font-size: 11px;">Abgleichen</button>
+      </div>
+
+      <div id="job-analysis-results" style="display: none; border-top: 1px solid #f3f4f6; padding-top: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <span style="font-size: 12px; font-weight: 600; color: #111827;">Übereinstimmungsquote:</span>
+          <span id="job-match-badge" style="font-size: 13px; font-weight: 800; padding: 2px 8px; border-radius: 9999px; background: #ecfdf5; color: #065f46;">
+            0%
+          </span>
         </div>
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
-          <button class="btn btn-primary" id="btn-analyze-job">Anforderungen abgleichen</button>
+
+        <div style="margin-bottom: 10px;">
+          <div style="font-size: 11px; font-weight: 600; color: #059669; margin-bottom: 4px;">✓ Gefundene Schlüsselbegriffe:</div>
+          <div id="job-matched-tags"></div>
         </div>
 
-        <!-- Job Analysis Results Section -->
-        <div id="job-analysis-results" style="display: none; border-top: 1px solid #334155; padding-top: 14px;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-            <span style="font-size: 13px; font-weight: 600; color: #f8fafc;">Übereinstimmungsgrad (ATS Match):</span>
-            <span id="job-match-badge" style="font-size: 14px; font-weight: 800; padding: 4px 12px; border-radius: 9999px; background: rgba(16, 185, 129, 0.2); color: #34d399;">
-              0%
-            </span>
-          </div>
-
-          <!-- Matched Keywords -->
-          <div style="margin-bottom: 12px;">
-            <div style="font-size: 12px; font-weight: 600; color: #34d399; margin-bottom: 6px;">
-              ✓ Bereits im Lebenslauf vorhanden:
-            </div>
-            <div id="job-matched-tags" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
-          </div>
-
-          <!-- Missing Keywords -->
-          <div style="margin-bottom: 14px;">
-            <div style="font-size: 12px; font-weight: 600; color: #f87171; margin-bottom: 6px;">
-              ✗ Fehlen noch im Lebenslauf (Klicken zum Hinzufügen):
-            </div>
-            <div id="job-missing-tags" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
-          </div>
-
-          <!-- Recommendations -->
-          <div id="job-match-recs" style="font-size: 12px; color: #cbd5e1; background: #0f172a; padding: 10px; border-radius: 4px; border-left: 3px solid #3b82f6;"></div>
+        <div style="margin-bottom: 12px;">
+          <div style="font-size: 11px; font-weight: 600; color: #dc2626; margin-bottom: 4px;">✗ Fehlende Keywords (+ 1-Klick Hinzufügen):</div>
+          <div id="job-missing-tags"></div>
         </div>
+
+        <div id="job-match-recs" style="font-size: 11.5px; color: #4b5563; background: #f9fafb; padding: 10px; border-radius: 4px; border-left: 2.5px solid #1e3a8a; line-height: 1.45;"></div>
       </div>
     </div>
-  </div>
+  </aside>
 
   <!-- Application Module Script -->
   <script type="module" src="js/app.js"></script>
