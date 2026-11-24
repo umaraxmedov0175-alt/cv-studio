@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>European CV Builder — DIN 5008 & ATS Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/print-a4.css">
+  <link rel="stylesheet" href="css/templates.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="top-navbar no-print">
+    <div class="brand-section">
+      <div class="brand-logo">EU</div>
+      <div class="brand-title">
+        European CV Builder
+        <span class="brand-badge">DIN 5008 · ATS Ready</span>
+      </div>
+      <span id="autosave-indicator" style="font-size: 11px; color: #10b981; opacity: 0.7; transition: opacity 0.3s; margin-left: 8px;">
+        Auto-Save aktiv
+      </span>
+    </div>
+
+    <div class="nav-actions">
+      <!-- Template Selector -->
+      <label style="font-size: 12px; color: #94a3b8;">Design:</label>
+      <select id="select-template" class="select-control">
+        <option value="german-din-5008">🇩🇪 German Classic (DIN 5008)</option>
+        <option value="modern-european">🇪🇺 Modern European</option>
+        <option value="minimal-swiss">🇨🇭 Minimal Swiss</option>
+      </select>
+
+      <!-- Accent Color -->
+      <label style="font-size: 12px; color: #94a3b8; margin-left: 4px;">Akzent:</label>
+      <input type="color" id="input-accent-color" value="#1e3a8a" title="Akzentfarbe wählen" style="width: 28px; height: 28px; padding: 0; border: none; background: transparent; cursor: pointer; border-radius: 4px;">
+
+      <!-- Data Actions -->
+      <button class="btn btn-secondary" id="btn-load-sample" title="Musterdaten laden">
+        Muster laden
+      </button>
+
+      <button class="btn btn-secondary" id="btn-export-json" title="Als JSON sichern">
+        Export JSON
+      </button>
+
+      <button class="btn btn-secondary" id="btn-import-json" title="JSON laden">
+        Import JSON
+      </button>
+      <input type="file" id="input-import-json" accept=".json" style="display: none;">
+
+      <button class="btn btn-secondary" id="btn-clear-cv" title="Felder leeren" style="color: #ef4444;">
+        Leeren
+      </button>
+
+      <!-- PDF Download Button -->
+      <button class="btn btn-primary" id="btn-export-pdf" title="Drucken / Als A4 PDF speichern">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        PDF herunterladen
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Split Workbench -->
+  <main class="main-layout">
+    <!-- Left Editor Sidebar -->
+    <aside class="editor-sidebar no-print">
+      <div class="editor-scroll-area" id="form-container">
+        <!-- Injected via form-builder.js -->
+      </div>
+    </aside>
+
+    <!-- Right Live Preview Pane -->
+    <section class="preview-container">
+      <div class="preview-toolbar no-print">
+        <div class="zoom-controls">
+          <span style="font-size: 11px; color: #94a3b8; margin-right: 4px;">Zoom:</span>
+          <button class="zoom-btn" id="zoom-out">−</button>
+          <button class="zoom-btn" id="zoom-fit">Passend</button>
+          <button class="zoom-btn" id="zoom-in">+</button>
+        </div>
+
+        <!-- ATS Score Pill -->
+        <div class="ats-badge-container" id="ats-badge" title="Klicken für detaillierte ATS-Tipps">
+          <!-- Injected via ats-gauge.js -->
+        </div>
+      </div>
+
+      <!-- Live A4 Sheet Preview -->
+      <div class="a4-sheet-wrapper">
+        <div class="a4-sheet template-german-din-5008" id="preview-sheet">
+          <!-- Injected via preview-renderer.js -->
+        </div>
+      </div>
+
+      <!-- ATS Recommendations Dropdown Panel -->
+      <div class="ats-drawer no-print" id="ats-drawer">
+        <!-- Injected via ats-gauge.js -->
+      </div>
+    </section>
+  </main>
+
+  <!-- Application Module Script -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

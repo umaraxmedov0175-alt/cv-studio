@@ -1,0 +1,327 @@
+/**
+ * European CV Design Templates:
+ * 1. German Classic (DIN 5008 Lebenslauf)
+ * 2. Modern European (Dual-Column Tech & Executive)
+ * 3. Minimal Swiss (High Typography, Timeless Grid)
+ */
+
+/* =========================================================
+   1. GERMAN CLASSIC (DIN 5008 LEBENSLAUF)
+   ========================================================= */
+.template-german-din,
+.template-german-din-5008 {
+  color: #1e293b;
+  font-size: 10pt;
+}
+
+.template-german-din .cv-header,
+.template-german-din-5008 .cv-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--cv-accent, #1e3a8a);
+  margin-bottom: 18px;
+}
+
+.template-german-din .header-name-block,
+.template-german-din-5008 .header-name-block {
+  flex: 1;
+}
+
+.template-german-din .applicant-name,
+.template-german-din-5008 .applicant-name {
+  font-size: 20pt;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.template-german-din .applicant-title,
+.template-german-din-5008 .applicant-title {
+  font-size: 12pt;
+  font-weight: 500;
+  color: var(--cv-accent, #1e3a8a);
+  margin: 0 0 10px 0;
+}
+
+.template-german-din .header-contact-grid,
+.template-german-din-5008 .header-contact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 16px;
+  font-size: 8.5pt;
+  color: #475569;
+}
+
+.template-german-din .contact-row,
+.template-german-din-5008 .contact-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.template-german-din .contact-label,
+.template-german-din-5008 .contact-label {
+  font-weight: 600;
+  color: #334155;
+  min-width: 60px;
+}
+
+.template-german-din .photo-frame,
+.template-german-din-5008 .photo-frame {
+  width: 90px;
+  height: 120px;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+  overflow: hidden;
+  background-color: #f8fafc;
+  margin-left: 20px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.template-german-din .photo-frame img,
+.template-german-din-5008 .photo-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* DIN Section Headers */
+.template-german-din .section-title,
+.template-german-din-5008 .section-title {
+  font-size: 11pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--cv-accent, #1e3a8a);
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 4px;
+  margin: 16px 0 10px 0;
+}
+
+/* DIN 2-Column Chronological Grid */
+.template-german-din .chronological-entry,
+.template-german-din-5008 .chronological-entry {
+  display: grid;
+  grid-template-columns: 36mm 1fr;
+  column-gap: 8mm;
+  margin-bottom: 12px;
+  font-size: 9.5pt;
+}
+
+.template-german-din .entry-date,
+.template-german-din-5008 .entry-date {
+  font-weight: 600;
+  color: #475569;
+  font-size: 8.5pt;
+  white-space: nowrap;
+}
+
+.template-german-din .entry-content,
+.template-german-din-5008 .entry-content {
+  color: #1e293b;
+}
+
+.template-german-din .entry-role,
+.template-german-din-5008 .entry-role {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.template-german-din .entry-company,
+.template-german-din-5008 .entry-company {
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 3px;
+}
+
+.template-german-din .entry-bullets,
+.template-german-din-5008 .entry-bullets {
+  margin: 4px 0 0 0;
+  padding-left: 14px;
+  color: #334155;
+  font-size: 9pt;
+  line-height: 1.45;
+}
+
+.template-german-din .entry-bullets li,
+.template-german-din-5008 .entry-bullets li {
+  margin-bottom: 3px;
+}
+
+.template-german-din .tag-list,
+.template-german-din-5008 .tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.template-german-din .tag-item,
+.template-german-din-5008 .tag-item {
+  font-size: 8pt;
+  padding: 1px 7px;
+  background-color: #f1f5f9;
+  border-radius: 3px;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+/* Formal DIN Signature & Date Block */
+.template-german-din .signature-block,
+.template-german-din-5008 .signature-block {
+  margin-top: 28px;
+  padding-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  font-size: 9pt;
+  color: #334155;
+  break-inside: avoid;
+}
+
+.template-german-din .signature-line,
+.template-german-din-5008 .signature-line {
+  border-top: 1px solid #64748b;
+  width: 220px;
+  margin-top: 32px;
+  padding-top: 4px;
+  text-align: center;
+  font-size: 8.5pt;
+  color: #64748b;
+}
+
+
+/* =========================================================
+   2. MODERN EUROPEAN (TECH & EXECUTIVE)
+   ========================================================= */
+.template-modern-european {
+  color: #1e293b;
+  font-size: 9.5pt;
+}
+
+.template-modern-european .modern-header {
+  background-color: var(--cv-accent, #0f172a);
+  color: #ffffff;
+  padding: 18px 22px;
+  border-radius: 6px;
+  margin-bottom: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.template-modern-european .modern-header .applicant-name {
+  font-size: 22pt;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: #ffffff;
+}
+
+.template-modern-european .modern-header .applicant-title {
+  font-size: 11pt;
+  font-weight: 500;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.template-modern-european .modern-body {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}
+
+.template-modern-european .section-title {
+  font-size: 11pt;
+  font-weight: 700;
+  color: var(--cv-accent, #0f172a);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 4px;
+  margin-bottom: 12px;
+}
+
+.template-modern-european .timeline-item {
+  position: relative;
+  padding-left: 14px;
+  border-left: 2px solid #cbd5e1;
+  margin-bottom: 14px;
+}
+
+.template-modern-european .timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--cv-accent, #0f172a);
+}
+
+.template-modern-european .role-title {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.template-modern-european .role-meta {
+  font-size: 8.5pt;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.template-modern-european .sidebar-box {
+  background-color: #f8fafc;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 16px;
+}
+
+.template-modern-european .sidebar-box h4 {
+  margin: 0 0 8px 0;
+  font-size: 9.5pt;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+
+/* =========================================================
+   3. MINIMAL SWISS (ARCHITECTURAL TYPOGRAPHY)
+   ========================================================= */
+.template-minimal-swiss {
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  color: #111827;
+}
+
+.template-minimal-swiss .swiss-header {
+  border-bottom: 4px solid #000000;
+  padding-bottom: 14px;
+  margin-bottom: 20px;
+}
+
+.template-minimal-swiss .applicant-name {
+  font-size: 26pt;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.04em;
+  margin: 0;
+}
+
+.template-minimal-swiss .section-title {
+  font-size: 10pt;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid #000000;
+  padding-bottom: 3px;
+  margin: 18px 0 10px 0;
+}

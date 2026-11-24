@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>European CV Builder — Test Runner</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 30px;
+      line-height: 1.5;
+    }
+    h1 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .suite-header {
+      font-size: 16px;
+      font-weight: 700;
+      color: #60a5fa;
+      margin: 20px 0 10px 0;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 4px;
+    }
+    .test-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      background: #1e293b;
+      font-size: 13px;
+    }
+    .badge {
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+    .badge-pass { background: #065f46; color: #34d399; }
+    .badge-fail { background: #991b1b; color: #f87171; }
+    .summary-box {
+      margin-top: 24px;
+      padding: 16px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <h1>
+    <span>European CV Builder</span>
+    <span style="font-size: 13px; color: #94a3b8; font-weight: normal;">(Automated Unit Test Suite)</span>
+  </h1>
+
+  <div id="test-results"></div>
+  <div id="test-summary" class="summary-box">Running tests...</div>
+
+  <script type="module">
+    import { runSchemaTests } from './cv-schema.test.js';
+    import { runATSTests } from './ats-scorer.test.js';
+
+    const resultsContainer = document.getElementById('test-results');
+    const summaryContainer = document.getElementById('test-summary');
+
+    let totalTests = 0;
+    let passedTests = 0;
+    let failedTests = 0;
+
+    const assert = {
+      suite(title) {
+        const header = document.createElement('div');
+        header.className = 'suite-header';
+        header.textContent = title;
+        resultsContainer.appendChild(header);
+      },
+      test(name, fn) {
+        totalTests++;
+        const row = document.createElement('div');
+        row.className = 'test-row';
+        try {
+          fn();
+          passedTests++;
+          row.innerHTML = `<span class="badge badge-pass">PASS</span> <span>${escapeHTML(name)}</span>`;
+        } catch (err) {
+          failedTests++;
+          row.innerHTML = `<span class="badge badge-fail">FAIL</span> <span>${escapeHTML(name)}</span> <span style="color: #f87171; margin-left: auto;">${escapeHTML(err.message)}</span>`;
+        }
+        resultsContainer.appendChild(row);
+      },
+      ok(val, msg) {
+        if (!val) throw new Error(msg || `Expected truthy, got ${val}`);
+      },
+      notOk(val, msg) {
+        if (val) throw new Error(msg || `Expected falsy, got ${val}`);
+      },
+      equal(actual, expected, msg) {
+        if (actual !== expected) throw new Error(msg || `Expected "${expected}", got "${actual}"`);
+      }
+    };
+
+    function escapeHTML(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // Execute suites
+    runSchemaTests(assert);
+    runATSTests(assert);
+
+    // Update Summary
+    summaryContainer.innerHTML = `
+      Result: ${failedTests === 0 ? '<span style="color: #34d399;">✓ ALL TESTS PASSED</span>' : '<span style="color: #f87171;">✗ SOME TESTS FAILED</span>'}
+      &nbsp;·&nbsp; ${passedTests} passed, ${failedTests} failed, ${totalTests} total
+    `;
+    window.__TEST_RESULTS__ = { total: totalTests, passed: passedTests, failed: failedTests };
+  </script>
+</body>
+</html>

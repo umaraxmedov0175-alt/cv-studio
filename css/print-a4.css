@@ -1,0 +1,105 @@
+/**
+ * Precision A4 Print & PDF Pagination Stylesheet
+ * Strict 210mm x 297mm specifications conforming to ISO 216 / DIN 476.
+ */
+
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+:root {
+  --a4-width: 210mm;
+  --a4-height: 297mm;
+  --a4-padding-x: 18mm;
+  --a4-padding-y: 16mm;
+}
+
+/* Screen Preview Representation */
+.a4-sheet-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+  overflow-y: auto;
+  background-color: #0f172a;
+}
+
+.a4-sheet {
+  width: var(--a4-width);
+  min-height: var(--a4-height);
+  padding: var(--a4-padding-y) var(--a4-padding-x);
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  position: relative;
+  box-sizing: border-box;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.45;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top center;
+}
+
+/* Page Break & Section Integrity Rules */
+.cv-section {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin-bottom: 16px;
+}
+
+.cv-item {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin-bottom: 12px;
+}
+
+/* Print Overrides for Flawless Native PDF Export */
+@media print {
+  html, body {
+    width: 210mm;
+    height: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Hide everything outside the A4 sheet */
+  .editor-sidebar,
+  .top-navbar,
+  .ats-drawer,
+  .zoom-controls,
+  .no-print {
+    display: none !important;
+  }
+
+  .main-layout {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .preview-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    overflow: visible !important;
+  }
+
+  .a4-sheet-wrapper {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+  }
+
+  .a4-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    margin: 0 !important;
+    padding: var(--a4-padding-y) var(--a4-padding-x) !important;
+    transform: none !important;
+  }
+}
