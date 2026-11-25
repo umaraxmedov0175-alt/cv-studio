@@ -53,6 +53,22 @@
       font-size: 14px;
       font-weight: 600;
     }
+    .file-warning {
+      margin-top: 16px;
+      padding: 16px;
+      background: #451a03;
+      border: 1px solid #d97706;
+      border-radius: 6px;
+      color: #fde68a;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .file-warning code {
+      background: #1e293b;
+      color: #93c5fd;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
   </style>
 </head>
 <body>
@@ -64,12 +80,38 @@
   <div id="test-results"></div>
   <div id="test-summary" class="summary-box">Running tests...</div>
 
+  <script>
+    // Classic script fallback: detect when ES module imports fail under direct file:// CORS restrictions
+    window.__TEST_MODULE_EXECUTED__ = false;
+    window.addEventListener('load', function () {
+      setTimeout(function () {
+        if (window.__TEST_MODULE_EXECUTED__) return;
+        const summary = document.getElementById('test-summary');
+        const isFileProtocol = window.location.protocol === 'file:';
+        summary.innerHTML = `
+          <div class="file-warning">
+            <strong>ES Module Test Runner Blocked${isFileProtocol ? ' under <code>file://</code>' : ''}</strong><br>
+            Browsers block <code>&lt;script type="module"&gt;</code> imports across local files opened directly via <code>file://</code>.<br>
+            Run the automated suite using one of these options:<br>
+            &bull; PowerShell runner: <code>.\\run_tests.ps1</code> (uses Edge with <code>--allow-file-access-from-files</code>)<br>
+            &bull; Local HTTP server: <code>python -m http.server 8080</code> then open <code>http://localhost:8080/tests/run-tests.html</code>
+          </div>
+        `;
+      }, 400);
+    });
+  </script>
+
   <script type="module">
+    window.__TEST_MODULE_EXECUTED__ = true;
+
     import { runSchemaTests } from './cv-schema.test.js';
     import { runATSTests } from './ats-scorer.test.js';
     import { runCountryRulesTests } from './country-rules.test.js';
     import { runJobMatcherTests } from './job-matcher.test.js';
     import { runCompletionEngineTests } from './completion-engine.test.js';
+    import { runStorageTests } from './storage.test.js';
+    import { runPreviewRendererTests } from './preview-renderer.test.js';
+    import { runPDFExporterTests } from './pdf-exporter.test.js';
 
     const resultsContainer = document.getElementById('test-results');
     const summaryContainer = document.getElementById('test-summary');
@@ -77,27 +119,18 @@
     let totalTests = 0;
     let passedTests = 0;
     let failedTests = 0;
+    const queue = [];
+
+    function escapeHTML(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
 
     const assert = {
       suite(title) {
-        const header = document.createElement('div');
-        header.className = 'suite-header';
-        header.textContent = title;
-        resultsContainer.appendChild(header);
+        queue.push({ type: 'suite', title });
       },
       test(name, fn) {
-        totalTests++;
-        const row = document.createElement('div');
-        row.className = 'test-row';
-        try {
-          fn();
-          passedTests++;
-          row.innerHTML = `<span class="badge badge-pass">PASS</span> <span>${escapeHTML(name)}</span>`;
-        } catch (err) {
-          failedTests++;
-          row.innerHTML = `<span class="badge badge-fail">FAIL</span> <span>${escapeHTML(name)}</span> <span style="color: #f87171; margin-left: auto;">${escapeHTML(err.message)}</span>`;
-        }
-        resultsContainer.appendChild(row);
+        queue.push({ type: 'test', name, fn });
       },
       ok(val, msg) {
         if (!val) throw new Error(msg || `Expected truthy, got ${val}`);
@@ -110,16 +143,39 @@
       }
     };
 
-    function escapeHTML(str) {
-      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
-
-    // Execute suites
+    // Register all suites
     runSchemaTests(assert);
     runATSTests(assert);
     runCountryRulesTests(assert);
     runJobMatcherTests(assert);
     runCompletionEngineTests(assert);
+    runStorageTests(assert);
+    runPreviewRendererTests(assert);
+    runPDFExporterTests(assert);
+
+    // Execute queued tests sequentially so async tests (e.g. FileReader) never race
+    for (const item of queue) {
+      if (item.type === 'suite') {
+        const header = document.createElement('div');
+        header.className = 'suite-header';
+        header.textContent = item.title;
+        resultsContainer.appendChild(header);
+        continue;
+      }
+
+      totalTests++;
+      const row = document.createElement('div');
+      row.className = 'test-row';
+      try {
+        await item.fn();
+        passedTests++;
+        row.innerHTML = `<span class="badge badge-pass">PASS</span> <span>${escapeHTML(item.name)}</span>`;
+      } catch (err) {
+        failedTests++;
+        row.innerHTML = `<span class="badge badge-fail">FAIL</span> <span>${escapeHTML(item.name)}</span> <span style="color: #f87171; margin-left: auto;">${escapeHTML(err?.message || String(err))}</span>`;
+      }
+      resultsContainer.appendChild(row);
+    }
 
     // Update Summary
     summaryContainer.innerHTML = `
