@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>European CV Studio</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='2' y='1' width='20' height='22' rx='4' fill='%23ffffff' stroke='%2316161b' stroke-width='1.8'/%3E%3Crect x='5' y='4.5' width='3' height='15' rx='1.5' fill='%232b3fe8'/%3E%3Cline x1='10.5' y1='7.5' x2='18.5' y2='7.5' stroke='%2316161b' stroke-width='1.8' stroke-linecap='round'/%3E%3Cline x1='10.5' y1='11.8' x2='18.5' y2='11.8' stroke='%23595964' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='10.5' y1='16' x2='15.5' y2='16' stroke='%23595964' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -16,6 +17,7 @@
 
   <!-- 1. Top Header Bar -->
   <header class="app-header no-print">
+    <h1 class="sr-only">European CV Studio</h1>
     <div class="brand-group">
       <span class="folio-mark" aria-hidden="true">
         <svg width="15" height="18" viewBox="0 0 18 22" fill="none">
@@ -40,7 +42,7 @@
       </button>
 
       <button class="btn btn-outline" id="btn-open-matcher" type="button">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
           <circle cx="12" cy="12" r="9"></circle>
           <circle cx="12" cy="12" r="5"></circle>
           <circle cx="12" cy="12" r="1.5"></circle>
@@ -49,17 +51,17 @@
       </button>
 
       <button class="btn btn-ghost" id="btn-open-launch" type="button" title="Start new CV, guided wizard, or import JSON">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path d="M12 5v14M5 12h14"></path>
         </svg>
         <span class="btn-label-desktop">New / Import</span>
       </button>
 
       <button class="btn btn-ghost btn-icon-only" id="btn-theme-toggle" type="button" title="Switch light or dark workspace" aria-label="Toggle theme">
-        <svg id="icon-theme-moon" class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+        <svg id="icon-theme-moon" class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
         </svg>
-        <svg id="icon-theme-sun" class="btn-icon" style="display: none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+        <svg id="icon-theme-sun" class="btn-icon" style="display: none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
           <circle cx="12" cy="12" r="5"></circle>
           <line x1="12" y1="1" x2="12" y2="3"></line>
           <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -73,7 +75,7 @@
       </button>
 
       <button class="btn btn-primary" id="btn-export-pdf" type="button">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" aria-hidden="true">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -186,11 +188,11 @@
           <div class="toolbar-popover" id="popover-regional" style="width: 300px;">
             <div class="popover-title">European formatting &amp; compliance</div>
             <div id="formal-toggles-section">
-              <label class="toggle-row" id="row-toggle-photo">
+              <label class="toggle-row" id="row-toggle-photo" for="toggle-photo">
                 <span>Include Candidate Photo</span>
                 <input type="checkbox" id="toggle-photo" checked>
               </label>
-              <label class="toggle-row" id="row-toggle-signature">
+              <label class="toggle-row" id="row-toggle-signature" for="toggle-signature">
                 <span>Closing Signature Block</span>
                 <input type="checkbox" id="toggle-signature" checked>
               </label>
@@ -215,8 +217,8 @@
           </button>
           <div class="toolbar-popover" id="popover-template">
             <div class="popover-title">Choose a CV layout</div>
-            <div class="template-gallery-grid" id="template-gallery">
-              <button type="button" class="template-card-option active" data-template-id="german-din-5008">
+            <div class="template-gallery-grid" id="template-gallery" role="group" aria-label="CV layout templates">
+              <button type="button" class="template-card-option active" data-template-id="german-din-5008" aria-pressed="true">
                 <div class="template-thumb" aria-hidden="true">
                   <div class="thumb-header-row">
                     <div style="flex:1; display:flex; flex-direction:column; gap:3px;">
@@ -244,7 +246,7 @@
                 <div class="template-card-desc">DIN 5008 asymmetric date grid</div>
               </button>
 
-              <button type="button" class="template-card-option" data-template-id="minimal-swiss">
+              <button type="button" class="template-card-option" data-template-id="minimal-swiss" aria-pressed="false">
                 <div class="template-thumb" aria-hidden="true">
                   <div style="border-bottom: 3px solid #0f172a; padding-bottom: 5px; display:flex; flex-direction:column; gap:3px;">
                     <div class="thumb-line dark" style="width:80%; height:6px;"></div>
@@ -264,7 +266,7 @@
                 <div class="template-card-desc">Swiss typographic grid</div>
               </button>
 
-              <button type="button" class="template-card-option" data-template-id="modern-european">
+              <button type="button" class="template-card-option" data-template-id="modern-european" aria-pressed="false">
                 <div class="template-thumb" aria-hidden="true">
                   <div style="align-items:center; border-bottom: 1px solid #0f172a; padding-bottom: 5px; display:flex; flex-direction:column; gap:3px;">
                     <div class="thumb-line dark" style="width:65%; height:5px;"></div>
@@ -297,13 +299,13 @@
           </button>
           <div class="toolbar-popover" id="popover-color" style="min-width: 240px;">
             <div class="popover-title">Ink palette &amp; studio tone</div>
-            <div class="color-swatches-grid">
-              <button type="button" class="color-dot active" data-color="#2b3fe8" data-color-name="Ultramarine" data-ink-key="ultramarine" style="background: #2b3fe8;" title="Ultramarine Cobalt" aria-label="Ultramarine Cobalt"></button>
-              <button type="button" class="color-dot" data-color="#1e3a8a" data-color-name="Prussian Navy" data-ink-key="prussian" style="background: #1e3a8a;" title="Prussian Navy" aria-label="Prussian Navy"></button>
-              <button type="button" class="color-dot" data-color="#065f46" data-color-name="Botanical Emerald" data-ink-key="emerald" style="background: #065f46;" title="Botanical Emerald" aria-label="Botanical Emerald"></button>
-              <button type="button" class="color-dot" data-color="#701a75" data-color-name="Bordeaux Plum" data-ink-key="bordeaux" style="background: #701a75;" title="Bordeaux Plum" aria-label="Bordeaux Plum"></button>
-              <button type="button" class="color-dot" data-color="#b4432a" data-color-name="Burnt Sienna" data-ink-key="sienna" style="background: #b4432a;" title="Burnt Sienna" aria-label="Burnt Sienna"></button>
-              <button type="button" class="color-dot" data-color="#0f172a" data-color-name="Obsidian Slate" data-ink-key="obsidian" style="background: #0f172a;" title="Obsidian Slate" aria-label="Obsidian Slate"></button>
+            <div class="color-swatches-grid" role="group" aria-label="Studio ink palette">
+              <button type="button" class="color-dot active" data-color="#2b3fe8" data-color-name="Ultramarine" data-ink-key="ultramarine" style="background: #2b3fe8;" title="Ultramarine Cobalt" aria-label="Ultramarine Cobalt" aria-pressed="true"></button>
+              <button type="button" class="color-dot" data-color="#1e3a8a" data-color-name="Prussian Navy" data-ink-key="prussian" style="background: #1e3a8a;" title="Prussian Navy" aria-label="Prussian Navy" aria-pressed="false"></button>
+              <button type="button" class="color-dot" data-color="#065f46" data-color-name="Botanical Emerald" data-ink-key="emerald" style="background: #065f46;" title="Botanical Emerald" aria-label="Botanical Emerald" aria-pressed="false"></button>
+              <button type="button" class="color-dot" data-color="#701a75" data-color-name="Bordeaux Plum" data-ink-key="bordeaux" style="background: #701a75;" title="Bordeaux Plum" aria-label="Bordeaux Plum" aria-pressed="false"></button>
+              <button type="button" class="color-dot" data-color="#b4432a" data-color-name="Burnt Sienna" data-ink-key="sienna" style="background: #b4432a;" title="Burnt Sienna" aria-label="Burnt Sienna" aria-pressed="false"></button>
+              <button type="button" class="color-dot" data-color="#0f172a" data-color-name="Obsidian Slate" data-ink-key="obsidian" style="background: #0f172a;" title="Obsidian Slate" aria-label="Obsidian Slate" aria-pressed="false"></button>
             </div>
           </div>
         </div>
@@ -348,9 +350,9 @@
   </nav>
 
   <!-- Mobile View Switcher (< 768px) -->
-  <div class="mobile-pane-tabs no-print">
-    <button type="button" class="mobile-tab-btn active" id="tab-mobile-editor">Edit CV</button>
-    <button type="button" class="mobile-tab-btn" id="tab-mobile-preview">Preview A4</button>
+  <div class="mobile-pane-tabs no-print" role="group" aria-label="Workspace view">
+    <button type="button" class="mobile-tab-btn active" id="tab-mobile-editor" aria-pressed="true">Edit CV</button>
+    <button type="button" class="mobile-tab-btn" id="tab-mobile-preview" aria-pressed="false">Preview A4</button>
   </div>
 
   <!-- 3. Two-Pane Studio Workspace -->
@@ -365,24 +367,26 @@
       <div class="editor-scroll" id="editor-scroll">
         <!-- Pinned Section 1: Identity & Contact -->
         <div class="accordion-card is-open" data-section-id="identity" id="accordion-identity">
-          <div class="accordion-header" data-toggle-section="identity" tabindex="0" role="button" aria-expanded="true">
-            <span class="section-jewel" data-jewel="identity">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-3.5 3.6-6 8-6s8 2.5 8 6"></path></svg>
-              <span class="section-status-dot" data-status-dot="identity" aria-hidden="true">•</span>
-            </span>
-            <div class="accordion-heading-group">
-              <div class="accordion-title-row">
-                <span class="accordion-title">Personal details</span>
-              </div>
-              <div class="accordion-summary" data-summary-for="identity">Name, target role &amp; contact details</div>
-            </div>
-            <div class="accordion-controls">
-              <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </div>
+          <div class="accordion-header">
+            <h2 class="accordion-heading">
+              <button type="button" class="accordion-toggle" id="heading-identity" aria-expanded="true" aria-controls="body-identity" data-section-toggle="identity">
+                <span class="section-jewel" data-jewel="identity">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-3.5 3.6-6 8-6s8 2.5 8 6"></path></svg>
+                  <span class="section-status-dot" data-status-dot="identity" aria-hidden="true">•</span>
+                </span>
+                <span class="accordion-heading-group">
+                  <span class="accordion-title-row">
+                    <span class="accordion-title">Personal details</span>
+                  </span>
+                  <span class="accordion-summary" data-summary-for="identity">Name, target role &amp; contact details</span>
+                </span>
+                <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+            </h2>
           </div>
-          <div class="accordion-body">
+          <div class="accordion-body" id="body-identity" role="region" aria-labelledby="heading-identity">
             <div class="field-grid-2">
               <div class="field-group">
                 <label class="field-label" for="p-first-name">First name</label>
@@ -428,10 +432,10 @@
               </div>
             </div>
             <div class="field-group" id="group-photo-upload">
-              <label class="field-label">Portrait photo (DIN 5008)</label>
+              <label class="field-label" for="p-photo-file">Portrait photo (DIN 5008)</label>
               <div class="photo-upload-row">
                 <div class="photo-thumb-preview" id="photo-mini-preview">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"></circle><path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6"></path></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6"></path></svg>
                 </div>
                 <input type="file" id="p-photo-file" accept="image/*" style="display: none;">
                 <button class="btn btn-outline btn-compact" id="btn-upload-photo" type="button">Upload photo</button>
@@ -440,7 +444,7 @@
             </div>
             <div class="step-nav-footer">
               <span></span>
-              <button type="button" class="btn btn-primary" data-goto-next="identity">Next: Summary</button>
+              <button type="button" class="btn btn-primary" data-goto-next="identity" data-step-next="identity">Next section</button>
             </div>
           </div>
         </div>
@@ -450,27 +454,31 @@
 
           <!-- Summary -->
           <div class="accordion-card" data-section-id="summary" draggable="true">
-            <div class="accordion-header" data-toggle-section="summary" tabindex="0" role="button" aria-expanded="false">
-              <span class="drag-handle" title="Drag to reorder section" aria-label="Drag Summary">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+            <div class="accordion-header">
+              <span class="drag-handle" title="Drag to reorder section" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
               </span>
-              <span class="section-jewel" data-jewel="summary">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="18" y2="12"></line><line x1="4" y1="18" x2="14" y2="18"></line></svg>
-                <span class="section-status-dot" data-status-dot="summary" aria-hidden="true">•</span>
-              </span>
-              <div class="accordion-heading-group">
-                <div class="accordion-title-row">
-                  <span class="accordion-title">Professional summary</span>
-                </div>
-                <div class="accordion-summary" data-summary-for="summary">Write a crisp 2–3 sentence overview</div>
-              </div>
+              <h2 class="accordion-heading">
+                <button type="button" class="accordion-toggle" id="heading-summary" aria-expanded="false" aria-controls="body-summary" data-section-toggle="summary">
+                  <span class="section-jewel" data-jewel="summary">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="18" y2="12"></line><line x1="4" y1="18" x2="14" y2="18"></line></svg>
+                    <span class="section-status-dot" data-status-dot="summary" aria-hidden="true">•</span>
+                  </span>
+                  <span class="accordion-heading-group">
+                    <span class="accordion-title-row">
+                      <span class="accordion-title">Professional summary</span>
+                    </span>
+                    <span class="accordion-summary" data-summary-for="summary">Write a crisp 2–3 sentence overview</span>
+                  </span>
+                  <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+              </h2>
               <div class="accordion-controls">
                 <button type="button" class="reorder-arrow-btn" data-move-up="summary" aria-label="Move Summary up" title="Move up">↑</button>
                 <button type="button" class="reorder-arrow-btn" data-move-down="summary" aria-label="Move Summary down" title="Move down">↓</button>
-                <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
               </div>
             </div>
-            <div class="accordion-body">
+            <div class="accordion-body" id="body-summary" role="region" aria-labelledby="heading-summary">
               <div class="field-group">
                 <label class="field-label" for="f-summary">
                   <span>Executive bio (2–4 sentences)</span>
@@ -480,34 +488,38 @@
               </div>
               <div class="step-nav-footer">
                 <button type="button" class="btn btn-outline" data-goto-prev="summary">Back</button>
-                <button type="button" class="btn btn-primary" data-goto-next="summary">Next section</button>
+                <button type="button" class="btn btn-primary" data-goto-next="summary" data-step-next="summary">Next section</button>
               </div>
             </div>
           </div>
 
           <!-- Work Experience -->
           <div class="accordion-card" data-section-id="experience" draggable="true">
-            <div class="accordion-header" data-toggle-section="experience" tabindex="0" role="button" aria-expanded="false">
-              <span class="drag-handle" title="Drag to reorder section" aria-label="Drag Work Experience">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+            <div class="accordion-header">
+              <span class="drag-handle" title="Drag to reorder section" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
               </span>
-              <span class="section-jewel" data-jewel="experience">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="3"></rect><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"></path></svg>
-                <span class="section-status-dot" data-status-dot="experience" aria-hidden="true">•</span>
-              </span>
-              <div class="accordion-heading-group">
-                <div class="accordion-title-row">
-                  <span class="accordion-title">Work experience</span>
-                </div>
-                <div class="accordion-summary" data-summary-for="experience">Add positions and measurable impact</div>
-              </div>
+              <h2 class="accordion-heading">
+                <button type="button" class="accordion-toggle" id="heading-experience" aria-expanded="false" aria-controls="body-experience" data-section-toggle="experience">
+                  <span class="section-jewel" data-jewel="experience">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="3"></rect><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"></path></svg>
+                    <span class="section-status-dot" data-status-dot="experience" aria-hidden="true">•</span>
+                  </span>
+                  <span class="accordion-heading-group">
+                    <span class="accordion-title-row">
+                      <span class="accordion-title">Work experience</span>
+                    </span>
+                    <span class="accordion-summary" data-summary-for="experience">Add positions and measurable impact</span>
+                  </span>
+                  <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+              </h2>
               <div class="accordion-controls">
                 <button type="button" class="reorder-arrow-btn" data-move-up="experience" aria-label="Move Work experience up" title="Move up">↑</button>
                 <button type="button" class="reorder-arrow-btn" data-move-down="experience" aria-label="Move Work experience down" title="Move down">↓</button>
-                <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
               </div>
             </div>
-            <div class="accordion-body">
+            <div class="accordion-body" id="body-experience" role="region" aria-labelledby="heading-experience">
               <div style="display:flex; justify-content:space-between; align-items:center; gap: 8px;">
                 <span style="font-size:12px; color:var(--text-secondary);">List roles in reverse chronological order.</span>
                 <button class="btn btn-outline btn-compact" id="btn-add-job" type="button">+ Add position</button>
@@ -515,34 +527,38 @@
               <div id="experience-card-list" style="display:flex; flex-direction:column; gap:10px;"></div>
               <div class="step-nav-footer">
                 <button type="button" class="btn btn-outline" data-goto-prev="experience">Back</button>
-                <button type="button" class="btn btn-primary" data-goto-next="experience">Next section</button>
+                <button type="button" class="btn btn-primary" data-goto-next="experience" data-step-next="experience">Next section</button>
               </div>
             </div>
           </div>
 
           <!-- Education -->
           <div class="accordion-card" data-section-id="education" draggable="true">
-            <div class="accordion-header" data-toggle-section="education" tabindex="0" role="button" aria-expanded="false">
-              <span class="drag-handle" title="Drag to reorder section" aria-label="Drag Education">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+            <div class="accordion-header">
+              <span class="drag-handle" title="Drag to reorder section" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
               </span>
-              <span class="section-jewel" data-jewel="education">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
-                <span class="section-status-dot" data-status-dot="education" aria-hidden="true">•</span>
-              </span>
-              <div class="accordion-heading-group">
-                <div class="accordion-title-row">
-                  <span class="accordion-title">Education &amp; qualifications</span>
-                </div>
-                <div class="accordion-summary" data-summary-for="education">University degrees &amp; vocational training</div>
-              </div>
+              <h2 class="accordion-heading">
+                <button type="button" class="accordion-toggle" id="heading-education" aria-expanded="false" aria-controls="body-education" data-section-toggle="education">
+                  <span class="section-jewel" data-jewel="education">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+                    <span class="section-status-dot" data-status-dot="education" aria-hidden="true">•</span>
+                  </span>
+                  <span class="accordion-heading-group">
+                    <span class="accordion-title-row">
+                      <span class="accordion-title">Education &amp; qualifications</span>
+                    </span>
+                    <span class="accordion-summary" data-summary-for="education">University degrees &amp; vocational training</span>
+                  </span>
+                  <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+              </h2>
               <div class="accordion-controls">
                 <button type="button" class="reorder-arrow-btn" data-move-up="education" aria-label="Move Education up" title="Move up">↑</button>
                 <button type="button" class="reorder-arrow-btn" data-move-down="education" aria-label="Move Education down" title="Move down">↓</button>
-                <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
               </div>
             </div>
-            <div class="accordion-body">
+            <div class="accordion-body" id="body-education" role="region" aria-labelledby="heading-education">
               <div style="display:flex; justify-content:space-between; align-items:center; gap: 8px;">
                 <span style="font-size:12px; color:var(--text-secondary);">Include honors or GPA if recent graduate.</span>
                 <button class="btn btn-outline btn-compact" id="btn-add-edu" type="button">+ Add degree</button>
@@ -550,34 +566,38 @@
               <div id="education-card-list" style="display:flex; flex-direction:column; gap:10px;"></div>
               <div class="step-nav-footer">
                 <button type="button" class="btn btn-outline" data-goto-prev="education">Back</button>
-                <button type="button" class="btn btn-primary" data-goto-next="education">Next section</button>
+                <button type="button" class="btn btn-primary" data-goto-next="education" data-step-next="education">Next section</button>
               </div>
             </div>
           </div>
 
           <!-- Technical Skills -->
           <div class="accordion-card" data-section-id="skills" draggable="true">
-            <div class="accordion-header" data-toggle-section="skills" tabindex="0" role="button" aria-expanded="false">
-              <span class="drag-handle" title="Drag to reorder section" aria-label="Drag Skills">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+            <div class="accordion-header">
+              <span class="drag-handle" title="Drag to reorder section" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
               </span>
-              <span class="section-jewel" data-jewel="skills">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                <span class="section-status-dot" data-status-dot="skills" aria-hidden="true">•</span>
-              </span>
-              <div class="accordion-heading-group">
-                <div class="accordion-title-row">
-                  <span class="accordion-title">Skills &amp; technologies</span>
-                </div>
-                <div class="accordion-summary" data-summary-for="skills">Add key competencies for ATS matching</div>
-              </div>
+              <h2 class="accordion-heading">
+                <button type="button" class="accordion-toggle" id="heading-skills" aria-expanded="false" aria-controls="body-skills" data-section-toggle="skills">
+                  <span class="section-jewel" data-jewel="skills">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    <span class="section-status-dot" data-status-dot="skills" aria-hidden="true">•</span>
+                  </span>
+                  <span class="accordion-heading-group">
+                    <span class="accordion-title-row">
+                      <span class="accordion-title">Skills &amp; technologies</span>
+                    </span>
+                    <span class="accordion-summary" data-summary-for="skills">Add key competencies for ATS matching</span>
+                  </span>
+                  <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+              </h2>
               <div class="accordion-controls">
                 <button type="button" class="reorder-arrow-btn" data-move-up="skills" aria-label="Move Skills up" title="Move up">↑</button>
                 <button type="button" class="reorder-arrow-btn" data-move-down="skills" aria-label="Move Skills down" title="Move down">↓</button>
-                <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
               </div>
             </div>
-            <div class="accordion-body">
+            <div class="accordion-body" id="body-skills" role="region" aria-labelledby="heading-skills">
               <div class="field-group">
                 <label class="field-label" for="skill-quick-input">Add a skill (press Enter)</label>
                 <div class="skill-add-row">
@@ -594,34 +614,38 @@
               </details>
               <div class="step-nav-footer">
                 <button type="button" class="btn btn-outline" data-goto-prev="skills">Back</button>
-                <button type="button" class="btn btn-primary" data-goto-next="skills">Next section</button>
+                <button type="button" class="btn btn-primary" data-goto-next="skills" data-step-next="skills">Next section</button>
               </div>
             </div>
           </div>
 
           <!-- Languages (CEFR) -->
           <div class="accordion-card" data-section-id="languages" draggable="true">
-            <div class="accordion-header" data-toggle-section="languages" tabindex="0" role="button" aria-expanded="false">
-              <span class="drag-handle" title="Drag to reorder section" aria-label="Drag Languages">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+            <div class="accordion-header">
+              <span class="drag-handle" title="Drag to reorder section" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
               </span>
-              <span class="section-jewel" data-jewel="languages">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-                <span class="section-status-dot" data-status-dot="languages" aria-hidden="true">•</span>
-              </span>
-              <div class="accordion-heading-group">
-                <div class="accordion-title-row">
-                  <span class="accordion-title">Languages (CEFR scale)</span>
-                </div>
-                <div class="accordion-summary" data-summary-for="languages">Add spoken languages and proficiency</div>
-              </div>
+              <h2 class="accordion-heading">
+                <button type="button" class="accordion-toggle" id="heading-languages" aria-expanded="false" aria-controls="body-languages" data-section-toggle="languages">
+                  <span class="section-jewel" data-jewel="languages">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                    <span class="section-status-dot" data-status-dot="languages" aria-hidden="true">•</span>
+                  </span>
+                  <span class="accordion-heading-group">
+                    <span class="accordion-title-row">
+                      <span class="accordion-title">Languages (CEFR scale)</span>
+                    </span>
+                    <span class="accordion-summary" data-summary-for="languages">Add spoken languages and proficiency</span>
+                  </span>
+                  <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+              </h2>
               <div class="accordion-controls">
                 <button type="button" class="reorder-arrow-btn" data-move-up="languages" aria-label="Move Languages up" title="Move up">↑</button>
                 <button type="button" class="reorder-arrow-btn" data-move-down="languages" aria-label="Move Languages down" title="Move down">↓</button>
-                <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
               </div>
             </div>
-            <div class="accordion-body">
+            <div class="accordion-body" id="body-languages" role="region" aria-labelledby="heading-languages">
               <div style="display:flex; justify-content:space-between; align-items:center; gap: 8px;">
                 <span style="font-size:12px; color:var(--text-secondary);">European employers look for CEFR tiers (A1–C2).</span>
                 <button class="btn btn-outline btn-compact" id="btn-add-lang" type="button">+ Add language</button>
@@ -629,70 +653,86 @@
               <div id="language-card-list" style="display:flex; flex-direction:column; gap:10px;"></div>
               <div class="step-nav-footer">
                 <button type="button" class="btn btn-outline" data-goto-prev="languages">Back</button>
-                <button type="button" class="btn btn-primary" data-goto-next="languages">Finish &amp; Export</button>
+                <button type="button" class="btn btn-primary" data-goto-next="languages" data-step-next="languages">Next section</button>
               </div>
             </div>
           </div>
 
           <!-- Optional Section: Projects -->
           <div class="accordion-card" data-section-id="projects" draggable="true" style="display: none;">
-            <div class="accordion-header" data-toggle-section="projects" tabindex="0" role="button" aria-expanded="false">
-              <span class="drag-handle" title="Drag to reorder section" aria-label="Drag Projects">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+            <div class="accordion-header">
+              <span class="drag-handle" title="Drag to reorder section" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
               </span>
-              <span class="section-jewel" data-jewel="projects">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-                <span class="section-status-dot" data-status-dot="projects" aria-hidden="true">•</span>
-              </span>
-              <div class="accordion-heading-group">
-                <div class="accordion-title-row">
-                  <span class="accordion-title">Projects</span>
-                </div>
-                <div class="accordion-summary" data-summary-for="projects">Open-source or notable builds</div>
-              </div>
+              <h2 class="accordion-heading">
+                <button type="button" class="accordion-toggle" id="heading-projects" aria-expanded="false" aria-controls="body-projects" data-section-toggle="projects">
+                  <span class="section-jewel" data-jewel="projects">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                    <span class="section-status-dot" data-status-dot="projects" aria-hidden="true">•</span>
+                  </span>
+                  <span class="accordion-heading-group">
+                    <span class="accordion-title-row">
+                      <span class="accordion-title">Projects</span>
+                    </span>
+                    <span class="accordion-summary" data-summary-for="projects">Open-source or notable builds</span>
+                  </span>
+                  <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+              </h2>
               <div class="accordion-controls">
                 <button type="button" class="reorder-arrow-btn" data-move-up="projects" aria-label="Move Projects up" title="Move up">↑</button>
                 <button type="button" class="reorder-arrow-btn" data-move-down="projects" aria-label="Move Projects down" title="Move down">↓</button>
-                <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
               </div>
             </div>
-            <div class="accordion-body">
+            <div class="accordion-body" id="body-projects" role="region" aria-labelledby="heading-projects">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <button type="button" class="btn-remove-inline" data-remove-section="projects">Remove section</button>
                 <button class="btn btn-outline btn-compact" id="btn-add-project" type="button">+ Add project</button>
               </div>
               <div id="projects-card-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+              <div class="step-nav-footer">
+                <button type="button" class="btn btn-outline" data-goto-prev="projects">Back</button>
+                <button type="button" class="btn btn-primary" data-goto-next="projects" data-step-next="projects">Next section</button>
+              </div>
             </div>
           </div>
 
           <!-- Optional Section: Certifications -->
           <div class="accordion-card" data-section-id="certifications" draggable="true" style="display: none;">
-            <div class="accordion-header" data-toggle-section="certifications" tabindex="0" role="button" aria-expanded="false">
-              <span class="drag-handle" title="Drag to reorder section" aria-label="Drag Certifications">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+            <div class="accordion-header">
+              <span class="drag-handle" title="Drag to reorder section" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
               </span>
-              <span class="section-jewel" data-jewel="certifications">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"></circle><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"></path></svg>
-                <span class="section-status-dot" data-status-dot="certifications" aria-hidden="true">•</span>
-              </span>
-              <div class="accordion-heading-group">
-                <div class="accordion-title-row">
-                  <span class="accordion-title">Certifications</span>
-                </div>
-                <div class="accordion-summary" data-summary-for="certifications">Industry licenses &amp; credentials</div>
-              </div>
+              <h2 class="accordion-heading">
+                <button type="button" class="accordion-toggle" id="heading-certifications" aria-expanded="false" aria-controls="body-certifications" data-section-toggle="certifications">
+                  <span class="section-jewel" data-jewel="certifications">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="6"></circle><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"></path></svg>
+                    <span class="section-status-dot" data-status-dot="certifications" aria-hidden="true">•</span>
+                  </span>
+                  <span class="accordion-heading-group">
+                    <span class="accordion-title-row">
+                      <span class="accordion-title">Certifications</span>
+                    </span>
+                    <span class="accordion-summary" data-summary-for="certifications">Industry licenses &amp; credentials</span>
+                  </span>
+                  <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+              </h2>
               <div class="accordion-controls">
                 <button type="button" class="reorder-arrow-btn" data-move-up="certifications" aria-label="Move Certifications up" title="Move up">↑</button>
                 <button type="button" class="reorder-arrow-btn" data-move-down="certifications" aria-label="Move Certifications down" title="Move down">↓</button>
-                <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
               </div>
             </div>
-            <div class="accordion-body">
+            <div class="accordion-body" id="body-certifications" role="region" aria-labelledby="heading-certifications">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <button type="button" class="btn-remove-inline" data-remove-section="certifications">Remove section</button>
                 <button class="btn btn-outline btn-compact" id="btn-add-cert" type="button">+ Add certification</button>
               </div>
               <div id="certifications-card-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+              <div class="step-nav-footer">
+                <button type="button" class="btn btn-outline" data-goto-prev="certifications">Back</button>
+                <button type="button" class="btn btn-primary" data-goto-next="certifications" data-step-next="certifications">Next section</button>
+              </div>
             </div>
           </div>
 
@@ -719,7 +759,7 @@
       <div class="canvas-top-bar no-print">
         <div class="page-budget-container" id="page-budget-box">
           <span style="font-weight: 600; color: var(--text-secondary);">Page Fit</span>
-          <div class="budget-bar-track">
+          <div class="budget-bar-track" id="budget-track" role="progressbar" aria-label="A4 page fit" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
             <div class="budget-bar-fill" id="budget-fill"></div>
           </div>
           <span id="budget-status-label" style="font-weight: 600; color: var(--success);">Calculating...</span>
@@ -745,7 +785,7 @@
   <footer class="strength-footer no-print" aria-label="CV completion meter">
     <div class="strength-meter-group">
       <span class="strength-pct" id="strength-pct">0%</span>
-      <div class="strength-track">
+      <div class="strength-track" id="strength-track" role="progressbar" aria-label="CV completion strength" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
         <div class="strength-fill" id="strength-fill"></div>
       </div>
       <span class="strength-tier-badge" id="strength-tier">Draft Mode</span>
@@ -804,10 +844,10 @@
   <div id="toast-notice" class="toast-notice" role="status" aria-live="polite"></div>
 
   <!-- Slide-Over Drawer: ATS Health & Job Description Matcher -->
-  <aside class="slide-drawer no-print" id="job-drawer" aria-label="ATS Health and Job Matcher">
+  <aside class="slide-drawer no-print" id="job-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" inert>
     <div class="drawer-header">
       <div>
-        <h3 class="drawer-title">ATS Health &amp; Job Keyword Matcher</h3>
+        <h2 class="drawer-title" id="drawer-title">ATS Health &amp; Job Keyword Matcher</h2>
         <p class="drawer-subtitle">Audit completeness and match against a target job posting.</p>
       </div>
       <button id="btn-close-drawer" class="drawer-close-btn" type="button" aria-label="Close drawer">&times;</button>
@@ -815,8 +855,8 @@
 
     <div class="drawer-body">
       <div class="ats-panel">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-          <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Overall ATS Score</span>
+        <div class="drawer-score-header">
+          <span class="drawer-score-label">Overall ATS Score</span>
           <span id="drawer-ats-badge" class="ats-pill">--/100</span>
         </div>
         <div id="drawer-ats-checks"></div>
@@ -830,8 +870,8 @@
         <button class="btn btn-primary" id="btn-analyze-job" type="button" style="width: 100%;">Run keyword match</button>
 
         <div id="job-analysis-results" style="display: none; border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <span style="font-size: 12.5px; font-weight: 600; color: var(--text-primary);">Keyword Match Rate:</span>
+          <div class="drawer-score-header">
+            <span class="drawer-score-label" style="font-size: 12.5px; font-weight: 600;">Keyword Match Rate:</span>
             <span id="job-match-badge" class="ats-pill">0%</span>
           </div>
 

@@ -5,14 +5,14 @@
 
 @page {
   size: A4 portrait;
-  margin: 0;
+  margin: 12mm 15mm;
 }
 
 :root {
   --a4-width: 210mm;
   --a4-height: 297mm;
-  --a4-padding-x: 18mm;
-  --a4-padding-y: 16mm;
+  --a4-padding-x: 16mm;
+  --a4-padding-y: 13mm;
 }
 
 /* Screen Preview Representation */
@@ -41,65 +41,109 @@
 
 /* Page Break & Section Integrity Rules */
 .cv-section {
-  break-inside: avoid;
-  page-break-inside: avoid;
   margin-bottom: 16px;
 }
 
-.cv-item {
+.item-block,
+.edu-block,
+.lang-row,
+.lang-item,
+.sig-block,
+.din-signature-block {
   break-inside: avoid;
   page-break-inside: avoid;
-  margin-bottom: 12px;
 }
 
-/* Print Overrides for Flawless Native PDF Export */
+.section-title,
+.section-heading,
+.cv-section-title,
+h2,
+h3 {
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+/* Print Overrides for Flawless Multi-Page Native PDF Export */
 @media print {
   html, body {
-    width: 210mm;
-    height: 100%;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-width: none !important;
     margin: 0 !important;
     padding: 0 !important;
+    overflow: visible !important;
+    display: block !important;
     background: #ffffff !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     color-adjust: exact !important;
   }
 
-  /* Hide everything outside the A4 sheet */
+  /* Hide everything outside the A4 sheet and interactive/empty chrome */
   .editor-sidebar,
   .top-navbar,
   .ats-drawer,
   .zoom-controls,
-  .no-print {
+  .no-print,
+  .item-actions,
+  .add-item-trigger,
+  .photo-slot-empty,
+  .photo-placeholder,
+  .photo-slot:not(:has(img)) {
     display: none !important;
   }
 
-  .main-layout {
-    display: block !important;
-    height: auto !important;
-    overflow: visible !important;
-  }
-
-  .preview-container {
-    padding: 0 !important;
-    margin: 0 !important;
-    background: transparent !important;
-    overflow: visible !important;
-  }
-
+  .studio-layout,
+  .main-layout,
+  .preview-container,
+  .pane-canvas,
+  .canvas-desk,
   .a4-sheet-wrapper {
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
     padding: 0 !important;
     margin: 0 !important;
     background: transparent !important;
+    background-image: none !important;
+    overflow: visible !important;
+    position: static !important;
   }
 
   .a4-sheet {
     box-shadow: none !important;
     border: none !important;
-    width: 210mm !important;
-    min-height: 297mm !important;
+    width: 100% !important;
+    max-width: 210mm !important;
+    min-height: 0 !important;
     margin: 0 !important;
-    padding: var(--a4-padding-y) var(--a4-padding-x) !important;
+    padding: 0 !important;
     transform: none !important;
+    background: #ffffff !important;
+  }
+
+  .a4-sheet.spacing-compact {
+    padding: 0 !important;
+  }
+
+  .a4-sheet.spacing-spacious {
+    padding: 3mm 2mm !important;
+  }
+
+  [contenteditable],
+  [contenteditable]:hover,
+  [contenteditable]:focus,
+  [contenteditable="true"]:focus,
+  [contenteditable="true"]:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
+  }
+
+  p, li {
+    orphans: 2;
+    widows: 2;
   }
 }
