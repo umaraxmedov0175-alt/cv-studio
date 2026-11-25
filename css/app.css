@@ -2321,39 +2321,4 @@ textarea.field-input {
   }
 }
 
-/* Print Overrides */
-@media print {
-  body {
-    background: transparent !important;
-  }
-  .no-print,
-  .studio-top-stripe,
-  .app-header,
-  .settings-toolbar,
-  .mobile-pane-tabs,
-  .pane-editor,
-  .canvas-top-bar,
-  .strength-footer,
-  .launch-overlay,
-  .drawer-backdrop,
-  .slide-drawer,
-  .toast-notice {
-    display: none !important;
-  }
-  .studio-layout {
-    display: block !important;
-  }
-  .pane-canvas,
-  .canvas-desk {
-    padding: 0 !important;
-    overflow: visible !important;
-    background: transparent !important;
-    background-image: none !important;
-  }
-  .a4-sheet {
-    box-shadow: none !important;
-    transform: none !important;
-    margin: 0 !important;
-    width: 210mm !important;
-  }
-}
+/* Print overrides live in css/print-a4.css so there is a single authority. */

@@ -54,6 +54,17 @@ per-suite results, and exits with a non-zero code when anything fails:
 powershell -ExecutionPolicy Bypass -File .\run_tests.ps1
 ```
 
+### Checking print / PDF output
+
+`tests/print-check.ps1` renders the app to PDF in headless Chrome or Edge and
+asserts the result is a real A4 page rather than a blank one, that a short CV
+does not spill onto a second blank page, and that a long CV paginates instead of
+being clipped:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tests\print-check.ps1
+```
+
 ### Rebuilding the bundle
 
 `index.html` loads `js/app.bundle.js` when opened directly from disk (`file://`),
