@@ -2,7 +2,7 @@
 # 1) js/app.bundle.js for file:// protocol compatibility
 # 2) Standalone single-file HTML artifact for sidebar presentation
 param(
-  [string]$StandaloneArtifactPath = "C:\Users\HP\.gemini\antigravity\brain\25a29bbc-04a7-4b88-aee9-fef8760b8024\european_cv_builder.html"
+  [string]$StandaloneArtifactPath = ""
 )
 
 $ErrorActionPreference = 'Stop'
@@ -31,8 +31,16 @@ $sb = [System.Text.StringBuilder]::new()
 foreach ($rel in $files) {
   $full = Join-Path $root $rel
   $raw = Get-Content -Path $full -Raw -Encoding UTF8
-  $cleaned = [regex]::Replace($raw, '(?ms)^\s*import\s+(?:[\s\S]*?from\s+)?[''"][^''"]+[''"];?\s*$', '')
-  $cleaned = [regex]::Replace($cleaned, '(?m)^\s*export\s+(?=(const|let|var|function)\s)', '')
+  # Strip single- and multi-line ES imports
+  $cleaned = [regex]::Replace($raw, '(?m)^\s*import\s+(?:[^;''"]*?\bfrom\s+)?[''"][^''"]+[''"];?\s*\r?$', '')
+  # Strip export lists and re-exports: export { a, b }; / export * from '...';
+  $cleaned = [regex]::Replace($cleaned, '(?m)^\s*export\s+(?:\*(?:\s+as\s+[A-Za-z_$][\w$]*)?|\{[^}]*\})(?:\s+from\s+[''"][^''"]+[''"])?;?\s*\r?$', '')
+  # Strip export default on named declarations (function / async function / function* / class)
+  $cleaned = [regex]::Replace($cleaned, '(?m)^\s*export\s+default\s+(?=(?:async\s+)?(?:function\*?|class)\s+[A-Za-z_$])', '')
+  # Strip bare identifier default exports: export default Foo;
+  $cleaned = [regex]::Replace($cleaned, '(?m)^\s*export\s+default\s+[A-Za-z_$][\w$]*;?\s*\r?$', '')
+  # Strip named export keyword on const/let/var/class/function/async function/function*
+  $cleaned = [regex]::Replace($cleaned, '(?m)^\s*export\s+(?=(?:const|let|var|class|(?:async\s+)?function\*?)\s)', '')
   [void]$sb.AppendLine("  // --- $rel ---")
   [void]$sb.AppendLine($cleaned)
 }
@@ -44,8 +52,10 @@ $outPath = Join-Path $root 'js/app.bundle.js'
 [System.IO.File]::WriteAllText($outPath, $bundleCode, [System.Text.UTF8Encoding]::new($false))
 Write-Host "Generated $outPath ($((Get-Item $outPath).Length) bytes)"
 
-# Generate standalone artifact with inlined CSS and bundled JS
-if ($StandaloneArtifactPath -and (Test-Path (Split-Path -Parent $StandaloneArtifactPath))) {
+# Generate standalone artifact with inlined CSS and bundled JS when target path is provided
+if ($StandaloneArtifactPath) {
+  $artifactParent = Split-Path -Parent $StandaloneArtifactPath
+  if (-not $artifactParent -or (Test-Path -LiteralPath $artifactParent)) {
   $indexHtml = Get-Content -Path (Join-Path $root 'index.html') -Raw -Encoding UTF8
   $cssPrint = Get-Content -Path (Join-Path $root 'css/print-a4.css') -Raw -Encoding UTF8
   $cssTpl = Get-Content -Path (Join-Path $root 'css/templates.css') -Raw -Encoding UTF8
@@ -69,4 +79,7 @@ if ($StandaloneArtifactPath -and (Test-Path (Split-Path -Parent $StandaloneArtif
 
   [System.IO.File]::WriteAllText($StandaloneArtifactPath, $standaloneHtml, [System.Text.UTF8Encoding]::new($false))
   Write-Host "Generated standalone artifact: $StandaloneArtifactPath ($((Get-Item $StandaloneArtifactPath).Length) bytes)"
+  } else {
+    Write-Host "Skipping standalone artifact (parent directory not found): $artifactParent"
+  }
 }

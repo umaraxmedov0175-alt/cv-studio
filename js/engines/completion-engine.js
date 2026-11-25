@@ -4,29 +4,41 @@
  * per-section completeness states, and next-best-action prompts.
  */
 
-const METRIC_REGEX = /\b\d+(\.\d+)?%|\d+\s*(years|months|k|m|€|\$|ms|s|x|\+)/i;
+import { hasQuantifiableMetric } from './ats-scorer.js';
+
+function cleanStr(val) {
+  return typeof val === 'string' ? val.trim() : '';
+}
 
 /**
  * Evaluates a CV document and returns weighted completion metrics.
  * Weights: Identity (10), Summary (10), Experience (40), Education (15), Skills & Languages (25).
  */
 export function calculateCVCompletion(cv) {
-  const safeCV = cv || {};
-  const p = safeCV.personal || {};
-  const summaryText = (safeCV.summary || '').trim();
-  const experiences = Array.isArray(safeCV.experience) ? safeCV.experience : [];
-  const education = Array.isArray(safeCV.education) ? safeCV.education : [];
-  const techSkills = Array.isArray(safeCV.skills?.technical) ? safeCV.skills.technical.filter(Boolean) : [];
-  const languages = Array.isArray(safeCV.skills?.languages) ? safeCV.skills.languages.filter(l => l?.language?.trim()) : [];
-  const projects = Array.isArray(safeCV.projects) ? safeCV.projects : [];
-  const certifications = Array.isArray(safeCV.certifications) ? safeCV.certifications : [];
+  const safeCV = cv && typeof cv === 'object' && !Array.isArray(cv) ? cv : {};
+  const p = safeCV.personal && typeof safeCV.personal === 'object' && !Array.isArray(safeCV.personal)
+    ? safeCV.personal
+    : {};
+  const summaryText = cleanStr(safeCV.summary);
+  const experiences = (Array.isArray(safeCV.experience) ? safeCV.experience : [])
+    .filter(item => item && typeof item === 'object' && !Array.isArray(item));
+  const education = (Array.isArray(safeCV.education) ? safeCV.education : [])
+    .filter(item => item && typeof item === 'object' && !Array.isArray(item));
+  const techSkills = (Array.isArray(safeCV.skills?.technical) ? safeCV.skills.technical : [])
+    .filter(s => typeof s === 'string' && s.trim());
+  const languages = (Array.isArray(safeCV.skills?.languages) ? safeCV.skills.languages : [])
+    .filter(l => l && typeof l === 'object' && Boolean(cleanStr(l.language)));
+  const projects = (Array.isArray(safeCV.projects) ? safeCV.projects : [])
+    .filter(item => item && typeof item === 'object' && !Array.isArray(item));
+  const certifications = (Array.isArray(safeCV.certifications) ? safeCV.certifications : [])
+    .filter(item => item && typeof item === 'object' && !Array.isArray(item));
 
   // 1. Identity (10 pts)
   let identityPts = 0;
-  if (p.firstName?.trim() && p.lastName?.trim()) identityPts += 4;
-  if (p.email?.trim() && p.email.includes('@')) identityPts += 3;
-  if (p.phone?.trim() || p.city?.trim()) identityPts += 2;
-  if (p.title?.trim()) identityPts += 1;
+  if (cleanStr(p.firstName) && cleanStr(p.lastName)) identityPts += 4;
+  if (cleanStr(p.email).includes('@')) identityPts += 3;
+  if (cleanStr(p.phone) || cleanStr(p.city)) identityPts += 2;
+  if (cleanStr(p.title)) identityPts += 1;
 
   // 2. Summary (10 pts)
   let summaryPts = 0;
@@ -42,14 +54,20 @@ export function calculateCVCompletion(cv) {
   let totalBullets = 0;
   if (experiences.length > 0) {
     expPts += 15;
-    totalBullets = experiences.reduce((acc, item) => acc + ((item.bullets || []).filter(Boolean).length), 0);
+    const allBullets = experiences.flatMap(item =>
+      (Array.isArray(item.bullets) ? item.bullets : [])
+        .filter(b => typeof b === 'string' || typeof b === 'number')
+        .map(b => String(b).trim())
+        .filter(Boolean)
+    );
+    totalBullets = allBullets.length;
     if (experiences.length >= 2 || totalBullets >= 3) {
       expPts += 15;
     } else if (totalBullets >= 1) {
       expPts += 7;
     }
-    const bulletText = experiences.flatMap(item => item.bullets || []).join(' ');
-    if (METRIC_REGEX.test(bulletText)) {
+    const bulletText = allBullets.join(' ');
+    if (hasQuantifiableMetric(bulletText)) {
       expPts += 10;
       hasExpMetrics = true;
     }
@@ -58,7 +76,7 @@ export function calculateCVCompletion(cv) {
   // 4. Education (15 pts)
   let eduPts = 0;
   if (education.length > 0) {
-    const completeEdu = education.some(e => e.degree?.trim() && e.institution?.trim());
+    const completeEdu = education.some(e => Boolean(cleanStr(e.degree) && cleanStr(e.institution)));
     eduPts = completeEdu ? 15 : 8;
   }
 
@@ -97,8 +115,7 @@ export function calculateCVCompletion(cv) {
     techSkills,
     eduPts,
     summaryPts,
-    languages,
-    percentage
+    languages
   });
 
   return {
@@ -109,9 +126,14 @@ export function calculateCVCompletion(cv) {
   };
 }
 
-function pickNextAction({ identityPts, experiences, hasExpMetrics, totalBullets, techSkills, eduPts, summaryPts, languages, percentage }) {
-  if (identityPts < 7) {
-    return { sectionId: 'identity', prompt: 'Add your name, target title, and email (+10%)' };
+function pickNextAction({ identityPts, experiences, hasExpMetrics, totalBullets, techSkills, eduPts, summaryPts, languages }) {
+  if (identityPts < 10) {
+    return {
+      sectionId: 'identity',
+      prompt: identityPts < 7
+        ? 'Add your name, target title, and email (+10%)'
+        : 'Add your phone, city, and target role title to complete Identity'
+    };
   }
   if (experiences.length === 0) {
     return { sectionId: 'experience', prompt: 'Add 1 work experience to reach Interview Ready (+40%)' };
@@ -134,10 +156,16 @@ function pickNextAction({ identityPts, experiences, hasExpMetrics, totalBullets,
   if (experiences.length < 2 && totalBullets < 3) {
     return { sectionId: 'experience', prompt: 'Add a second achievement bullet to strengthen your history' };
   }
-  if (percentage < 100) {
+  if (techSkills.length < 5) {
     return {
-      sectionId: techSkills.length < 5 ? 'skills' : 'languages',
-      prompt: 'Reach 5+ skills and 2+ CEFR languages for All-Star status'
+      sectionId: 'skills',
+      prompt: 'Reach 5+ skills to unlock All-Star status'
+    };
+  }
+  if (languages.length < 2) {
+    return {
+      sectionId: 'languages',
+      prompt: 'Add 2+ CEFR languages to unlock All-Star status'
     };
   }
   return { sectionId: 'export', prompt: 'All-Star CV ready — Download A4 PDF or run Job Matcher' };

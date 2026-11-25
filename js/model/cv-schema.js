@@ -20,6 +20,11 @@ export const TEMPLATE_IDS = {
   MINIMAL_SWISS: 'minimal-swiss'
 };
 
+const VALID_TEMPLATES = new Set(Object.values(TEMPLATE_IDS));
+const VALID_LANGUAGES = new Set(['en', 'de', 'fr']);
+const VALID_COUNTRIES = new Set(['DE', 'UK', 'FR', 'NL']);
+const VALID_SPACING = new Set(['compact', 'normal', 'spacious']);
+
 export const DEFAULT_SECTION_ORDER = [
   'summary',
   'experience',
@@ -58,6 +63,40 @@ export function normalizeSectionOrder(order) {
   return result;
 }
 
+export function isSafePhotoUrl(url) {
+  if (typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (trimmed === '') return true;
+  if (/[\u0000-\u001f\u007f]/.test(trimmed)) return false;
+
+  if (/^data:/i.test(trimmed)) {
+    return /^data:image\/(png|jpeg|jpg|webp|gif);base64,[a-z0-9+/=]+$/i.test(trimmed);
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const parsed = new URL(trimmed);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // Allow only relative paths without a URI scheme or protocol-relative // prefix
+  if (trimmed.startsWith('//') || trimmed.includes('://') || /^[^/?#]*:/.test(trimmed)) {
+    return false;
+  }
+  return true;
+}
+
+function asPlainObject(val) {
+  return val && typeof val === 'object' && !Array.isArray(val) ? val : {};
+}
+
+function asString(val, fallback = '') {
+  return typeof val === 'string' ? val : fallback;
+}
+
 export function createEmptyCV() {
   return {
     meta: {
@@ -66,7 +105,6 @@ export function createEmptyCV() {
       language: 'en',
       targetCountry: 'DE',
       accentColor: '#2b3fe8',
-      fontFamily: 'Plus Jakarta Sans',
       spacing: 'normal',
       showPhoto: true,
       includeSignatureBlock: true,
@@ -102,7 +140,7 @@ export function createEmptyCV() {
     projects: [],
     signature: {
       place: 'Berlin',
-      date: new Date().toLocaleDateString('en-GB'),
+      date: new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }),
       signeeName: ''
     }
   };
@@ -116,7 +154,6 @@ export function createSampleEuropeanCV() {
       language: 'en',
       targetCountry: 'DE',
       accentColor: '#2b3fe8',
-      fontFamily: 'Plus Jakarta Sans',
       spacing: 'normal',
       showPhoto: true,
       includeSignatureBlock: true,
@@ -242,22 +279,181 @@ export function createSampleEuropeanCV() {
 // Backward compatibility alias
 export const createSampleGermanCV = createSampleEuropeanCV;
 
-export function validateCV(cv) {
+/**
+ * Coerces untrusted or partial CV payloads into a safe, well-typed CV object.
+ */
+export function sanitizeCVData(raw) {
+  const base = createEmptyCV();
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return base;
+  }
+
+  const rawMeta = asPlainObject(raw.meta);
+  const rawCountry = typeof rawMeta.targetCountry === 'string' ? rawMeta.targetCountry.trim().toUpperCase() : '';
+  const rawAccent = typeof rawMeta.accentColor === 'string' ? rawMeta.accentColor.trim() : '';
+
+  const meta = {
+    version: asString(rawMeta.version, base.meta.version),
+    template: VALID_TEMPLATES.has(rawMeta.template) ? rawMeta.template : base.meta.template,
+    language: VALID_LANGUAGES.has(rawMeta.language) ? rawMeta.language : base.meta.language,
+    targetCountry: VALID_COUNTRIES.has(rawCountry) ? rawCountry : base.meta.targetCountry,
+    accentColor: /^#[0-9a-f]{3,8}$/i.test(rawAccent) ? rawAccent : base.meta.accentColor,
+    spacing: VALID_SPACING.has(rawMeta.spacing) ? rawMeta.spacing : base.meta.spacing,
+    showPhoto: typeof rawMeta.showPhoto === 'boolean' ? rawMeta.showPhoto : base.meta.showPhoto,
+    includeSignatureBlock: typeof rawMeta.includeSignatureBlock === 'boolean'
+      ? rawMeta.includeSignatureBlock
+      : base.meta.includeSignatureBlock,
+    sectionOrder: normalizeSectionOrder(rawMeta.sectionOrder)
+  };
+
+  const rawPersonal = asPlainObject(raw.personal);
+  const rawPhoto = typeof rawPersonal.photoUrl === 'string' ? rawPersonal.photoUrl.trim() : '';
+  const personal = {
+    firstName: asString(rawPersonal.firstName),
+    lastName: asString(rawPersonal.lastName),
+    title: asString(rawPersonal.title),
+    email: asString(rawPersonal.email),
+    phone: asString(rawPersonal.phone),
+    address: asString(rawPersonal.address),
+    city: asString(rawPersonal.city),
+    postalCode: asString(rawPersonal.postalCode),
+    country: rawPersonal.country === undefined || rawPersonal.country === null
+      ? base.personal.country
+      : asString(rawPersonal.country),
+    birthDate: asString(rawPersonal.birthDate),
+    birthPlace: asString(rawPersonal.birthPlace),
+    nationality: asString(rawPersonal.nationality),
+    website: asString(rawPersonal.website),
+    linkedin: asString(rawPersonal.linkedin),
+    github: asString(rawPersonal.github),
+    photoUrl: isSafePhotoUrl(rawPhoto) ? rawPhoto : ''
+  };
+
+  const experience = (Array.isArray(raw.experience) ? raw.experience : [])
+    .filter(item => item && typeof item === 'object' && !Array.isArray(item))
+    .map((exp, idx) => ({
+      id: asString(exp.id) || `exp-${idx + 1}`,
+      position: asString(exp.position),
+      company: asString(exp.company),
+      city: asString(exp.city),
+      startDate: asString(exp.startDate),
+      endDate: asString(exp.endDate),
+      current: Boolean(exp.current),
+      bullets: Array.isArray(exp.bullets)
+        ? exp.bullets.filter(b => typeof b === 'string' || typeof b === 'number').map(b => String(b))
+        : [],
+      technologies: Array.isArray(exp.technologies)
+        ? exp.technologies.filter(t => typeof t === 'string').map(t => t.trim()).filter(Boolean)
+        : []
+    }));
+
+  const education = (Array.isArray(raw.education) ? raw.education : [])
+    .filter(item => item && typeof item === 'object' && !Array.isArray(item))
+    .map((edu, idx) => ({
+      id: asString(edu.id) || `edu-${idx + 1}`,
+      degree: asString(edu.degree),
+      institution: asString(edu.institution),
+      city: asString(edu.city),
+      startDate: asString(edu.startDate),
+      endDate: asString(edu.endDate),
+      grade: asString(edu.grade),
+      thesis: asString(edu.thesis)
+    }));
+
+  const rawSkills = asPlainObject(raw.skills);
+  const skills = {
+    technical: Array.isArray(rawSkills.technical)
+      ? rawSkills.technical.filter(s => typeof s === 'string').map(s => s.trim()).filter(Boolean)
+      : [],
+    languages: (Array.isArray(rawSkills.languages) ? rawSkills.languages : [])
+      .filter(l => l && typeof l === 'object' && !Array.isArray(l))
+      .map(l => ({
+        language: asString(l.language),
+        level: asString(l.level)
+      })),
+    tools: Array.isArray(rawSkills.tools)
+      ? rawSkills.tools.filter(t => typeof t === 'string').map(t => t.trim()).filter(Boolean)
+      : []
+  };
+
+  const certifications = (Array.isArray(raw.certifications) ? raw.certifications : [])
+    .filter(c => c && typeof c === 'object' && !Array.isArray(c))
+    .map((c, idx) => ({
+      id: asString(c.id) || `cert-${idx + 1}`,
+      name: asString(c.name),
+      issuer: asString(c.issuer),
+      year: typeof c.year === 'number' && Number.isFinite(c.year) ? String(c.year) : asString(c.year)
+    }));
+
+  const projects = (Array.isArray(raw.projects) ? raw.projects : [])
+    .filter(p => p && typeof p === 'object' && !Array.isArray(p))
+    .map((p, idx) => ({
+      id: asString(p.id) || `proj-${idx + 1}`,
+      name: asString(p.name),
+      description: asString(p.description),
+      technologies: asString(p.technologies),
+      link: asString(p.link)
+    }));
+
+  const rawSig = asPlainObject(raw.signature);
+  const signature = {
+    place: typeof rawSig.place === 'string' ? rawSig.place : base.signature.place,
+    date: typeof rawSig.date === 'string' ? rawSig.date : base.signature.date,
+    signeeName: typeof rawSig.signeeName === 'string' ? rawSig.signeeName : base.signature.signeeName
+  };
+
+  return {
+    meta,
+    personal,
+    summary: asString(raw.summary),
+    experience,
+    education,
+    skills,
+    certifications,
+    projects,
+    signature
+  };
+}
+
+export function validateCV(cv, options = {}) {
   const errors = [];
-  if (!cv) {
+  const { allowDraft = false } = options && typeof options === 'object' ? options : {};
+
+  if (!cv || typeof cv !== 'object' || Array.isArray(cv)) {
     return { valid: false, errors: ['CV object cannot be empty.'] };
   }
-  if (!cv.personal?.firstName?.trim()) {
+  if (!cv.personal || typeof cv.personal !== 'object' || Array.isArray(cv.personal)) {
+    return { valid: false, errors: ['Personal details object is missing or invalid.'] };
+  }
+
+  const p = cv.personal;
+  if (p.firstName !== undefined && p.firstName !== null && typeof p.firstName !== 'string') {
+    errors.push('First name must be text.');
+  } else if (!allowDraft && !(typeof p.firstName === 'string' && p.firstName.trim())) {
     errors.push('First name is required.');
   }
-  if (!cv.personal?.lastName?.trim()) {
+
+  if (p.lastName !== undefined && p.lastName !== null && typeof p.lastName !== 'string') {
+    errors.push('Last name must be text.');
+  } else if (!allowDraft && !(typeof p.lastName === 'string' && p.lastName.trim())) {
     errors.push('Last name is required.');
   }
-  if (!cv.personal?.email?.trim()) {
-    errors.push('Email address is required.');
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cv.personal.email)) {
-    errors.push('Invalid email address format.');
+
+  if (p.email !== undefined && p.email !== null && typeof p.email !== 'string') {
+    errors.push('Email address must be text.');
+  } else {
+    const emailStr = typeof p.email === 'string' ? p.email.trim() : '';
+    if (!allowDraft && !emailStr) {
+      errors.push('Email address is required.');
+    } else if (emailStr && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr)) {
+      errors.push('Invalid email address format.');
+    }
   }
+
+  if (p.photoUrl !== undefined && p.photoUrl !== null && !isSafePhotoUrl(p.photoUrl)) {
+    errors.push('Invalid or unsafe photo URL.');
+  }
+
   return {
     valid: errors.length === 0,
     errors

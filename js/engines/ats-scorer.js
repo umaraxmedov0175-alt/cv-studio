@@ -1,44 +1,87 @@
 /**
  * ATS (Applicant Tracking System) Compliance & Scoring Engine
  * Calibrated for European, UK, and DACH corporate recruitment filters.
- * Default language: English (with multi-language action verb support).
+ * Default language: English (with multi-language EN/DE/FR action verb & metric support).
  */
 
-const GERMAN_ACTION_VERBS = [
-  'entwicklung', 'entwickelt', 'leitung', 'geleitet', 'optimierung', 'optimiert',
-  'steigerung', 'gesteigert', 'konzeption', 'konzipiert', 'einführung', 'eingeführt',
-  'reduzierung', 'reduziert', 'implementierung', 'implementiert', 'aufbau', 'aufgebaut',
-  'analyse', 'analysiert', 'automation', 'automatisiert', 'koordination', 'koordiniert'
-];
+import { adaptCVForCountry } from './country-rules.js';
 
-const ENGLISH_ACTION_VERBS = [
-  'led', 'developed', 'architected', 'optimized', 'reduced', 'increased',
-  'implemented', 'built', 'spearheaded', 'automated', 'streamlined', 'managed',
-  'designed', 'engineered', 'delivered', 'improved', 'scaled', 'constructed'
-];
+export const ACTION_VERBS = {
+  en: [
+    'led', 'developed', 'architected', 'optimized', 'reduced', 'increased',
+    'implemented', 'built', 'spearheaded', 'automated', 'streamlined', 'managed',
+    'designed', 'engineered', 'delivered', 'improved', 'scaled', 'constructed',
+    'mentored', 'launched', 'migrated', 'elevated'
+  ],
+  de: [
+    'entwicklung', 'entwickelt', 'leitung', 'geleitet', 'optimierung', 'optimiert',
+    'steigerung', 'gesteigert', 'konzeption', 'konzipiert', 'einführung', 'eingeführt',
+    'reduzierung', 'reduziert', 'implementierung', 'implementiert', 'aufbau', 'aufgebaut',
+    'analyse', 'analysiert', 'automation', 'automatisiert', 'koordination', 'koordiniert'
+  ],
+  fr: [
+    'conçu', 'développé', 'automatisé', 'optimisé', 'réduit', 'déployé',
+    'piloté', 'coordonné', 'dirigé', 'géré', 'amélioré', 'réalisé', 'conception'
+  ]
+};
+
+const ALL_ACTION_VERBS = [...ACTION_VERBS.en, ...ACTION_VERBS.de, ...ACTION_VERBS.fr]
+  .map(v => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+export const ACTION_VERB_REGEX = new RegExp(
+  `(?:^|[^\\p{L}])(${ALL_ACTION_VERBS.join('|')})(?=$|[^\\p{L}])`,
+  'iu'
+);
+
+export const METRIC_REGEX = /(?:^|[^\p{L}\d])(?:\d+(?:[.,]\d+)?\s*%|[€$£]\s*\d+(?:[.,]\d+)?(?:\s*(?:k|m|b|mio|bn))?|\d+(?:[.,]\d+)?\s*(?:\+|x(?=$|[^\p{L}\d])|[€$£]|(?:k|m|mio|bn|ms|s|hrs?|hours?|minutes?|seconds?|days?|months?|years?|percent|jahre?n?|monate?n?|tage?n?|prozent|std\.?|ans?|mois|users?|engineers?|developers?|clients?|customers?|teams?|members?|projects?|nutzer|entwickler|kunden|utilisateurs?|ingénieurs?)(?=$|[^\p{L}\d]))|(?!19\d{2}(?=$|[^\p{L}\d])|20\d{2}(?=$|[^\p{L}\d]))\d{2,}(?=$|[^\p{L}\d]))/iu;
+
+const CEFR_LEVEL_REGEX = /^(A[12]|B[12]|C[12]|Native\b)/i;
+
+export function hasActionVerb(text) {
+  return typeof text === 'string' && ACTION_VERB_REGEX.test(text);
+}
+
+export function hasQuantifiableMetric(text) {
+  return typeof text === 'string' && METRIC_REGEX.test(text);
+}
+
+function trimStr(val) {
+  return typeof val === 'string' ? val.trim() : '';
+}
 
 export function analyzeCVForATS(cv) {
   let score = 0;
   const checks = [];
   const suggestions = [];
 
-  if (!cv || !cv.personal) {
+  if (!cv || typeof cv !== 'object' || Array.isArray(cv) || !cv.personal || typeof cv.personal !== 'object' || Array.isArray(cv.personal)) {
     return {
       score: 0,
       grade: 'F',
       status: 'Critically Incomplete',
-      checks: [{ id: 'data', category: 'Contact Information', label: 'Data available', passed: false, points: 0 }],
+      checks: [{ id: 'data', category: 'Contact Information', label: 'Data available', passed: false, points: 0, maxPoints: 20 }],
       suggestions: ['Please provide your contact details (name, email, phone).']
     };
   }
 
+  const targetCountry = trimStr(cv.meta?.targetCountry) || 'DE';
+  const adapted = adaptCVForCountry(cv, targetCountry);
+  const p = adapted.personal && typeof adapted.personal === 'object' ? adapted.personal : {};
+
   // 1. Personal & Contact Info (Max: 20 pts)
   let contactPts = 0;
-  if (cv.personal.firstName?.trim() && cv.personal.lastName?.trim()) contactPts += 5;
-  if (cv.personal.email?.trim() && cv.personal.email.includes('@')) contactPts += 5;
-  if (cv.personal.phone?.trim()) contactPts += 4;
-  if (cv.personal.city?.trim()) contactPts += 3;
-  if (cv.personal.title?.trim()) contactPts += 3;
+  const firstName = trimStr(p.firstName);
+  const lastName = trimStr(p.lastName);
+  const email = trimStr(p.email);
+  const phone = trimStr(p.phone);
+  const city = trimStr(p.city);
+  const title = trimStr(p.title);
+
+  if (firstName && lastName) contactPts += 5;
+  if (email && email.includes('@')) contactPts += 5;
+  if (phone) contactPts += 4;
+  if (city) contactPts += 3;
+  if (title) contactPts += 3;
   score += contactPts;
 
   checks.push({
@@ -56,44 +99,36 @@ export function analyzeCVForATS(cv) {
 
   // 2. Work Experience & Quantifiable Achievements (Max: 30 pts)
   let expPts = 0;
-  const experiences = cv.experience || [];
+  const experiences = (Array.isArray(adapted.experience) ? adapted.experience : [])
+    .filter(e => e && typeof e === 'object' && !Array.isArray(e));
   if (experiences.length > 0) {
     expPts += 10;
-    let hasBullets = false;
     let hasMetrics = false;
-    let hasActionVerbs = false;
+    let hasVerbs = false;
 
-    const allText = experiences
-      .flatMap(e => [...(e.bullets || []), e.position || '', e.company || ''])
-      .join(' ')
-      .toLowerCase();
+    const bullets = experiences
+      .flatMap(e => (Array.isArray(e.bullets) ? e.bullets : []))
+      .filter(b => typeof b === 'string' && b.trim());
+    const bulletText = bullets.join(' ');
 
-    // Check for bullets
-    const totalBullets = experiences.reduce((acc, cur) => acc + (cur.bullets?.length || 0), 0);
-    if (totalBullets >= 3) {
+    if (bullets.length >= 3) {
       expPts += 8;
-      hasBullets = true;
     }
 
-    // Check for quantifiable impact (numbers, %, €, $, k, m)
-    const metricRegex = /\b\d+(\.\d+)?%|\b\d+\s*(years|months|jahre|monate|k|m|€|\$|days|percent|tage|prozent)|\b\d{2,}\b/i;
-    if (metricRegex.test(allText)) {
+    if (hasQuantifiableMetric(bulletText)) {
       expPts += 6;
       hasMetrics = true;
     }
 
-    // Check for action verbs
-    const matchesGerman = GERMAN_ACTION_VERBS.some(v => allText.includes(v));
-    const matchesEnglish = ENGLISH_ACTION_VERBS.some(v => allText.includes(v));
-    if (matchesGerman || matchesEnglish) {
+    if (hasActionVerb(bulletText)) {
       expPts += 6;
-      hasActionVerbs = true;
+      hasVerbs = true;
     }
 
     if (!hasMetrics) {
       suggestions.push('Quantify your achievements with numbers or percentages (e.g., "Reduced latency by 40%").');
     }
-    if (!hasActionVerbs) {
+    if (!hasVerbs) {
       suggestions.push('Start bullet points with impactful action verbs like "Architected", "Spearheaded", or "Optimized".');
     }
   } else {
@@ -112,11 +147,12 @@ export function analyzeCVForATS(cv) {
 
   // 3. Education & Formal Qualification (Max: 15 pts)
   let eduPts = 0;
-  const education = cv.education || [];
+  const education = (Array.isArray(adapted.education) ? adapted.education : [])
+    .filter(e => e && typeof e === 'object' && !Array.isArray(e));
   if (education.length > 0) {
     eduPts += 8;
-    const hasDegree = education.some(e => e.degree?.trim());
-    const hasDates = education.some(e => (e.startDate?.trim() || e.dateRange?.trim()));
+    const hasDegree = education.some(e => Boolean(trimStr(e.degree)));
+    const hasDates = education.some(e => Boolean(trimStr(e.startDate) || trimStr(e.dateRange)));
     if (hasDegree) eduPts += 4;
     if (hasDates) eduPts += 3;
   } else {
@@ -133,30 +169,42 @@ export function analyzeCVForATS(cv) {
     maxPoints: 15
   });
 
-  // 4. Skills & Language Breakdown with CEFR (Max: 20 pts)
+  // 4. Skills & Language Breakdown with CEFR (Max: 20 pts: up to 12 tech + up to 8 CEFR languages)
   let skillPts = 0;
-  const techSkills = cv.skills?.technical || [];
-  const languages = cv.skills?.languages || [];
+  const techSkills = (Array.isArray(adapted.skills?.technical) ? adapted.skills.technical : [])
+    .filter(s => typeof s === 'string' && s.trim());
+  const languages = (Array.isArray(adapted.skills?.languages) ? adapted.skills.languages : [])
+    .filter(l => l && typeof l === 'object' && Boolean(trimStr(l.language)));
 
   if (techSkills.length >= 4) {
-    skillPts += 10;
+    skillPts += 12;
   } else if (techSkills.length > 0) {
-    skillPts += 5;
+    skillPts += 6;
     suggestions.push('List at least 5-8 relevant technical competencies or tools.');
   } else {
     suggestions.push('Add your technical skill competencies and tools.');
   }
 
-  if (languages.length >= 2) {
-    const hasCefr = languages.some(l => l.level && (l.level.includes('A') || l.level.includes('B') || l.level.includes('C') || l.level.toLowerCase().includes('native') || l.level.toLowerCase().includes('mutter')));
-    skillPts += hasCefr ? 10 : 7;
+  const cefrCount = languages.filter(l => CEFR_LEVEL_REGEX.test(trimStr(l.level))).length;
+  let langPts = 0;
+  if (languages.length === 0) {
+    langPts = 0;
+    suggestions.push('Add spoken languages with official CEFR proficiency levels (e.g., B2, C1, Native).');
   } else if (languages.length === 1) {
-    skillPts += 5;
-    suggestions.push('Add language competencies with official CEFR proficiency levels (e.g., B2, C1, Native).');
+    langPts = cefrCount >= 1 ? 4 : 2;
+    suggestions.push('Add a second language with an official CEFR level (e.g., B2, C1, Native).');
   } else {
-    // If languages aren't in array, give baseline if technical skills are comprehensive
-    if (techSkills.length >= 6) skillPts += 8;
+    if (cefrCount >= 2) {
+      langPts = 8;
+    } else if (cefrCount === 1) {
+      langPts = 6;
+      suggestions.push('Specify official CEFR proficiency levels (A1–C2, Native) for your languages.');
+    } else {
+      langPts = 4;
+      suggestions.push('Specify official CEFR proficiency levels (A1–C2, Native) for your languages.');
+    }
   }
+  skillPts += langPts;
   score += skillPts;
 
   checks.push({
@@ -170,11 +218,22 @@ export function analyzeCVForATS(cv) {
 
   // 5. European / Regional Formalities (Max: 15 pts)
   let formalPts = 0;
-  if (cv.meta?.includeSignatureBlock) {
-    if (cv.signature?.place?.trim() && cv.signature?.date?.trim()) formalPts += 8;
-    if (cv.signature?.signeeName?.trim() || (cv.personal?.firstName && cv.personal?.lastName)) formalPts += 7;
-  } else {
-    formalPts += 15; // UK Anti-bias or clean executive layout
+  const hasName = Boolean(firstName && lastName);
+  const sigPlace = trimStr(adapted.signature?.place);
+  const sigDate = trimStr(adapted.signature?.date);
+  const sigName = trimStr(adapted.signature?.signeeName);
+  const hasCandidateIdentity = hasName || Boolean(sigName);
+  const hasSubstantiveContent = (hasName || Boolean(email)) && (expPts > 0 || eduPts > 0 || skillPts > 0);
+
+  if (adapted.meta?.includeSignatureBlock) {
+    if (hasCandidateIdentity && sigPlace && sigDate) {
+      formalPts += 8;
+    }
+    if (hasCandidateIdentity) {
+      formalPts += 7;
+    }
+  } else if (hasSubstantiveContent) {
+    formalPts += adapted.rules?.allowSignatureBlock ? 12 : 15;
   }
   score += formalPts;
 
