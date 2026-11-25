@@ -20,6 +20,44 @@ export const TEMPLATE_IDS = {
   MINIMAL_SWISS: 'minimal-swiss'
 };
 
+export const DEFAULT_SECTION_ORDER = [
+  'summary',
+  'experience',
+  'education',
+  'skills',
+  'languages'
+];
+
+export const OPTIONAL_SECTION_IDS = ['projects', 'certifications'];
+
+const ALL_BODY_SECTIONS = [...DEFAULT_SECTION_ORDER, ...OPTIONAL_SECTION_IDS];
+
+/**
+ * Normalizes a persisted section ordering so known sections appear once
+ * and all core sections are guaranteed present.
+ */
+export function normalizeSectionOrder(order) {
+  const input = Array.isArray(order) ? order : [];
+  const seen = new Set();
+  const result = [];
+
+  for (const id of input) {
+    if (ALL_BODY_SECTIONS.includes(id) && !seen.has(id)) {
+      seen.add(id);
+      result.push(id);
+    }
+  }
+
+  for (const coreId of DEFAULT_SECTION_ORDER) {
+    if (!seen.has(coreId)) {
+      seen.add(coreId);
+      result.push(coreId);
+    }
+  }
+
+  return result;
+}
+
 export function createEmptyCV() {
   return {
     meta: {
@@ -29,8 +67,10 @@ export function createEmptyCV() {
       targetCountry: 'DE',
       accentColor: '#1e3a8a',
       fontFamily: 'Plus Jakarta Sans',
+      spacing: 'normal',
       showPhoto: true,
-      includeSignatureBlock: true
+      includeSignatureBlock: true,
+      sectionOrder: [...DEFAULT_SECTION_ORDER]
     },
     personal: {
       firstName: '',
@@ -77,8 +117,10 @@ export function createSampleEuropeanCV() {
       targetCountry: 'DE',
       accentColor: '#1e3a8a',
       fontFamily: 'Plus Jakarta Sans',
+      spacing: 'normal',
       showPhoto: true,
-      includeSignatureBlock: true
+      includeSignatureBlock: true,
+      sectionOrder: [...DEFAULT_SECTION_ORDER]
     },
     personal: {
       firstName: 'Alexander',

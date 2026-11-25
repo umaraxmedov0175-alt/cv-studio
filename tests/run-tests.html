@@ -69,6 +69,7 @@
     import { runATSTests } from './ats-scorer.test.js';
     import { runCountryRulesTests } from './country-rules.test.js';
     import { runJobMatcherTests } from './job-matcher.test.js';
+    import { runCompletionEngineTests } from './completion-engine.test.js';
 
     const resultsContainer = document.getElementById('test-results');
     const summaryContainer = document.getElementById('test-summary');
@@ -118,6 +119,7 @@
     runATSTests(assert);
     runCountryRulesTests(assert);
     runJobMatcherTests(assert);
+    runCompletionEngineTests(assert);
 
     // Update Summary
     summaryContainer.innerHTML = `

@@ -2,12 +2,20 @@
  * LocalStorage and JSON Import/Export Persistence Engine
  */
 
-import { createSampleGermanCV, validateCV } from './cv-schema.js';
+import { createSampleGermanCV, validateCV, normalizeSectionOrder } from './cv-schema.js';
 
 const STORAGE_KEY = 'european_cv_studio_v2';
 const AUTOSAVE_DELAY = 400; // ms debounce
 
 let debounceTimer = null;
+
+export function hasStoredCV() {
+  try {
+    return Boolean(localStorage.getItem(STORAGE_KEY));
+  } catch (err) {
+    return false;
+  }
+}
 
 export function loadStoredCV() {
   try {
@@ -15,6 +23,8 @@ export function loadStoredCV() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.personal) {
+        parsed.meta = parsed.meta || {};
+        parsed.meta.sectionOrder = normalizeSectionOrder(parsed.meta.sectionOrder);
         return parsed;
       }
     }
