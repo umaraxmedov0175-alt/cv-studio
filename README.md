@@ -54,28 +54,40 @@ When opened over `file://`, `index.html` automatically loads the classic bundle 
 
 ### Option 2 — Local HTTP Server (ES Modules)
 
-Serve the project directory over HTTP (for example using Python or any static server) to load modular ES sources directly from `js/app.js`:
+Serve the project directory over HTTP to load modular ES sources directly from `js/app.js`:
 
 ```powershell
 python -m http.server 8080
 ```
 
-Then open `http://localhost:8080/`.
+Then open `http://localhost:8080/` (or open `http://localhost:8080/tests/run-tests.html` for the interactive test runner).
 
 ---
 
 ## Development, Bundling & Testing
 
-- **Rebuild the `file://` bundle** after modifying any source file under `js/`:
+### Running unit tests from the terminal
 
-  ```powershell
-  powershell -NoProfile -ExecutionPolicy Bypass -File build-bundle.ps1
-  ```
+`run_tests.ps1` runs `tests/run-tests.html` in headless Chrome or Edge, prints per-suite results (`56` assertions across 8 suites), and exits with a non-zero code on failures:
 
-- **Run the automated unit test suite** (executes `tests/run-tests.html` in headless Microsoft Edge):
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run_tests.ps1
+```
 
-  ```powershell
-  powershell -NoProfile -ExecutionPolicy Bypass -File run_tests.ps1
-  ```
+### Checking print / PDF output
 
-  > **Note:** `tests/run-tests.html` uses `<script type="module">`. To view it interactively in a browser, serve the repo over `http://localhost:8080/tests/run-tests.html` rather than opening it directly via `file://` (unless launching with `--allow-file-access-from-files`).
+`tests/print-check.ps1` renders `index.html` to PDF in headless Chrome or Edge and asserts each scenario (`sample`, `empty`, `long`) produces a real A4 PDF, fits cleanly on Page 1 for short CVs, and paginates multi-page CVs without clipping:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tests\print-check.ps1
+```
+
+### Rebuilding the bundle
+
+`index.html` loads `js/app.bundle.js` over `file://` and modular `js/app.js` over HTTP. After modifying any file under `js/`, rebuild the bundle and standalone single-file HTML (`dist/european_cv_builder.html`):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build-bundle.ps1
+```
+
+Pass `-SkipStandalone` to rebuild only `js/app.bundle.js`.

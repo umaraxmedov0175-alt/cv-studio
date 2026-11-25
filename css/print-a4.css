@@ -1,42 +1,14 @@
 /**
  * Precision A4 Print & PDF Pagination Stylesheet
  * Strict 210mm x 297mm specifications conforming to ISO 216 / DIN 476.
+ *
+ * This file is the single source of truth for print/PDF output. Screen styling
+ * of the A4 sheet lives in css/app.css; everything below only applies to paper.
  */
 
 @page {
   size: A4 portrait;
   margin: 12mm 15mm;
-}
-
-:root {
-  --a4-width: 210mm;
-  --a4-height: 297mm;
-  --a4-padding-x: 16mm;
-  --a4-padding-y: 13mm;
-}
-
-/* Screen Preview Representation */
-.a4-sheet-wrapper {
-  display: flex;
-  justify-content: center;
-  padding: 24px;
-  overflow-y: auto;
-  background-color: #0f172a;
-}
-
-.a4-sheet {
-  width: var(--a4-width);
-  min-height: var(--a4-height);
-  padding: var(--a4-padding-y) var(--a4-padding-x);
-  background: #ffffff;
-  color: #0f172a;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
-  position: relative;
-  box-sizing: border-box;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  line-height: 1.45;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  transform-origin: top center;
 }
 
 /* Page Break & Section Integrity Rules */
@@ -45,6 +17,7 @@
 }
 
 .item-block,
+.entry-row,
 .edu-block,
 .lang-row,
 .lang-item,
@@ -65,27 +38,42 @@ h3 {
 
 /* Print Overrides for Flawless Multi-Page Native PDF Export */
 @media print {
-  html, body {
+  /* The app shell is a 100vh flex column with overflow:hidden. Left alone, that
+     clips the document to a single viewport, so normal flow is restored here. */
+  html,
+  body {
+    display: block !important;
     width: auto !important;
     height: auto !important;
     min-height: 0 !important;
     max-width: none !important;
+    max-height: none !important;
     margin: 0 !important;
     padding: 0 !important;
     overflow: visible !important;
-    display: block !important;
     background: #ffffff !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     color-adjust: exact !important;
   }
 
-  /* Hide everything outside the A4 sheet and interactive/empty chrome */
+  /* Hide every piece of studio chrome and interactive/empty placeholders. */
   .editor-sidebar,
   .top-navbar,
   .ats-drawer,
   .zoom-controls,
   .no-print,
+  .studio-top-stripe,
+  .app-header,
+  .settings-toolbar,
+  .mobile-pane-tabs,
+  .pane-editor,
+  .canvas-top-bar,
+  .strength-footer,
+  .launch-overlay,
+  .drawer-backdrop,
+  .slide-drawer,
+  .toast-notice,
   .item-actions,
   .add-item-trigger,
   .photo-slot-empty,
@@ -94,6 +82,8 @@ h3 {
     display: none !important;
   }
 
+  /* Collapse the grid/flex layout chain into plain blocks so flex:1 never
+     collapses .canvas-desk to zero height or clips multi-page CVs. */
   .studio-layout,
   .main-layout,
   .preview-container,
@@ -101,25 +91,31 @@ h3 {
   .canvas-desk,
   .a4-sheet-wrapper {
     display: block !important;
+    flex: none !important;
     width: auto !important;
     height: auto !important;
     min-height: 0 !important;
-    padding: 0 !important;
+    max-height: none !important;
     margin: 0 !important;
-    background: transparent !important;
-    background-image: none !important;
+    padding: 0 !important;
     overflow: visible !important;
     position: static !important;
+    border: none !important;
+    background: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
   }
 
+  /* Margins come from @page (12mm 15mm) so every printed page gets consistent
+     top/bottom spacing and aligns 1:1 with the on-screen A4 sheet padding. */
   .a4-sheet {
-    box-shadow: none !important;
-    border: none !important;
     width: 100% !important;
     max-width: 210mm !important;
     min-height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
     transform: none !important;
     background: #ffffff !important;
   }
@@ -142,7 +138,8 @@ h3 {
     background-color: transparent !important;
   }
 
-  p, li {
+  p,
+  li {
     orphans: 2;
     widows: 2;
   }

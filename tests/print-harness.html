@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="robots" content="noindex, nofollow">
+  <title>print harness</title>
+</head>
+<body>
+<!--
+  Seeds localStorage with a known CV, then print-check.ps1 prints ../index.html
+  using the same browser profile. Used to verify that print/PDF output is not
+  blank and that long documents paginate instead of being clipped.
+
+  mode=sample  -> the shipped sample CV (one page)
+  mode=empty   -> empty CV (must not spill onto a second, blank page)
+  mode=long    -> repeated experience blocks (must paginate to 2+ pages)
+
+  The tests/ folder is also served publicly by the static host, so seeding is
+  restricted to local runs: otherwise opening this URL would overwrite a
+  visitor's own saved CV.
+-->
+<script type="module">
+  import { createSampleEuropeanCV, createEmptyCV } from '../js/model/cv-schema.js';
+  import { saveCVDirect } from '../js/model/storage.js';
+
+  const localHosts = ['localhost', '127.0.0.1', '[::1]'];
+  const isLocal = location.protocol === 'file:' || localHosts.includes(location.hostname);
+
+  if (!isLocal) {
+    document.title = 'print harness: inert on public hosts';
+  } else {
+    const mode = new URLSearchParams(location.search).get('mode') || 'sample';
+    let cv = createSampleEuropeanCV();
+
+    if (mode === 'empty') {
+      cv = createEmptyCV();
+    } else if (mode === 'long') {
+      const base = cv.experience.slice(0, 2);
+      cv.experience = [];
+      for (let i = 0; i < 6; i++) {
+        cv.experience.push(...base.map(job => ({ ...job })));
+      }
+    }
+
+    saveCVDirect(cv);
+    document.title = 'seeded:' + mode;
+  }
+</script>
+</body>
+</html>
