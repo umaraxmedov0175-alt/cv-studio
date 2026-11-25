@@ -4,18 +4,19 @@
  * Visual Template Gallery, Section Reordering, Strength Meter, and Theme Switcher.
  */
 
-import { loadStoredCV, saveCVDirect, hasStoredCV, exportCVAsJSON, importCVFromJSON } from './model/storage.js';
+import { loadStoredCV, saveCVWithStatus, hasStoredCV, exportCVAsJSON, importCVFromJSON } from './model/storage.js';
 import {
   createSampleEuropeanCV,
   createEmptyCV,
   TEMPLATE_IDS,
   CEFR_LEVELS,
-  normalizeSectionOrder
+  normalizeSectionOrder,
+  isSafePhotoUrl
 } from './model/cv-schema.js';
 import { renderCVPreview } from './components/preview-renderer.js';
 import { exportCVToPDF } from './engines/pdf-exporter.js';
-import { COUNTRY_STANDARDS } from './engines/country-rules.js';
-import { analyzeCVForATS } from './engines/ats-scorer.js';
+import { COUNTRY_STANDARDS, getCountryFieldRules } from './engines/country-rules.js';
+import { analyzeCVForATS, hasActionVerb, hasQuantifiableMetric } from './engines/ats-scorer.js';
 import { calculateJobMatch } from './engines/job-matcher.js';
 import { calculateCVCompletion } from './engines/completion-engine.js';
 
@@ -77,10 +78,150 @@ const STUDIO_INK_KEYS = {
   '#334155': 'obsidian'
 };
 
+const DISPLAY_KEYWORD_MAP = {
+  'typescript': 'TypeScript',
+  'javascript': 'JavaScript',
+  'next.js': 'Next.js',
+  'node.js': 'Node.js',
+  'vue': 'Vue',
+  'c++': 'C++',
+  'c#': 'C#',
+  '.net': '.NET',
+  'sql': 'SQL',
+  'postgresql': 'PostgreSQL',
+  'mysql': 'MySQL',
+  'mongodb': 'MongoDB',
+  'aws': 'AWS',
+  'gcp': 'GCP',
+  'ci/cd': 'CI/CD',
+  'github actions': 'GitHub Actions',
+  'rest': 'REST',
+  'graphql': 'GraphQL',
+  'grpc': 'gRPC',
+  'ui/ux': 'UI/UX',
+  'css': 'CSS',
+  'html': 'HTML',
+  'tdd': 'TDD',
+  'fastapi': 'FastAPI'
+};
+
+const BACKGROUND_LANDMARKS_SELECTOR = 'header.app-header, nav.settings-toolbar, .mobile-pane-tabs, main.studio-layout, footer.strength-footer';
+const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+  '[contenteditable="true"]'
+].join(', ');
+
 let currentCV = null;
 let currentZoom = 0.85;
 let activeSectionId = 'identity';
 let draggedSectionId = null;
+let manualSpacingOverride = false;
+let autoAppliedCompact = false;
+let lastScrolledTabId = null;
+
+function formatSkillKeyword(kw) {
+  const lower = String(kw || '').trim().toLowerCase();
+  if (!lower) return '';
+  if (DISPLAY_KEYWORD_MAP[lower]) return DISPLAY_KEYWORD_MAP[lower];
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
+function splitDateRange(rawValue) {
+  const str = String(rawValue || '').trim();
+  if (!str) return { startDate: '', endDate: '' };
+  const match = str.match(/^(.*?)\s*(?:[–—]|\s+-\s+|\s+(?:to|bis)\s+)\s*(.*)$/i);
+  if (match) {
+    return { startDate: match[1].trim(), endDate: match[2].trim() };
+  }
+  return { startDate: str, endDate: '' };
+}
+
+function formatInputDateRange(item) {
+  const start = typeof item?.startDate === 'string' ? item.startDate.trim() : '';
+  const end = typeof item?.endDate === 'string' ? item.endDate.trim() : '';
+  const resolvedEnd = end || (item?.current ? 'Present' : '');
+  if (start && resolvedEnd) return `${start} – ${resolvedEnd}`;
+  return start || resolvedEnd || '';
+}
+
+function generateEntryId(prefix) {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function getFocusableElements(container) {
+  if (!container) return [];
+  return Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR)).filter(el => {
+    if (el.closest('[inert]') || el.hasAttribute('disabled')) return false;
+    const style = window.getComputedStyle(el);
+    return style.display !== 'none' && style.visibility !== 'hidden';
+  });
+}
+
+function handleFocusTrapKeydown(e, container) {
+  if (e.key !== 'Tab' || !container) return;
+  const focusables = getFocusableElements(container);
+  if (focusables.length === 0) {
+    e.preventDefault();
+    return;
+  }
+  const first = focusables[0];
+  const last = focusables[focusables.length - 1];
+  if (e.shiftKey) {
+    if (document.activeElement === first || !container.contains(document.activeElement)) {
+      e.preventDefault();
+      last.focus();
+    }
+  } else if (document.activeElement === last || !container.contains(document.activeElement)) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
+function downscalePhotoFile(file, maxWidth = 600, maxHeight = 750, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const origW = img.naturalWidth || img.width || 1;
+        const origH = img.naturalHeight || img.height || 1;
+        const scale = Math.min(1, maxWidth / origW, maxHeight / origH);
+        const targetW = Math.max(1, Math.round(origW * scale));
+        const targetH = Math.max(1, Math.round(origH * scale));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error('Could not initialize image processor.'));
+          return;
+        }
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, targetW, targetH);
+        ctx.drawImage(img, 0, 0, targetW, targetH);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        URL.revokeObjectURL(objectUrl);
+        resolve(dataUrl);
+      } catch (err) {
+        URL.revokeObjectURL(objectUrl);
+        reject(err);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Could not read the selected image file.'));
+    };
+    img.src = objectUrl;
+  });
+}
 
 function initStudio() {
   const isFirstVisit = !hasStoredCV();
@@ -101,13 +242,26 @@ function initStudio() {
   const studioLayout = document.getElementById('studio-layout');
 
   let toastTimer = null;
-  const showToast = (message) => {
+  const showToast = (message, durationMs = 2600) => {
     if (!toastEl) return;
     toastEl.textContent = message;
     toastEl.classList.add('show');
     if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2600);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), durationMs);
   };
+
+  let lastQuotaToastAt = 0;
+  const handleStorageStatus = (status, { forceToast = false } = {}) => {
+    if (!status || status.ok) return true;
+    const now = Date.now();
+    if (forceToast || now - lastQuotaToastAt > 3500) {
+      lastQuotaToastAt = now;
+      showToast(status.error || 'Could not save CV to browser storage.', 4200);
+    }
+    return false;
+  };
+
+  const persistCV = (options = {}) => handleStorageStatus(saveCVWithStatus(currentCV), options);
 
   /* ------------------------------------------------------------------
      Theme Management (Light default + Dark Toggle)
@@ -148,9 +302,20 @@ function initStudio() {
     { btnId: 'btn-quick-add-toggle', menuId: 'quick-add-menu' }
   ];
 
+  let activePopoverTrigger = null;
+  let lastLaunchOpener = null;
+  let lastDrawerOpener = null;
+
+  const hasOpenPopover = () => {
+    if (document.querySelector('.bullet-assistant-popover.open')) return true;
+    return popoverConfigs.some(({ menuId }) => document.getElementById(menuId)?.classList.contains('open'));
+  };
+
   const closeBulletPopovers = () => {
     document.querySelectorAll('.bullet-assistant-popover.open').forEach(p => {
       p.classList.remove('open', 'pop-up');
+      p.style.left = '';
+      p.style.right = '';
     });
     document.querySelectorAll('[data-toggle-bullet-popover]').forEach(btn => {
       btn.setAttribute('aria-expanded', 'false');
@@ -161,6 +326,9 @@ function initStudio() {
     if (!menu) return;
     menu.style.left = '';
     menu.style.right = '';
+    menu.style.top = '';
+    menu.style.bottom = '';
+
     const rect = menu.getBoundingClientRect();
     if (rect.right > window.innerWidth - 12) {
       const shiftLeft = rect.right - (window.innerWidth - 12);
@@ -168,16 +336,73 @@ function initStudio() {
     }
     const adjusted = menu.getBoundingClientRect();
     if (adjusted.left < 12) {
-      menu.style.left = `${parseFloat(menu.style.left || '0') + (12 - adjusted.left)}px`;
+      menu.style.left = `${(parseFloat(menu.style.left || '0') || 0) + (12 - adjusted.left)}px`;
+    }
+
+    const yRect = menu.getBoundingClientRect();
+    if (yRect.top < 12) {
+      if (menu.id === 'quick-add-menu') {
+        menu.style.bottom = 'auto';
+        menu.style.top = 'calc(100% + 8px)';
+        const flipped = menu.getBoundingClientRect();
+        if (flipped.bottom > window.innerHeight - 12) {
+          const currentTop = parseFloat(getComputedStyle(menu).top || '0') || 0;
+          menu.style.top = `${currentTop - (flipped.bottom - (window.innerHeight - 12))}px`;
+        }
+      } else {
+        const currentTop = parseFloat(getComputedStyle(menu).top || '0') || 0;
+        menu.style.top = `${currentTop + (12 - yRect.top)}px`;
+      }
+    } else if (yRect.bottom > window.innerHeight - 12) {
+      const overflow = yRect.bottom - (window.innerHeight - 12);
+      if (menu.id === 'quick-add-menu') {
+        const currentBottom = parseFloat(getComputedStyle(menu).bottom || '0') || 0;
+        menu.style.bottom = `${currentBottom + overflow}px`;
+      } else {
+        const parentRect = menu.parentElement?.getBoundingClientRect();
+        if (parentRect && parentRect.top - yRect.height - 8 >= 12) {
+          menu.style.top = 'auto';
+          menu.style.bottom = 'calc(100% + 6px)';
+        } else {
+          const currentTop = parseFloat(getComputedStyle(menu).top || '0') || 0;
+          menu.style.top = `${currentTop - overflow}px`;
+        }
+      }
     }
   };
 
-  const closeAllPopovers = () => {
+  const closeAllPopovers = ({ restoreFocus = false } = {}) => {
+    const triggerToRestore = restoreFocus ? activePopoverTrigger : null;
     popoverConfigs.forEach(({ btnId, menuId }) => {
       document.getElementById(menuId)?.classList.remove('open');
       document.getElementById(btnId)?.setAttribute('aria-expanded', 'false');
     });
     closeBulletPopovers();
+    activePopoverTrigger = null;
+    if (triggerToRestore && triggerToRestore.isConnected && typeof triggerToRestore.focus === 'function') {
+      triggerToRestore.focus();
+    }
+  };
+
+  const openToolbarPopover = (btn, menu, { focusOption = null } = {}) => {
+    if (!btn || !menu) return;
+    closeAllPopovers({ restoreFocus: false });
+    menu.classList.add('open');
+    btn.setAttribute('aria-expanded', 'true');
+    activePopoverTrigger = btn;
+    clampPopoverToViewport(menu);
+
+    const listbox = menu.querySelector('[role="listbox"]');
+    if (listbox) {
+      const options = Array.from(listbox.querySelectorAll('[role="option"]'));
+      if (options.length) {
+        let targetOption = null;
+        if (focusOption === 'first') targetOption = options[0];
+        else if (focusOption === 'last') targetOption = options[options.length - 1];
+        else targetOption = options.find(opt => opt.getAttribute('aria-selected') === 'true' || opt.classList.contains('active')) || options[0];
+        targetOption?.focus();
+      }
+    }
   };
 
   popoverConfigs.forEach(({ btnId, menuId }) => {
@@ -186,23 +411,69 @@ function initStudio() {
     btn?.addEventListener('click', (e) => {
       e.stopPropagation();
       const willOpen = !menu?.classList.contains('open');
-      closeAllPopovers();
       if (willOpen && menu) {
-        menu.classList.add('open');
-        btn.setAttribute('aria-expanded', 'true');
-        clampPopoverToViewport(menu);
+        openToolbarPopover(btn, menu);
+      } else {
+        closeAllPopovers({ restoreFocus: false });
+      }
+    });
+    btn?.addEventListener('keydown', (e) => {
+      if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && menu?.querySelector('[role="listbox"]')) {
+        e.preventDefault();
+        e.stopPropagation();
+        openToolbarPopover(btn, menu, { focusOption: e.key === 'ArrowUp' ? 'last' : 'active' });
       }
     });
     menu?.addEventListener('click', (e) => e.stopPropagation());
+
+    const listbox = menu?.querySelector('[role="listbox"]');
+    listbox?.addEventListener('keydown', (e) => {
+      const options = Array.from(listbox.querySelectorAll('[role="option"]'));
+      if (!options.length) return;
+      const idx = options.indexOf(document.activeElement);
+      let nextIdx = -1;
+      if (e.key === 'ArrowDown') nextIdx = idx >= 0 ? (idx + 1) % options.length : 0;
+      else if (e.key === 'ArrowUp') nextIdx = idx >= 0 ? (idx - 1 + options.length) % options.length : options.length - 1;
+      else if (e.key === 'Home') nextIdx = 0;
+      else if (e.key === 'End') nextIdx = options.length - 1;
+      if (nextIdx >= 0) {
+        e.preventDefault();
+        options[nextIdx]?.focus();
+      }
+    });
   });
 
-  document.addEventListener('click', closeAllPopovers);
+  document.addEventListener('click', () => closeAllPopovers({ restoreFocus: false }));
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      closeAllPopovers();
-      closeDrawer();
-      closeLaunchModal();
+    if (launchOverlay?.classList.contains('open')) {
+      if (e.key === 'Tab') {
+        handleFocusTrapKeydown(e, launchOverlay);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        persistCV();
+        closeLaunchModal({ restoreFocus: true });
+        return;
+      }
+    }
+
+    if (e.key === 'Escape' && hasOpenPopover()) {
+      e.preventDefault();
+      closeAllPopovers({ restoreFocus: true });
+      return;
+    }
+
+    if (drawer?.classList.contains('open')) {
+      if (e.key === 'Tab') {
+        handleFocusTrapKeydown(e, drawer);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeDrawer({ restoreFocus: true });
+      }
     }
   });
 
@@ -240,10 +511,11 @@ function initStudio() {
   const syncPhotoThumb = () => {
     const thumb = document.getElementById('photo-mini-preview');
     if (!thumb) return;
-    if (currentCV.personal?.photoUrl) {
-      thumb.innerHTML = `<img src="${escapeAttr(currentCV.personal.photoUrl)}" alt="Portrait thumbnail">`;
+    const rawPhoto = typeof currentCV.personal?.photoUrl === 'string' ? currentCV.personal.photoUrl.trim() : '';
+    if (rawPhoto && isSafePhotoUrl(rawPhoto)) {
+      thumb.innerHTML = `<img src="${escapeAttr(rawPhoto)}" alt="Portrait thumbnail">`;
     } else {
-      thumb.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"></circle><path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6"></path></svg>`;
+      thumb.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6"></path></svg>`;
     }
   };
 
@@ -251,6 +523,8 @@ function initStudio() {
     const country = currentCV.meta.targetCountry || 'DE';
     const lang = currentCV.meta.language || 'en';
     const spacing = currentCV.meta.spacing || 'normal';
+    const tplId = currentCV.meta.template || TEMPLATE_IDS.GERMAN_DIN;
+    const rules = getCountryFieldRules(country);
 
     const countryCodeEl = document.getElementById('active-country-code');
     const countryLabelEl = document.getElementById('active-country-label');
@@ -282,21 +556,37 @@ function initStudio() {
     if (toggleSignature) toggleSignature.checked = currentCV.meta.includeSignatureBlock !== false;
 
     const std = COUNTRY_STANDARDS[country] || COUNTRY_STANDARDS.DE;
-    if (complianceBox) complianceBox.textContent = std.complianceNote;
+    let complianceText = std.complianceNote;
+    if (rules.compactMode) {
+      complianceText += ' Compact spacing is recommended for 1-page presentation.';
+    }
+    if (tplId !== TEMPLATE_IDS.GERMAN_DIN && (rules.allowPhoto || rules.allowSignatureBlock)) {
+      complianceText += ` Note: ${TEMPLATE_NAMES[tplId] || 'This'} layout omits portrait photo and closing signature blocks.`;
+    }
+    if (complianceBox) complianceBox.textContent = complianceText;
 
-    const isUK = country === 'UK';
     const regIdentity = document.getElementById('regional-identity-fields');
+    const groupBirth = document.getElementById('group-birth');
+    const groupNationality = document.getElementById('group-nationality');
     const photoUploadGrp = document.getElementById('group-photo-upload');
+    const rowTogglePhoto = document.getElementById('row-toggle-photo');
+    const rowToggleSignature = document.getElementById('row-toggle-signature');
     const formalSection = document.getElementById('formal-toggles-section');
-    if (regIdentity) regIdentity.style.display = isUK ? 'none' : 'grid';
-    if (photoUploadGrp) photoUploadGrp.style.display = isUK ? 'none' : 'flex';
-    if (formalSection) formalSection.style.display = isUK ? 'none' : 'block';
 
-    const tplId = currentCV.meta.template || TEMPLATE_IDS.GERMAN_DIN;
+    if (groupBirth) groupBirth.style.display = rules.allowBirthDate ? '' : 'none';
+    if (groupNationality) groupNationality.style.display = rules.allowNationality ? '' : 'none';
+    if (regIdentity) regIdentity.style.display = (rules.allowBirthDate || rules.allowNationality) ? 'grid' : 'none';
+    if (photoUploadGrp) photoUploadGrp.style.display = rules.allowPhoto ? 'flex' : 'none';
+    if (rowTogglePhoto) rowTogglePhoto.style.display = rules.allowPhoto ? 'flex' : 'none';
+    if (rowToggleSignature) rowToggleSignature.style.display = rules.allowSignatureBlock ? 'flex' : 'none';
+    if (formalSection) formalSection.style.display = (rules.allowPhoto || rules.allowSignatureBlock) ? 'block' : 'none';
+
     const tplLabel = document.getElementById('active-template-label');
     if (tplLabel) tplLabel.textContent = TEMPLATE_NAMES[tplId] || 'Frankfurt';
     document.querySelectorAll('#template-gallery .template-card-option').forEach(card => {
-      card.classList.toggle('active', card.getAttribute('data-template-id') === tplId);
+      const isActive = card.getAttribute('data-template-id') === tplId;
+      card.classList.toggle('active', isActive);
+      card.setAttribute('aria-pressed', String(isActive));
     });
 
     const activeColor = (currentCV.meta.accentColor || '#2b3fe8').toLowerCase();
@@ -308,7 +598,9 @@ function initStudio() {
     if (activeDot) activeDot.style.background = activeColor;
     if (activeColorName) activeColorName.textContent = COLOR_NAMES[activeColor] || 'Accent';
     document.querySelectorAll('#popover-color .color-dot').forEach(dot => {
-      dot.classList.toggle('active', (dot.getAttribute('data-color') || '').toLowerCase() === activeColor);
+      const isActive = (dot.getAttribute('data-color') || '').toLowerCase() === activeColor;
+      dot.classList.toggle('active', isActive);
+      dot.setAttribute('aria-pressed', String(isActive));
     });
   };
 
@@ -320,6 +612,20 @@ function initStudio() {
     return ['identity', ...currentCV.meta.sectionOrder];
   };
 
+  const syncStepNavFooters = () => {
+    const ordered = getOrderedAllSections();
+    document.querySelectorAll('[data-step-next]').forEach(btn => {
+      const secId = btn.getAttribute('data-step-next');
+      const idx = ordered.indexOf(secId);
+      if (idx >= 0 && idx < ordered.length - 1) {
+        const nextId = ordered[idx + 1];
+        btn.textContent = `Next: ${SECTION_LABELS[nextId] || nextId}`;
+      } else {
+        btn.textContent = 'Finish & Export';
+      }
+    });
+  };
+
   const setActiveSection = (sectionId, { focusInput = false } = {}) => {
     const ordered = getOrderedAllSections();
     if (!ordered.includes(sectionId)) return;
@@ -329,8 +635,8 @@ function initStudio() {
       const id = card.getAttribute('data-section-id');
       const isOpen = id === sectionId;
       card.classList.toggle('is-open', isOpen);
-      const header = card.querySelector('.accordion-header');
-      header?.setAttribute('aria-expanded', String(isOpen));
+      const toggleBtn = card.querySelector(`.accordion-toggle[data-section-toggle="${id}"]`);
+      toggleBtn?.setAttribute('aria-expanded', String(isOpen));
     });
 
     renderStepper();
@@ -350,7 +656,7 @@ function initStudio() {
     const alreadyOpen = targetCard?.classList.contains('is-open');
     if (alreadyOpen) {
       targetCard.classList.remove('is-open');
-      targetCard.querySelector('.accordion-header')?.setAttribute('aria-expanded', 'false');
+      targetCard.querySelector(`.accordion-toggle[data-section-toggle="${sectionId}"]`)?.setAttribute('aria-expanded', 'false');
       activeSectionId = null;
       renderStepper();
     } else {
@@ -368,11 +674,15 @@ function initStudio() {
     const cardMap = Object.fromEntries(allCards.map(el => [el.getAttribute('data-section-id'), el]));
 
     // Show active ordered sections in sequence, keep inactive optional sections hidden at bottom
-    order.forEach(id => {
+    order.forEach((id, idx) => {
       const card = cardMap[id];
       if (card) {
         card.style.display = 'block';
         container.appendChild(card);
+        const upBtn = card.querySelector(`[data-move-up="${id}"]`);
+        const downBtn = card.querySelector(`[data-move-down="${id}"]`);
+        if (upBtn) upBtn.disabled = idx === 0;
+        if (downBtn) downBtn.disabled = idx === order.length - 1;
       }
     });
 
@@ -384,32 +694,80 @@ function initStudio() {
       }
     });
 
+    syncStepNavFooters();
     renderStepper();
   };
 
+  const stepperBar = document.getElementById('stepper-bar');
+  stepperBar?.addEventListener('click', (e) => {
+    const tab = e.target.closest('[data-step-target]');
+    if (tab) {
+      setActiveSection(tab.getAttribute('data-step-target'), { focusInput: false });
+    }
+  });
+  stepperBar?.addEventListener('keydown', (e) => {
+    const tab = e.target.closest('[data-step-target]');
+    if (!tab) return;
+    const tabs = Array.from(stepperBar.querySelectorAll('[data-step-target]'));
+    const idx = tabs.indexOf(tab);
+    if (idx < 0) return;
+
+    let nextIdx = -1;
+    if (e.key === 'ArrowRight') nextIdx = (idx + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') nextIdx = (idx - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') nextIdx = 0;
+    else if (e.key === 'End') nextIdx = tabs.length - 1;
+
+    if (nextIdx >= 0) {
+      e.preventDefault();
+      const targetId = tabs[nextIdx].getAttribute('data-step-target');
+      setActiveSection(targetId, { focusInput: false });
+      stepperBar.querySelector(`[data-step-target="${targetId}"]`)?.focus();
+    }
+  });
+
   const renderStepper = () => {
-    const bar = document.getElementById('stepper-bar');
-    if (!bar) return;
+    if (!stepperBar) return;
     const completion = calculateCVCompletion(currentCV);
     const ordered = getOrderedAllSections();
+    const focusableId = (activeSectionId && ordered.includes(activeSectionId)) ? activeSectionId : ordered[0];
 
-    bar.innerHTML = ordered.map((id) => {
-      const status = completion.sectionStatus[id] || 'empty';
-      const statusClass = status === 'complete' ? 'done' : status === 'partial' ? 'partial' : '';
-      const isActive = activeSectionId === id;
-      return `
-        <button type="button" class="step-tab ${isActive ? 'active' : ''} ${statusClass}" data-step-target="${id}" role="tab" aria-selected="${isActive}">
-          <span class="step-dot" aria-hidden="true"></span>
-          <span>${SECTION_LABELS[id] || id}</span>
-        </button>
-      `;
-    }).join('');
+    const existingTabs = Array.from(stepperBar.querySelectorAll('[data-step-target]'));
+    const matchesOrder = existingTabs.length === ordered.length &&
+      existingTabs.every((tab, i) => tab.getAttribute('data-step-target') === ordered[i]);
 
-    bar.querySelectorAll('[data-step-target]').forEach(tab => {
-      tab.addEventListener('click', () => {
-        setActiveSection(tab.getAttribute('data-step-target'), { focusInput: false });
+    if (matchesOrder) {
+      existingTabs.forEach((tab, i) => {
+        const id = ordered[i];
+        const status = completion.sectionStatus[id] || 'empty';
+        const isActive = activeSectionId === id;
+        tab.classList.toggle('active', isActive);
+        tab.classList.toggle('done', status === 'complete');
+        tab.classList.toggle('partial', status === 'partial');
+        tab.setAttribute('aria-selected', String(isActive));
+        tab.setAttribute('aria-controls', `body-${id}`);
+        tab.setAttribute('tabindex', id === focusableId ? '0' : '-1');
       });
-    });
+    } else {
+      stepperBar.innerHTML = ordered.map((id) => {
+        const status = completion.sectionStatus[id] || 'empty';
+        const statusClass = status === 'complete' ? 'done' : status === 'partial' ? 'partial' : '';
+        const isActive = activeSectionId === id;
+        const tabIdx = id === focusableId ? '0' : '-1';
+        return `
+          <button type="button" class="step-tab ${isActive ? 'active' : ''} ${statusClass}" id="step-tab-${id}" data-step-target="${id}" role="tab" aria-selected="${isActive}" aria-controls="body-${id}" tabindex="${tabIdx}">
+            <span class="step-dot" aria-hidden="true"></span>
+            <span>${SECTION_LABELS[id] || id}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    if (activeSectionId && activeSectionId !== lastScrolledTabId) {
+      lastScrolledTabId = activeSectionId;
+      const activeTab = stepperBar.querySelector(`[data-step-target="${activeSectionId}"]`);
+      activeTab?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
   };
 
   const updateAccordionSummariesAndStrength = () => {
@@ -461,11 +819,13 @@ function initStudio() {
     // Update sticky bottom Strength Meter
     const pctEl = document.getElementById('strength-pct');
     const fillEl = document.getElementById('strength-fill');
+    const trackEl = document.getElementById('strength-track');
     const tierEl = document.getElementById('strength-tier');
     const nextBtn = document.getElementById('strength-next-btn');
 
     if (pctEl) pctEl.textContent = `${completion.percentage}%`;
     if (fillEl) fillEl.style.width = `${completion.percentage}%`;
+    if (trackEl) trackEl.setAttribute('aria-valuenow', String(completion.percentage));
     if (tierEl) tierEl.textContent = completion.tier;
     if (nextBtn) {
       nextBtn.textContent = completion.nextAction.prompt;
@@ -533,9 +893,10 @@ function initStudio() {
 
   const calculatePageBudget = () => {
     requestAnimationFrame(() => {
-      if (!previewSheet) return;
+      if (!previewSheet || previewSheet.offsetParent === null || previewSheet.offsetWidth === 0) return;
       const singlePageMax = 1123;
       const actualScrollHeight = previewSheet.scrollHeight;
+      const budgetTrack = document.getElementById('budget-track');
 
       let contentHeight = actualScrollHeight;
       const lastChild = previewSheet.lastElementChild;
@@ -552,6 +913,7 @@ function initStudio() {
           budgetFill.style.width = `${pct}%`;
           budgetFill.style.backgroundColor = 'var(--success)';
         }
+        if (budgetTrack) budgetTrack.setAttribute('aria-valuenow', String(pct));
         if (budgetLabel) {
           budgetLabel.textContent = `Page 1: ${pct}% full`;
           budgetLabel.style.color = 'var(--success)';
@@ -564,20 +926,25 @@ function initStudio() {
           budgetFill.style.width = '100%';
           budgetFill.style.backgroundColor = 'var(--warning)';
         }
+        if (budgetTrack) budgetTrack.setAttribute('aria-valuenow', '100');
         if (budgetLabel) {
           budgetLabel.textContent = `Page 2: +${page2Pct}% overflow`;
           budgetLabel.style.color = 'var(--warning)';
         }
-        if (btnAutoFit) btnAutoFit.style.display = 'inline-flex';
+        const canCompact = (currentCV.meta?.spacing || 'normal') !== 'compact';
+        if (btnAutoFit) btnAutoFit.style.display = canCompact ? 'inline-flex' : 'none';
       }
     });
   };
+
+  let syncJobMatchIfOpen = () => {};
 
   const refreshCanvas = () => {
     renderCVPreview(currentCV, previewSheet);
     calculatePageBudget();
     updateATSReport();
     updateAccordionSummariesAndStrength();
+    syncJobMatchIfOpen();
   };
 
   /* ------------------------------------------------------------------
@@ -629,9 +996,6 @@ function initStudio() {
     }
   };
 
-  const COACH_VERBS_REGEX = /(?:^|[^\p{L}])(architected|engineered|built|developed|automated|reduced|streamlined|optimized|spearheaded|scaled|led|designed|implemented|managed|delivered|improved|constructed|entwickelt|konzipiert|optimiert|reduziert|automatisiert|eingeführt|geleitet|gesteigert|conçu|développé|automatisé|optimisé|réduit|déployé|piloté|coordonné)(?=$|[^\p{L}])/iu;
-  const COACH_METRICS_REGEX = /\b\d+([.,]\d+)?\s*%|\b\d+([.,]\d+)?\s*(years|months|jahre|monate|ans|mois|k|m|mio|€|\$|ms|s|x|\+|hrs|hours|std|users|clients|teams)|[€$]\s*\d+|\b\d{2,}\b/i;
-
   const analyzeExperienceBullets = (bullets) => {
     const clean = (bullets || []).map(b => String(b).trim()).filter(Boolean);
     const count = clean.length;
@@ -639,8 +1003,8 @@ function initStudio() {
       return { state: 'neutral', text: 'One achievement per line — lead with outcomes' };
     }
     const joined = clean.join(' ');
-    const hasMetrics = COACH_METRICS_REGEX.test(joined);
-    const hasVerb = COACH_VERBS_REGEX.test(joined);
+    const hasMetrics = hasQuantifiableMetric(joined);
+    const hasVerb = hasActionVerb(joined);
     const plural = count === 1 ? 'bullet' : 'bullets';
 
     if (hasMetrics && hasVerb) {
@@ -677,6 +1041,7 @@ function initStudio() {
 
     container.innerHTML = list.map((exp, idx) => {
       const diag = analyzeExperienceBullets(exp.bullets);
+      const dateValue = formatInputDateRange(exp);
       return `
       <div class="subcard">
         <div class="subcard-head">
@@ -686,27 +1051,27 @@ function initStudio() {
         <div class="subcard-body">
           <div class="field-grid-2">
             <div class="field-group">
-              <label class="field-label">Role title</label>
-              <input type="text" class="field-input" data-exp-f="position" data-idx="${idx}" value="${escapeAttr(exp.position || '')}">
+              <label class="field-label" for="exp-${idx}-position">Role title</label>
+              <input type="text" id="exp-${idx}-position" class="field-input" data-exp-f="position" data-idx="${idx}" value="${escapeAttr(exp.position || '')}">
             </div>
             <div class="field-group">
-              <label class="field-label">Company</label>
-              <input type="text" class="field-input" data-exp-f="company" data-idx="${idx}" value="${escapeAttr(exp.company || '')}">
+              <label class="field-label" for="exp-${idx}-company">Company</label>
+              <input type="text" id="exp-${idx}-company" class="field-input" data-exp-f="company" data-idx="${idx}" value="${escapeAttr(exp.company || '')}">
             </div>
           </div>
           <div class="field-grid-2">
             <div class="field-group">
-              <label class="field-label">Date range</label>
-              <input type="text" class="field-input" data-exp-f="dateRange" data-idx="${idx}" value="${escapeAttr((exp.startDate || '') + ' – ' + (exp.endDate || ''))}">
+              <label class="field-label" for="exp-${idx}-dateRange">Date range</label>
+              <input type="text" id="exp-${idx}-dateRange" class="field-input" data-exp-f="dateRange" data-idx="${idx}" value="${escapeAttr(dateValue)}">
             </div>
             <div class="field-group">
-              <label class="field-label">City / country</label>
-              <input type="text" class="field-input" data-exp-f="city" data-idx="${idx}" value="${escapeAttr(exp.city || '')}">
+              <label class="field-label" for="exp-${idx}-city">City / country</label>
+              <input type="text" id="exp-${idx}-city" class="field-input" data-exp-f="city" data-idx="${idx}" value="${escapeAttr(exp.city || '')}">
             </div>
           </div>
           <div class="field-group">
-            <label class="field-label">Achievements &amp; impact (1 per line)</label>
-            <textarea class="field-input" data-exp-f="bullets" data-idx="${idx}" rows="3">${escapeHTML((exp.bullets || []).join('\n'))}</textarea>
+            <label class="field-label" for="exp-${idx}-bullets">Achievements &amp; impact (1 per line)</label>
+            <textarea id="exp-${idx}-bullets" class="field-input" data-exp-f="bullets" data-idx="${idx}" rows="3">${escapeHTML((exp.bullets || []).join('\n'))}</textarea>
           </div>
           <div class="bullet-coach-row">
             <span class="bullet-diag" data-bullet-diag="${idx}">
@@ -715,9 +1080,9 @@ function initStudio() {
             </span>
             <div class="bullet-coach-trigger-wrap">
               <button type="button" class="bullet-coach-trigger" data-toggle-bullet-popover="${idx}" aria-expanded="false">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                 <span>Impact guide</span>
-                <svg class="chevron-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                <svg class="chevron-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
               </button>
               <div class="bullet-assistant-popover" id="bullet-popover-${idx}">
                 <div class="coach-pop-head">
@@ -762,9 +1127,10 @@ function initStudio() {
         if (!item) return;
 
         if (f === 'dateRange') {
-          const parts = inp.value.split(/[–-]/).map(s => s.trim());
-          item.startDate = parts[0] || '';
-          item.endDate = parts[1] || '';
+          const { startDate, endDate } = splitDateRange(inp.value);
+          item.startDate = startDate;
+          item.endDate = endDate;
+          item.current = /^(present|heute|présent|current|now|aktuell)$/i.test(endDate);
         } else if (f === 'bullets') {
           item.bullets = inp.value.split('\n').filter(Boolean);
           syncBulletDiagnosticUI(idx);
@@ -776,7 +1142,7 @@ function initStudio() {
         if (headerTitle) {
           headerTitle.textContent = `${item.position || 'Position'} · ${item.company || 'Company'}`;
         }
-        saveCVDirect(currentCV);
+        persistCV();
         refreshCanvas();
       });
     });
@@ -785,7 +1151,7 @@ function initStudio() {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.getAttribute('data-del-exp'), 10);
         currentCV.experience.splice(idx, 1);
-        saveCVDirect(currentCV);
+        persistCV();
         renderExperienceCards();
         refreshCanvas();
       });
@@ -797,14 +1163,19 @@ function initStudio() {
         const idx = btn.getAttribute('data-toggle-bullet-popover');
         const pop = document.getElementById(`bullet-popover-${idx}`);
         const willOpen = pop && !pop.classList.contains('open');
-        closeAllPopovers();
+        closeAllPopovers({ restoreFocus: false });
         if (willOpen && pop) {
           pop.classList.add('open');
           btn.setAttribute('aria-expanded', 'true');
+          activePopoverTrigger = btn;
           const btnRect = btn.getBoundingClientRect();
           const popRect = pop.getBoundingClientRect();
           if (popRect.bottom > window.innerHeight - 48 && btnRect.top - popRect.height > 120) {
             pop.classList.add('pop-up');
+          }
+          if (popRect.left < 12) {
+            pop.style.right = 'auto';
+            pop.style.left = '0';
           }
         }
       });
@@ -830,9 +1201,9 @@ function initStudio() {
         textarea.value = nextValue;
         item.bullets = nextValue.split('\n').filter(Boolean);
         syncBulletDiagnosticUI(idx);
-        saveCVDirect(currentCV);
+        persistCV();
         refreshCanvas();
-        closeAllPopovers();
+        closeAllPopovers({ restoreFocus: false });
 
         textarea.focus();
         if (isFormula) {
@@ -865,7 +1236,9 @@ function initStudio() {
       return;
     }
 
-    container.innerHTML = list.map((edu, idx) => `
+    container.innerHTML = list.map((edu, idx) => {
+      const dateValue = formatInputDateRange(edu);
+      return `
       <div class="subcard">
         <div class="subcard-head">
           <span class="subcard-title">${escapeHTML(edu.degree || 'Degree')}</span>
@@ -874,27 +1247,28 @@ function initStudio() {
         <div class="subcard-body">
           <div class="field-grid-2">
             <div class="field-group">
-              <label class="field-label">Degree / field</label>
-              <input type="text" class="field-input" data-edu-f="degree" data-idx="${idx}" value="${escapeAttr(edu.degree || '')}">
+              <label class="field-label" for="edu-${idx}-degree">Degree / field</label>
+              <input type="text" id="edu-${idx}-degree" class="field-input" data-edu-f="degree" data-idx="${idx}" value="${escapeAttr(edu.degree || '')}">
             </div>
             <div class="field-group">
-              <label class="field-label">Institution</label>
-              <input type="text" class="field-input" data-edu-f="institution" data-idx="${idx}" value="${escapeAttr(edu.institution || '')}">
+              <label class="field-label" for="edu-${idx}-institution">Institution</label>
+              <input type="text" id="edu-${idx}-institution" class="field-input" data-edu-f="institution" data-idx="${idx}" value="${escapeAttr(edu.institution || '')}">
             </div>
           </div>
           <div class="field-grid-2">
             <div class="field-group">
-              <label class="field-label">Dates</label>
-              <input type="text" class="field-input" data-edu-f="dateRange" data-idx="${idx}" value="${escapeAttr((edu.startDate || '') + ' – ' + (edu.endDate || ''))}">
+              <label class="field-label" for="edu-${idx}-dateRange">Dates</label>
+              <input type="text" id="edu-${idx}-dateRange" class="field-input" data-edu-f="dateRange" data-idx="${idx}" value="${escapeAttr(dateValue)}">
             </div>
             <div class="field-group">
-              <label class="field-label">Honors / grade</label>
-              <input type="text" class="field-input" data-edu-f="grade" data-idx="${idx}" placeholder="e.g. 1.3 / First Class" value="${escapeAttr(edu.grade || '')}">
+              <label class="field-label" for="edu-${idx}-grade">Honors / grade</label>
+              <input type="text" id="edu-${idx}-grade" class="field-input" data-edu-f="grade" data-idx="${idx}" placeholder="e.g. 1.3 / First Class" value="${escapeAttr(edu.grade || '')}">
             </div>
           </div>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     container.querySelectorAll('[data-edu-f]').forEach(inp => {
       inp.addEventListener('input', () => {
@@ -904,9 +1278,9 @@ function initStudio() {
         if (!item) return;
 
         if (f === 'dateRange') {
-          const parts = inp.value.split(/[–-]/).map(s => s.trim());
-          item.startDate = parts[0] || '';
-          item.endDate = parts[1] || '';
+          const { startDate, endDate } = splitDateRange(inp.value);
+          item.startDate = startDate;
+          item.endDate = endDate;
         } else {
           item[f] = inp.value;
         }
@@ -914,7 +1288,7 @@ function initStudio() {
         const headerTitle = inp.closest('.subcard')?.querySelector('.subcard-title');
         if (headerTitle) headerTitle.textContent = item.degree || 'Degree';
 
-        saveCVDirect(currentCV);
+        persistCV();
         refreshCanvas();
       });
     });
@@ -923,7 +1297,7 @@ function initStudio() {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.getAttribute('data-del-edu'), 10);
         currentCV.education.splice(idx, 1);
-        saveCVDirect(currentCV);
+        persistCV();
         renderEducationCards();
         refreshCanvas();
       });
@@ -955,7 +1329,7 @@ function initStudio() {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.getAttribute('data-del-skill'), 10);
         currentCV.skills.technical.splice(idx, 1);
-        saveCVDirect(currentCV);
+        persistCV();
         renderSkillsChips();
         refreshCanvas();
       });
@@ -999,18 +1373,19 @@ function initStudio() {
     container.innerHTML = langs.map((lang, idx) => {
       const matched = resolveCEFRMatch(lang.level);
       const badgeLabel = CEFR_SHORT_BADGE[matched.code] || matched.code;
+      const langDisplay = lang.language?.trim() || `Language ${idx + 1}`;
       return `
       <div class="lang-pill-card" data-lang-card="${idx}">
         <div class="lang-card-top">
-          <input type="text" class="field-input lang-name-input" placeholder="Language (e.g. German)" data-lang-f="language" data-idx="${idx}" value="${escapeAttr(lang.language || '')}">
+          <input type="text" id="lang-${idx}-name" class="field-input lang-name-input" aria-label="Language name" placeholder="Language (e.g. German)" data-lang-f="language" data-idx="${idx}" value="${escapeAttr(lang.language || '')}">
           <span class="lang-level-badge" data-lang-badge="${idx}">${escapeHTML(badgeLabel)}</span>
-          <button class="btn-icon-remove" data-del-lang="${idx}" type="button" title="Remove language" aria-label="Remove language">×</button>
+          <button class="btn-icon-remove" data-del-lang="${idx}" type="button" title="Remove language" aria-label="Remove ${escapeAttr(langDisplay)}">×</button>
         </div>
-        <div class="cefr-track" role="group" aria-label="CEFR proficiency level for ${escapeAttr(lang.language || 'language')}">
+        <div class="cefr-track" role="radiogroup" aria-label="CEFR level for ${escapeAttr(langDisplay)}">
           ${ORDERED_CEFR.map(lvl => {
             const isSelected = matched.code === lvl.code;
             const shortCode = lvl.code === 'native' ? 'Native' : lvl.code;
-            return `<button type="button" class="cefr-pill ${isSelected ? 'active' : ''}" data-set-cefr="${idx}" data-cefr-code="${escapeAttr(lvl.code)}" data-level-val="${escapeAttr(lvl.label)}" aria-pressed="${isSelected}">${shortCode}</button>`;
+            return `<button type="button" class="cefr-pill ${isSelected ? 'active' : ''}" role="radio" aria-checked="${isSelected}" tabindex="${isSelected ? '0' : '-1'}" data-set-cefr="${idx}" data-cefr-code="${escapeAttr(lvl.code)}" data-level-val="${escapeAttr(lvl.label)}">${shortCode}</button>`;
           }).join('')}
         </div>
         <div class="cefr-desc-caption" data-lang-desc="${idx}">${escapeHTML(matched.label)}</div>
@@ -1018,39 +1393,64 @@ function initStudio() {
     `;
     }).join('');
 
+    const selectCefrPill = (pill, { focusPill = false } = {}) => {
+      const idx = parseInt(pill.getAttribute('data-set-cefr'), 10);
+      const code = pill.getAttribute('data-cefr-code');
+      const nextLevel = pill.getAttribute('data-level-val');
+      const entry = currentCV.skills.languages[idx];
+      if (!entry) return;
+
+      entry.level = nextLevel;
+      const card = container.querySelector(`[data-lang-card="${idx}"]`);
+      card?.querySelectorAll('[data-set-cefr]').forEach(btn => {
+        const active = btn === pill;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-checked', String(active));
+        btn.setAttribute('tabindex', active ? '0' : '-1');
+      });
+      const badgeEl = container.querySelector(`[data-lang-badge="${idx}"]`);
+      if (badgeEl) badgeEl.textContent = CEFR_SHORT_BADGE[code] || code;
+      const descEl = container.querySelector(`[data-lang-desc="${idx}"]`);
+      if (descEl) descEl.textContent = nextLevel;
+
+      persistCV();
+      refreshCanvas();
+      if (focusPill) pill.focus();
+    };
+
     container.querySelectorAll('[data-lang-f="language"]').forEach(el => {
       el.addEventListener('input', () => {
         const idx = parseInt(el.getAttribute('data-idx'), 10);
         if (currentCV.skills.languages[idx]) {
           currentCV.skills.languages[idx].language = el.value;
-          saveCVDirect(currentCV);
+          const card = container.querySelector(`[data-lang-card="${idx}"]`);
+          const track = card?.querySelector('.cefr-track');
+          if (track) track.setAttribute('aria-label', `CEFR level for ${el.value.trim() || `Language ${idx + 1}`}`);
+          persistCV();
           refreshCanvas();
         }
       });
     });
 
     container.querySelectorAll('[data-set-cefr]').forEach(pill => {
-      pill.addEventListener('click', () => {
-        const idx = parseInt(pill.getAttribute('data-set-cefr'), 10);
-        const code = pill.getAttribute('data-cefr-code');
-        const nextLevel = pill.getAttribute('data-level-val');
-        const entry = currentCV.skills.languages[idx];
-        if (!entry) return;
+      pill.addEventListener('click', () => selectCefrPill(pill));
+      pill.addEventListener('keydown', (e) => {
+        const track = pill.closest('.cefr-track');
+        if (!track) return;
+        const pills = Array.from(track.querySelectorAll('[data-set-cefr]'));
+        const idx = pills.indexOf(pill);
+        if (idx < 0) return;
 
-        entry.level = nextLevel;
-        const card = container.querySelector(`[data-lang-card="${idx}"]`);
-        card?.querySelectorAll('[data-set-cefr]').forEach(btn => {
-          const active = btn === pill;
-          btn.classList.toggle('active', active);
-          btn.setAttribute('aria-pressed', String(active));
-        });
-        const badgeEl = container.querySelector(`[data-lang-badge="${idx}"]`);
-        if (badgeEl) badgeEl.textContent = CEFR_SHORT_BADGE[code] || code;
-        const descEl = container.querySelector(`[data-lang-desc="${idx}"]`);
-        if (descEl) descEl.textContent = nextLevel;
+        let nextIdx = -1;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextIdx = (idx + 1) % pills.length;
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') nextIdx = (idx - 1 + pills.length) % pills.length;
+        else if (e.key === 'Home') nextIdx = 0;
+        else if (e.key === 'End') nextIdx = pills.length - 1;
 
-        saveCVDirect(currentCV);
-        refreshCanvas();
+        if (nextIdx >= 0) {
+          e.preventDefault();
+          selectCefrPill(pills[nextIdx], { focusPill: true });
+        }
       });
     });
 
@@ -1058,7 +1458,7 @@ function initStudio() {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.getAttribute('data-del-lang'), 10);
         currentCV.skills.languages.splice(idx, 1);
-        saveCVDirect(currentCV);
+        persistCV();
         renderLanguageCards();
         refreshCanvas();
       });
@@ -1089,17 +1489,17 @@ function initStudio() {
         <div class="subcard-body">
           <div class="field-grid-2">
             <div class="field-group">
-              <label class="field-label">Project name</label>
-              <input type="text" class="field-input" data-proj-f="name" data-idx="${idx}" value="${escapeAttr(proj.name || '')}">
+              <label class="field-label" for="proj-${idx}-name">Project name</label>
+              <input type="text" id="proj-${idx}-name" class="field-input" data-proj-f="name" data-idx="${idx}" value="${escapeAttr(proj.name || '')}">
             </div>
             <div class="field-group">
-              <label class="field-label">Technologies</label>
-              <input type="text" class="field-input" data-proj-f="technologies" data-idx="${idx}" value="${escapeAttr(proj.technologies || '')}">
+              <label class="field-label" for="proj-${idx}-technologies">Technologies</label>
+              <input type="text" id="proj-${idx}-technologies" class="field-input" data-proj-f="technologies" data-idx="${idx}" value="${escapeAttr(proj.technologies || '')}">
             </div>
           </div>
           <div class="field-group">
-            <label class="field-label">Summary</label>
-            <input type="text" class="field-input" data-proj-f="description" data-idx="${idx}" value="${escapeAttr(proj.description || '')}">
+            <label class="field-label" for="proj-${idx}-description">Summary</label>
+            <input type="text" id="proj-${idx}-description" class="field-input" data-proj-f="description" data-idx="${idx}" value="${escapeAttr(proj.description || '')}">
           </div>
         </div>
       </div>
@@ -1113,7 +1513,7 @@ function initStudio() {
           currentCV.projects[idx][f] = inp.value;
           const title = inp.closest('.subcard')?.querySelector('.subcard-title');
           if (title) title.textContent = currentCV.projects[idx].name || 'Project';
-          saveCVDirect(currentCV);
+          persistCV();
           refreshCanvas();
         }
       });
@@ -1123,7 +1523,7 @@ function initStudio() {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.getAttribute('data-del-proj'), 10);
         currentCV.projects.splice(idx, 1);
-        saveCVDirect(currentCV);
+        persistCV();
         renderProjectsCards();
         refreshCanvas();
       });
@@ -1153,17 +1553,17 @@ function initStudio() {
         </div>
         <div class="subcard-body">
           <div class="field-group">
-            <label class="field-label">Credential name</label>
-            <input type="text" class="field-input" data-cert-f="name" data-idx="${idx}" value="${escapeAttr(cert.name || '')}">
+            <label class="field-label" for="cert-${idx}-name">Credential name</label>
+            <input type="text" id="cert-${idx}-name" class="field-input" data-cert-f="name" data-idx="${idx}" value="${escapeAttr(cert.name || '')}">
           </div>
           <div class="field-grid-2">
             <div class="field-group">
-              <label class="field-label">Issuer</label>
-              <input type="text" class="field-input" data-cert-f="issuer" data-idx="${idx}" value="${escapeAttr(cert.issuer || '')}">
+              <label class="field-label" for="cert-${idx}-issuer">Issuer</label>
+              <input type="text" id="cert-${idx}-issuer" class="field-input" data-cert-f="issuer" data-idx="${idx}" value="${escapeAttr(cert.issuer || '')}">
             </div>
             <div class="field-group">
-              <label class="field-label">Year</label>
-              <input type="text" class="field-input" data-cert-f="year" data-idx="${idx}" value="${escapeAttr(cert.year || '')}">
+              <label class="field-label" for="cert-${idx}-year">Year</label>
+              <input type="text" id="cert-${idx}-year" class="field-input" data-cert-f="year" data-idx="${idx}" value="${escapeAttr(cert.year || '')}">
             </div>
           </div>
         </div>
@@ -1178,7 +1578,7 @@ function initStudio() {
           currentCV.certifications[idx][f] = inp.value;
           const title = inp.closest('.subcard')?.querySelector('.subcard-title');
           if (title) title.textContent = currentCV.certifications[idx].name || 'Certification';
-          saveCVDirect(currentCV);
+          persistCV();
           refreshCanvas();
         }
       });
@@ -1188,7 +1588,7 @@ function initStudio() {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.getAttribute('data-del-cert'), 10);
         currentCV.certifications.splice(idx, 1);
-        saveCVDirect(currentCV);
+        persistCV();
         renderCertificationsCards();
         refreshCanvas();
       });
@@ -1203,7 +1603,7 @@ function initStudio() {
     if (!el) return;
     el.addEventListener('input', (e) => {
       setter(e.target.value);
-      saveCVDirect(currentCV);
+      persistCV();
       if (id === 'f-summary') {
         const charHint = document.getElementById('summary-char-hint');
         if (charHint) {
@@ -1215,12 +1615,37 @@ function initStudio() {
     });
   };
 
-  bindStaticField('p-first-name', val => { currentCV.personal.firstName = val; });
-  bindStaticField('p-last-name', val => { currentCV.personal.lastName = val; });
+  const syncSignatureNameIfLinked = (prevFullName) => {
+    const nextFullName = [currentCV.personal.firstName, currentCV.personal.lastName].filter(Boolean).join(' ').trim();
+    const curSigName = (currentCV.signature?.signeeName || '').trim();
+    if (!curSigName || curSigName === prevFullName) {
+      currentCV.signature = currentCV.signature || {};
+      currentCV.signature.signeeName = nextFullName;
+    }
+  };
+
+  bindStaticField('p-first-name', val => {
+    const prevFull = [currentCV.personal.firstName, currentCV.personal.lastName].filter(Boolean).join(' ').trim();
+    currentCV.personal.firstName = val;
+    syncSignatureNameIfLinked(prevFull);
+  });
+  bindStaticField('p-last-name', val => {
+    const prevFull = [currentCV.personal.firstName, currentCV.personal.lastName].filter(Boolean).join(' ').trim();
+    currentCV.personal.lastName = val;
+    syncSignatureNameIfLinked(prevFull);
+  });
   bindStaticField('p-title', val => { currentCV.personal.title = val; });
   bindStaticField('p-email', val => { currentCV.personal.email = val; });
   bindStaticField('p-phone', val => { currentCV.personal.phone = val; });
-  bindStaticField('p-city', val => { currentCV.personal.city = val; });
+  bindStaticField('p-city', val => {
+    const prevCity = (currentCV.personal.city || '').trim();
+    currentCV.personal.city = val;
+    const curSigPlace = (currentCV.signature?.place || '').trim();
+    if (!curSigPlace || curSigPlace === prevCity || curSigPlace === 'Berlin') {
+      currentCV.signature = currentCV.signature || {};
+      currentCV.signature.place = val.trim() || 'Berlin';
+    }
+  });
   bindStaticField('p-birth', val => { currentCV.personal.birthDate = val; });
   bindStaticField('p-nationality', val => { currentCV.personal.nationality = val; });
   bindStaticField('p-linkedin', val => { currentCV.personal.linkedin = val; });
@@ -1228,7 +1653,7 @@ function initStudio() {
 
   document.getElementById('f-skills-tech')?.addEventListener('input', (e) => {
     currentCV.skills.technical = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-    saveCVDirect(currentCV);
+    persistCV();
     renderSkillsChips();
     refreshCanvas();
   });
@@ -1246,7 +1671,7 @@ function initStudio() {
       }
     });
     if (input) input.value = '';
-    saveCVDirect(currentCV);
+    persistCV();
     renderSkillsChips();
     refreshCanvas();
   };
@@ -1259,28 +1684,49 @@ function initStudio() {
     }
   });
 
-  // Photo upload & clear
+  // Photo upload & clear (with MIME validation, canvas downscale & storage quota rollback)
   const photoInput = document.getElementById('p-photo-file');
   document.getElementById('btn-upload-photo')?.addEventListener('click', () => photoInput?.click());
-  photoInput?.addEventListener('change', (e) => {
+  photoInput?.addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      currentCV.personal.photoUrl = ev.target.result;
+    if (!ALLOWED_IMAGE_MIME_TYPES.has((file.type || '').toLowerCase())) {
+      photoInput.value = '';
+      showToast('Please select a JPEG, PNG, WebP, or GIF image.', 3600);
+      return;
+    }
+
+    const prevPhoto = currentCV.personal.photoUrl || '';
+    const prevShowPhoto = currentCV.meta.showPhoto;
+    try {
+      const compressedDataUrl = await downscalePhotoFile(file, 600, 750, 0.85);
+      currentCV.personal.photoUrl = compressedDataUrl;
       currentCV.meta.showPhoto = true;
+      const saveStatus = saveCVWithStatus(currentCV);
+      if (!saveStatus.ok) {
+        currentCV.personal.photoUrl = prevPhoto;
+        currentCV.meta.showPhoto = prevShowPhoto;
+        if (togglePhoto) togglePhoto.checked = prevShowPhoto !== false;
+        syncPhotoThumb();
+        handleStorageStatus(saveStatus, { forceToast: true });
+        return;
+      }
       if (togglePhoto) togglePhoto.checked = true;
-      saveCVDirect(currentCV);
       syncPhotoThumb();
       refreshCanvas();
       showToast('Portrait photo updated.');
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      currentCV.personal.photoUrl = prevPhoto;
+      currentCV.meta.showPhoto = prevShowPhoto;
+      showToast(err?.message || 'Could not process selected photo.', 3600);
+    } finally {
+      photoInput.value = '';
+    }
   });
   document.getElementById('btn-clear-photo')?.addEventListener('click', () => {
     currentCV.personal.photoUrl = '';
     if (photoInput) photoInput.value = '';
-    saveCVDirect(currentCV);
+    persistCV();
     syncPhotoThumb();
     refreshCanvas();
     showToast('Portrait photo cleared.');
@@ -1289,15 +1735,17 @@ function initStudio() {
   const addNewExperience = () => {
     currentCV.experience = currentCV.experience || [];
     currentCV.experience.unshift({
+      id: generateEntryId('exp'),
       position: 'Senior Engineer',
       company: 'Tech Enterprise',
       city: 'Berlin, Germany',
       startDate: '01/2023',
       endDate: 'Present',
+      current: true,
       bullets: ['Spearheaded cross-functional initiative delivering 30% latency reduction.'],
       technologies: ['TypeScript', 'Go']
     });
-    saveCVDirect(currentCV);
+    persistCV();
     renderExperienceCards();
     setActiveSection('experience');
     refreshCanvas();
@@ -1306,13 +1754,14 @@ function initStudio() {
   const addNewEducation = () => {
     currentCV.education = currentCV.education || [];
     currentCV.education.unshift({
+      id: generateEntryId('edu'),
       degree: 'B.Sc. Computer Science',
       institution: 'Technical University',
       startDate: '10/2019',
       endDate: '07/2023',
       grade: 'First Class'
     });
-    saveCVDirect(currentCV);
+    persistCV();
     renderEducationCards();
     setActiveSection('education');
     refreshCanvas();
@@ -1321,7 +1770,7 @@ function initStudio() {
   const addNewLanguage = () => {
     currentCV.skills.languages = currentCV.skills.languages || [];
     currentCV.skills.languages.push({ language: 'German', level: CEFR_LEVELS[2].label });
-    saveCVDirect(currentCV);
+    persistCV();
     renderLanguageCards();
     setActiveSection('languages');
     refreshCanvas();
@@ -1330,11 +1779,12 @@ function initStudio() {
   const addNewProject = () => {
     currentCV.projects = currentCV.projects || [];
     currentCV.projects.push({
+      id: generateEntryId('proj'),
       name: 'Open Source Tooling',
       description: 'Designed modular TypeScript CLI used by internal engineering teams.',
       technologies: 'TypeScript, Node.js'
     });
-    saveCVDirect(currentCV);
+    persistCV();
     renderProjectsCards();
     refreshCanvas();
   };
@@ -1342,11 +1792,12 @@ function initStudio() {
   const addNewCert = () => {
     currentCV.certifications = currentCV.certifications || [];
     currentCV.certifications.push({
+      id: generateEntryId('cert'),
       name: 'AWS Solutions Architect',
       issuer: 'Amazon Web Services',
       year: '2024'
     });
-    saveCVDirect(currentCV);
+    persistCV();
     renderCertificationsCards();
     refreshCanvas();
   };
@@ -1360,15 +1811,25 @@ function initStudio() {
   /* ------------------------------------------------------------------
      Accordion Header Clicks, Stepper Next/Back, & Optional Sections
      ------------------------------------------------------------------ */
-  document.querySelectorAll('[data-toggle-section]').forEach(header => {
-    header.addEventListener('click', (e) => {
-      if (e.target.closest('button') || e.target.closest('.drag-handle')) return;
-      toggleSection(header.getAttribute('data-toggle-section'));
+  document.querySelectorAll('button.accordion-toggle[data-section-toggle]').forEach(toggleBtn => {
+    toggleBtn.addEventListener('click', () => {
+      toggleSection(toggleBtn.getAttribute('data-section-toggle'));
     });
-    header.addEventListener('keydown', (e) => {
-      if ((e.key === 'Enter' || e.key === ' ') && e.target === header) {
+    toggleBtn.addEventListener('keydown', (e) => {
+      const visibleToggles = Array.from(document.querySelectorAll('button.accordion-toggle[data-section-toggle]'))
+        .filter(btn => btn.closest('.accordion-card')?.style.display !== 'none');
+      const idx = visibleToggles.indexOf(toggleBtn);
+      if (idx < 0) return;
+
+      let nextIdx = -1;
+      if (e.key === 'ArrowDown') nextIdx = (idx + 1) % visibleToggles.length;
+      else if (e.key === 'ArrowUp') nextIdx = (idx - 1 + visibleToggles.length) % visibleToggles.length;
+      else if (e.key === 'Home') nextIdx = 0;
+      else if (e.key === 'End') nextIdx = visibleToggles.length - 1;
+
+      if (nextIdx >= 0) {
         e.preventDefault();
-        toggleSection(header.getAttribute('data-toggle-section'));
+        visibleToggles[nextIdx]?.focus();
       }
     });
   });
@@ -1401,7 +1862,7 @@ function initStudio() {
     btn.addEventListener('click', () => {
       const secId = btn.getAttribute('data-remove-section');
       currentCV.meta.sectionOrder = currentCV.meta.sectionOrder.filter(id => id !== secId);
-      saveCVDirect(currentCV);
+      persistCV();
       syncAccordionOrderDOM();
       setActiveSection('experience');
       refreshCanvas();
@@ -1412,7 +1873,7 @@ function initStudio() {
   document.querySelectorAll('[data-quick-action]').forEach(item => {
     item.addEventListener('click', () => {
       const action = item.getAttribute('data-quick-action');
-      closeAllPopovers();
+      closeAllPopovers({ restoreFocus: false });
       if (action === 'experience') addNewExperience();
       else if (action === 'education') addNewEducation();
       else if (action === 'language') addNewLanguage();
@@ -1422,7 +1883,7 @@ function initStudio() {
         }
         if (!(currentCV.projects || []).length) addNewProject();
         syncAccordionOrderDOM();
-        saveCVDirect(currentCV);
+        persistCV();
         setActiveSection('projects');
         refreshCanvas();
       } else if (action === 'section-certifications') {
@@ -1431,7 +1892,7 @@ function initStudio() {
         }
         if (!(currentCV.certifications || []).length) addNewCert();
         syncAccordionOrderDOM();
-        saveCVDirect(currentCV);
+        persistCV();
         setActiveSection('certifications');
         refreshCanvas();
       }
@@ -1448,9 +1909,17 @@ function initStudio() {
     if (idx < 0 || targetIdx < 0 || targetIdx >= order.length) return;
     [order[idx], order[targetIdx]] = [order[targetIdx], order[idx]];
     currentCV.meta.sectionOrder = order;
-    saveCVDirect(currentCV);
+    persistCV();
     syncAccordionOrderDOM();
     refreshCanvas();
+
+    const card = document.querySelector(`.accordion-card[data-section-id="${sectionId}"]`);
+    if (card) {
+      const preferred = card.querySelector(delta < 0 ? `[data-move-up="${sectionId}"]` : `[data-move-down="${sectionId}"]`);
+      const alternate = card.querySelector(delta < 0 ? `[data-move-down="${sectionId}"]` : `[data-move-up="${sectionId}"]`);
+      const targetBtn = (preferred && !preferred.disabled) ? preferred : alternate;
+      targetBtn?.focus();
+    }
     showToast(`Moved ${SECTION_LABELS[sectionId]} ${delta < 0 ? 'up' : 'down'}.`);
   };
 
@@ -1467,10 +1936,28 @@ function initStudio() {
     });
   });
 
+  document.addEventListener('mouseup', () => {
+    if (!draggedSectionId) {
+      document.querySelectorAll('#reorderable-sections .accordion-card').forEach(el => {
+        el.draggable = false;
+      });
+    }
+  });
+
   document.querySelectorAll('#reorderable-sections .accordion-card').forEach(card => {
+    card.draggable = false;
+    const handle = card.querySelector('.drag-handle');
+    handle?.addEventListener('mousedown', () => {
+      card.draggable = true;
+    });
+    handle?.addEventListener('mouseup', () => {
+      if (!draggedSectionId) card.draggable = false;
+    });
+
     card.addEventListener('dragstart', (e) => {
-      if (e.target.closest('input, textarea, select')) {
+      if (!card.draggable || e.target.closest('input, textarea, select, button')) {
         e.preventDefault();
+        card.draggable = false;
         return;
       }
       draggedSectionId = card.getAttribute('data-section-id');
@@ -1484,6 +1971,7 @@ function initStudio() {
     card.addEventListener('dragend', () => {
       draggedSectionId = null;
       document.querySelectorAll('.accordion-card').forEach(el => {
+        el.draggable = false;
         el.classList.remove('dragging', 'drag-over');
       });
     });
@@ -1514,7 +2002,7 @@ function initStudio() {
       const [moved] = order.splice(fromIdx, 1);
       order.splice(toIdx, 0, moved);
       currentCV.meta.sectionOrder = order;
-      saveCVDirect(currentCV);
+      persistCV();
       syncAccordionOrderDOM();
       refreshCanvas();
     });
@@ -1523,6 +2011,38 @@ function initStudio() {
   /* ------------------------------------------------------------------
      Direct WYSIWYG Canvas Editing
      ------------------------------------------------------------------ */
+  previewSheet?.addEventListener('keydown', (e) => {
+    const target = e.target?.closest?.('[contenteditable="true"]');
+    if (!target) return;
+    if (e.key === 'Enter') {
+      const isMultiline = target.getAttribute('data-bind') === 'summary' || target.getAttribute('aria-multiline') === 'true';
+      if (!isMultiline) {
+        e.preventDefault();
+      }
+    }
+  });
+
+  previewSheet?.addEventListener('paste', (e) => {
+    const target = e.target?.closest?.('[contenteditable="true"]');
+    if (!target) return;
+    e.preventDefault();
+    const rawText = (e.clipboardData || window.clipboardData)?.getData('text/plain') || '';
+    const isMultiline = target.getAttribute('data-bind') === 'summary' || target.getAttribute('aria-multiline') === 'true';
+    const cleanText = isMultiline ? rawText : rawText.replace(/[\r\n]+/g, ' ');
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      const textNode = document.createTextNode(cleanText);
+      range.insertNode(textNode);
+      range.setStartAfter(textNode);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      target.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  });
+
   previewSheet?.addEventListener('input', (e) => {
     const target = e.target;
     if (!target || target.getAttribute('contenteditable') !== 'true') return;
@@ -1531,9 +2051,11 @@ function initStudio() {
     const bind = target.getAttribute('data-bind');
     if (bind) {
       if (bind === 'personal.fullName') {
+        const prevFull = [currentCV.personal.firstName, currentCV.personal.lastName].filter(Boolean).join(' ').trim();
         const parts = text.split(/\s+/);
         currentCV.personal.firstName = parts[0] || '';
         currentCV.personal.lastName = parts.slice(1).join(' ') || '';
+        syncSignatureNameIfLinked(prevFull);
       } else if (bind.startsWith('personal.')) {
         currentCV.personal[bind.split('.')[1]] = text;
       } else if (bind === 'summary') {
@@ -1551,9 +2073,10 @@ function initStudio() {
       const item = currentCV.experience?.[idx];
       if (item) {
         if (expField === 'dateRange') {
-          const parts = text.split(/[–-]/).map(s => s.trim());
-          item.startDate = parts[0] || '';
-          item.endDate = parts[1] || '';
+          const { startDate, endDate } = splitDateRange(text);
+          item.startDate = startDate;
+          item.endDate = endDate;
+          item.current = /^(present|heute|présent|current|now|aktuell)$/i.test(endDate);
         } else {
           item[expField] = text;
         }
@@ -1578,9 +2101,9 @@ function initStudio() {
       const item = currentCV.education?.[idx];
       if (item) {
         if (eduField === 'dateRange') {
-          const parts = text.split(/[–-]/).map(s => s.trim());
-          item.startDate = parts[0] || '';
-          item.endDate = parts[1] || '';
+          const { startDate, endDate } = splitDateRange(text);
+          item.startDate = startDate;
+          item.endDate = endDate;
         } else {
           item[eduField] = text;
         }
@@ -1588,10 +2111,11 @@ function initStudio() {
       }
     }
 
-    saveCVDirect(currentCV);
+    persistCV();
     calculatePageBudget();
     updateATSReport();
     updateAccordionSummariesAndStrength();
+    syncJobMatchIfOpen();
   });
 
   previewSheet?.addEventListener('click', (e) => {
@@ -1602,7 +2126,7 @@ function initStudio() {
       if (item) {
         item.bullets = item.bullets || [];
         item.bullets.push('Delivered scalable engineering outcome with measurable performance gains.');
-        saveCVDirect(currentCV);
+        persistCV();
         renderExperienceCards();
         refreshCanvas();
       }
@@ -1613,7 +2137,7 @@ function initStudio() {
     if (delExpBtn) {
       const idx = parseInt(delExpBtn.getAttribute('data-delete-exp'), 10);
       currentCV.experience.splice(idx, 1);
-      saveCVDirect(currentCV);
+      persistCV();
       renderExperienceCards();
       refreshCanvas();
       return;
@@ -1623,7 +2147,7 @@ function initStudio() {
     if (delEduBtn) {
       const idx = parseInt(delEduBtn.getAttribute('data-delete-edu'), 10);
       currentCV.education.splice(idx, 1);
-      saveCVDirect(currentCV);
+      persistCV();
       renderEducationCards();
       refreshCanvas();
       return;
@@ -1638,10 +2162,19 @@ function initStudio() {
      ------------------------------------------------------------------ */
   document.querySelectorAll('#popover-country [data-country-val]').forEach(btn => {
     btn.addEventListener('click', () => {
-      currentCV.meta.targetCountry = btn.getAttribute('data-country-val');
-      saveCVDirect(currentCV);
+      const nextCountry = btn.getAttribute('data-country-val');
+      currentCV.meta.targetCountry = nextCountry;
+      const nextRules = getCountryFieldRules(nextCountry);
+      if (nextRules.compactMode && !manualSpacingOverride && currentCV.meta.spacing === 'normal') {
+        currentCV.meta.spacing = 'compact';
+        autoAppliedCompact = true;
+      } else if (!nextRules.compactMode && autoAppliedCompact && !manualSpacingOverride && currentCV.meta.spacing === 'compact') {
+        currentCV.meta.spacing = 'normal';
+        autoAppliedCompact = false;
+      }
+      persistCV();
       syncToolbarState();
-      closeAllPopovers();
+      closeAllPopovers({ restoreFocus: true });
       refreshCanvas();
     });
   });
@@ -1650,9 +2183,9 @@ function initStudio() {
     btn.addEventListener('click', () => {
       const lang = btn.getAttribute('data-lang-val');
       currentCV.meta.language = lang;
-      saveCVDirect(currentCV);
+      persistCV();
       syncToolbarState();
-      closeAllPopovers();
+      closeAllPopovers({ restoreFocus: true });
       renderExperienceCards();
       refreshCanvas();
       showToast(`CV headings updated (${LANGUAGE_LABELS[lang] || lang}).`);
@@ -1661,10 +2194,12 @@ function initStudio() {
 
   document.querySelectorAll('#popover-spacing [data-spacing-val]').forEach(btn => {
     btn.addEventListener('click', () => {
+      manualSpacingOverride = true;
+      autoAppliedCompact = false;
       currentCV.meta.spacing = btn.getAttribute('data-spacing-val');
-      saveCVDirect(currentCV);
+      persistCV();
       syncToolbarState();
-      closeAllPopovers();
+      closeAllPopovers({ restoreFocus: true });
       refreshCanvas();
     });
   });
@@ -1672,9 +2207,9 @@ function initStudio() {
   document.querySelectorAll('#template-gallery .template-card-option').forEach(card => {
     card.addEventListener('click', () => {
       currentCV.meta.template = card.getAttribute('data-template-id');
-      saveCVDirect(currentCV);
+      persistCV();
       syncToolbarState();
-      closeAllPopovers();
+      closeAllPopovers({ restoreFocus: true });
       refreshCanvas();
     });
   });
@@ -1682,29 +2217,32 @@ function initStudio() {
   document.querySelectorAll('#popover-color .color-dot').forEach(dot => {
     dot.addEventListener('click', () => {
       currentCV.meta.accentColor = dot.getAttribute('data-color');
-      saveCVDirect(currentCV);
+      persistCV();
       syncToolbarState();
-      closeAllPopovers();
+      closeAllPopovers({ restoreFocus: true });
       refreshCanvas();
     });
   });
 
   togglePhoto?.addEventListener('change', (e) => {
     currentCV.meta.showPhoto = e.target.checked;
-    saveCVDirect(currentCV);
+    persistCV();
     refreshCanvas();
   });
 
   toggleSignature?.addEventListener('change', (e) => {
     currentCV.meta.includeSignatureBlock = e.target.checked;
-    saveCVDirect(currentCV);
+    persistCV();
     refreshCanvas();
   });
 
   btnAutoFit?.addEventListener('click', () => {
+    if (currentCV.meta.spacing === 'compact') return;
+    manualSpacingOverride = true;
+    autoAppliedCompact = false;
     currentCV.meta.spacing = 'compact';
     syncToolbarState();
-    saveCVDirect(currentCV);
+    persistCV();
     refreshCanvas();
     showToast('Margins tightened to fit cleanly onto 1 A4 page.');
   });
@@ -1740,7 +2278,7 @@ function initStudio() {
   });
 
   window.addEventListener('resize', () => {
-    closeAllPopovers();
+    closeAllPopovers({ restoreFocus: false });
     currentZoom = computeFitZoom();
     applyZoom(currentZoom);
     calculatePageBudget();
@@ -1749,8 +2287,12 @@ function initStudio() {
   const switchMobileView = (view) => {
     if (!studioLayout) return;
     studioLayout.setAttribute('data-mobile-view', view);
-    document.getElementById('tab-mobile-editor')?.classList.toggle('active', view === 'editor');
-    document.getElementById('tab-mobile-preview')?.classList.toggle('active', view === 'preview');
+    const editorTab = document.getElementById('tab-mobile-editor');
+    const previewTab = document.getElementById('tab-mobile-preview');
+    editorTab?.classList.toggle('active', view === 'editor');
+    editorTab?.setAttribute('aria-pressed', String(view === 'editor'));
+    previewTab?.classList.toggle('active', view === 'preview');
+    previewTab?.setAttribute('aria-pressed', String(view === 'preview'));
     if (view === 'preview') {
       requestAnimationFrame(() => {
         currentZoom = computeFitZoom();
@@ -1766,23 +2308,54 @@ function initStudio() {
   /* ------------------------------------------------------------------
      Launch Modal ("How would you like to start?") + JSON Import/Export
      ------------------------------------------------------------------ */
-  const openLaunchModal = () => launchOverlay?.classList.add('open');
-  const closeLaunchModal = () => launchOverlay?.classList.remove('open');
+  const setBackgroundInert = (isInert) => {
+    document.querySelectorAll(BACKGROUND_LANDMARKS_SELECTOR).forEach(el => {
+      if (isInert) el.setAttribute('inert', '');
+      else el.removeAttribute('inert');
+    });
+  };
 
-  document.getElementById('btn-open-launch')?.addEventListener('click', openLaunchModal);
+  const openLaunchModal = (opener = null) => {
+    if (!launchOverlay) return;
+    if (!launchOverlay.classList.contains('open')) {
+      lastLaunchOpener = opener || document.activeElement;
+    }
+    setBackgroundInert(true);
+    launchOverlay.classList.add('open');
+    const focusTarget = document.getElementById('btn-start-sample') || getFocusableElements(launchOverlay)[0];
+    focusTarget?.focus();
+  };
+
+  const closeLaunchModal = ({ restoreFocus = true } = {}) => {
+    if (!launchOverlay?.classList.contains('open')) return;
+    launchOverlay.classList.remove('open');
+    setBackgroundInert(false);
+    if (restoreFocus && lastLaunchOpener && lastLaunchOpener !== document.body && lastLaunchOpener.isConnected) {
+      lastLaunchOpener.focus();
+    }
+    lastLaunchOpener = null;
+  };
+
+  document.getElementById('btn-open-launch')?.addEventListener('click', (e) => openLaunchModal(e.currentTarget));
   document.getElementById('btn-close-launch')?.addEventListener('click', () => {
-    saveCVDirect(currentCV);
-    closeLaunchModal();
+    persistCV();
+    closeLaunchModal({ restoreFocus: true });
   });
   launchOverlay?.addEventListener('click', (e) => {
     if (e.target === launchOverlay) {
-      saveCVDirect(currentCV);
-      closeLaunchModal();
+      persistCV();
+      closeLaunchModal({ restoreFocus: true });
     }
   });
 
-  const hydrateAll = () => {
+  const resetJobMatchResults = () => {
+    const resultsBox = document.getElementById('job-analysis-results');
+    if (resultsBox) resultsBox.style.display = 'none';
+  };
+
+  const hydrateAll = ({ clearJobMatch = true } = {}) => {
     ensureCVShape(currentCV);
+    if (clearJobMatch) resetJobMatchResults();
     syncStaticInputsFromCV();
     syncToolbarState();
     syncAccordionOrderDOM();
@@ -1797,19 +2370,23 @@ function initStudio() {
 
   document.getElementById('btn-start-guided')?.addEventListener('click', () => {
     currentCV = createEmptyCV();
-    saveCVDirect(currentCV);
-    hydrateAll();
-    closeLaunchModal();
+    manualSpacingOverride = false;
+    autoAppliedCompact = false;
+    persistCV();
+    hydrateAll({ clearJobMatch: true });
+    closeLaunchModal({ restoreFocus: false });
     setActiveSection('identity', { focusInput: true });
     showToast('Guided mode ready — start with your name and target role.');
   });
 
   document.getElementById('btn-start-sample')?.addEventListener('click', () => {
     currentCV = createSampleEuropeanCV();
-    saveCVDirect(currentCV);
-    hydrateAll();
-    closeLaunchModal();
-    setActiveSection('experience');
+    manualSpacingOverride = false;
+    autoAppliedCompact = false;
+    persistCV();
+    hydrateAll({ clearJobMatch: true });
+    closeLaunchModal({ restoreFocus: false });
+    setActiveSection('experience', { focusInput: true });
     showToast('Sample European CV loaded.');
   });
 
@@ -1821,9 +2398,12 @@ function initStudio() {
     try {
       const imported = await importCVFromJSON(file);
       currentCV = imported;
-      saveCVDirect(currentCV);
-      hydrateAll();
-      closeLaunchModal();
+      manualSpacingOverride = false;
+      autoAppliedCompact = false;
+      persistCV();
+      hydrateAll({ clearJobMatch: true });
+      closeLaunchModal({ restoreFocus: false });
+      setActiveSection('identity', { focusInput: true });
       showToast('CV imported cleanly from JSON.');
     } catch (err) {
       showToast(err.message || 'Could not import JSON file.');
@@ -1844,67 +2424,128 @@ function initStudio() {
   /* ------------------------------------------------------------------
      ATS & Job Matcher Drawer
      ------------------------------------------------------------------ */
-  const openDrawer = () => {
+  const openDrawer = ({ focusTargetId = 'btn-close-drawer', opener = null } = {}) => {
+    if (!drawer) return;
+    if (!drawer.classList.contains('open')) {
+      lastDrawerOpener = opener || document.activeElement;
+    }
     updateATSReport();
-    drawer?.classList.add('open');
+    drawer.removeAttribute('inert');
+    drawer.classList.add('open');
     drawerBackdrop?.classList.add('active');
+    const focusTarget = document.getElementById(focusTargetId) || getFocusableElements(drawer)[0];
+    focusTarget?.focus();
   };
-  const closeDrawer = () => {
-    drawer?.classList.remove('open');
+  const closeDrawer = ({ restoreFocus = true } = {}) => {
+    if (!drawer?.classList.contains('open')) return;
+    drawer.classList.remove('open');
+    drawer.setAttribute('inert', '');
     drawerBackdrop?.classList.remove('active');
+    if (restoreFocus && lastDrawerOpener && lastDrawerOpener !== document.body && lastDrawerOpener.isConnected) {
+      lastDrawerOpener.focus();
+    }
+    lastDrawerOpener = null;
   };
 
-  document.getElementById('btn-ats-pill')?.addEventListener('click', openDrawer);
-  document.getElementById('btn-open-matcher')?.addEventListener('click', () => {
-    openDrawer();
-    document.getElementById('job-description-input')?.focus();
+  document.getElementById('btn-ats-pill')?.addEventListener('click', (e) => {
+    openDrawer({ focusTargetId: 'btn-close-drawer', opener: e.currentTarget });
   });
-  document.getElementById('btn-close-drawer')?.addEventListener('click', closeDrawer);
-  drawerBackdrop?.addEventListener('click', closeDrawer);
+  document.getElementById('btn-open-matcher')?.addEventListener('click', (e) => {
+    openDrawer({ focusTargetId: 'job-description-input', opener: e.currentTarget });
+  });
+  document.getElementById('btn-close-drawer')?.addEventListener('click', () => closeDrawer({ restoreFocus: true }));
+  drawerBackdrop?.addEventListener('click', () => closeDrawer({ restoreFocus: true }));
 
-  document.getElementById('btn-analyze-job')?.addEventListener('click', () => {
+  let isUpdatingJobMatch = false;
+  const runJobMatchAnalysis = ({ silent = false, focusMissingIdx = null } = {}) => {
     const text = document.getElementById('job-description-input')?.value || '';
+    const resultsBox = document.getElementById('job-analysis-results');
     if (!text.trim()) {
-      showToast('Paste a job posting first to run keyword matching.');
+      if (resultsBox) resultsBox.style.display = 'none';
+      if (!silent) showToast('Paste a job posting first to run keyword matching.');
       return;
     }
 
-    const match = calculateJobMatch(currentCV, text);
-    document.getElementById('job-analysis-results').style.display = 'block';
-    const badge = document.getElementById('job-match-badge');
-    badge.textContent = `${match.matchPercentage}% Match`;
-    badge.className = `ats-pill ${match.matchPercentage < 40 ? 'state-low' : match.matchPercentage < 70 ? 'state-warn' : ''}`.trim();
+    isUpdatingJobMatch = true;
+    try {
+      const match = calculateJobMatch(currentCV, text);
+      if (resultsBox) resultsBox.style.display = 'block';
+      const badge = document.getElementById('job-match-badge');
+      if (badge) {
+        badge.textContent = `${match.matchPercentage}% Match`;
+        badge.className = `ats-pill ${match.matchPercentage < 40 ? 'state-low' : match.matchPercentage < 70 ? 'state-warn' : ''}`.trim();
+      }
 
-    const matchedBox = document.getElementById('job-matched-tags');
-    matchedBox.innerHTML = match.matched.length > 0
-      ? match.matched.map(m => `<span class="tag-interactive tag-matched">✓ ${escapeHTML(m)}</span>`).join('')
-      : '<span style="font-size: 12px; color: var(--text-secondary);">No direct keyword matches yet.</span>';
+      const matchedBox = document.getElementById('job-matched-tags');
+      if (matchedBox) {
+        matchedBox.innerHTML = match.matched.length > 0
+          ? match.matched.map(m => `<span class="tag-interactive tag-matched">✓ ${escapeHTML(formatSkillKeyword(m))}</span>`).join('')
+          : '<span style="font-size: 12px; color: var(--text-secondary);">No direct keyword matches yet.</span>';
+      }
 
-    const missingBox = document.getElementById('job-missing-tags');
-    missingBox.innerHTML = match.missing.length > 0
-      ? match.missing.map(m => `<span class="tag-interactive tag-missing" data-add-kw="${escapeAttr(m)}" title="Click to add to your skills">+ ${escapeHTML(m)}</span>`).join('')
-      : '<span style="font-size: 12px; color: var(--success); font-weight: 600;">All detected qualifications are present.</span>';
+      const missingBox = document.getElementById('job-missing-tags');
+      if (missingBox) {
+        missingBox.innerHTML = match.missing.length > 0
+          ? match.missing.map(m => {
+            const label = formatSkillKeyword(m);
+            return `<button type="button" class="tag-interactive tag-missing" data-add-kw="${escapeAttr(m)}" title="Add ${escapeAttr(label)} to skills">+ ${escapeHTML(label)}</button>`;
+          }).join('')
+          : '<span style="font-size: 12px; color: var(--success); font-weight: 600;">All detected qualifications are present.</span>';
 
-    missingBox.querySelectorAll('[data-add-kw]').forEach(pill => {
-      pill.addEventListener('click', () => {
-        const kw = pill.getAttribute('data-add-kw');
-        currentCV.skills.technical = currentCV.skills.technical || [];
-        if (!currentCV.skills.technical.map(s => s.toLowerCase()).includes(kw.toLowerCase())) {
-          currentCV.skills.technical.push(kw.charAt(0).toUpperCase() + kw.slice(1));
-          saveCVDirect(currentCV);
-          renderSkillsChips();
-          refreshCanvas();
-          document.getElementById('btn-analyze-job').click();
+        const missingBtns = Array.from(missingBox.querySelectorAll('[data-add-kw]'));
+        missingBtns.forEach((pill, pillIdx) => {
+          pill.addEventListener('click', () => {
+            const kw = pill.getAttribute('data-add-kw') || '';
+            const formatted = formatSkillKeyword(kw);
+            currentCV.skills.technical = currentCV.skills.technical || [];
+            if (!currentCV.skills.technical.map(s => s.toLowerCase()).includes(formatted.toLowerCase())) {
+              currentCV.skills.technical.push(formatted);
+              persistCV();
+              renderSkillsChips();
+              refreshCanvas();
+            }
+            runJobMatchAnalysis({ silent: true, focusMissingIdx: pillIdx });
+          });
+        });
+
+        if (focusMissingIdx !== null) {
+          if (missingBtns.length > 0) {
+            missingBtns[Math.min(focusMissingIdx, missingBtns.length - 1)]?.focus();
+          } else {
+            document.getElementById('btn-analyze-job')?.focus();
+          }
         }
-      });
-    });
+      }
 
-    document.getElementById('job-match-recs').textContent = match.recommendations.join(' ');
+      const recsEl = document.getElementById('job-match-recs');
+      if (recsEl) {
+        const formattedRecs = match.recommendations.map(rec =>
+          match.missing.length > 0
+            ? `Consider incorporating these requested competencies where applicable: ${match.missing.slice(0, 5).map(formatSkillKeyword).join(', ')}.`
+            : rec
+        );
+        recsEl.textContent = formattedRecs.join(' ');
+      }
+    } finally {
+      isUpdatingJobMatch = false;
+    }
+  };
+
+  syncJobMatchIfOpen = () => {
+    if (isUpdatingJobMatch) return;
+    const resultsBox = document.getElementById('job-analysis-results');
+    if (resultsBox && resultsBox.style.display !== 'none') {
+      runJobMatchAnalysis({ silent: true });
+    }
+  };
+
+  document.getElementById('btn-analyze-job')?.addEventListener('click', () => {
+    runJobMatchAnalysis({ silent: false });
   });
 
   // Initial Mount
   currentZoom = computeFitZoom();
-  hydrateAll();
+  hydrateAll({ clearJobMatch: true });
   setActiveSection('identity');
   applyZoom(currentZoom);
 
@@ -1933,7 +2574,7 @@ if (document.readyState === 'loading') {
 }
 
 function escapeHTML(str) {
-  if (!str) return '';
+  if (str === undefined || str === null) return '';
   return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -1941,6 +2582,11 @@ function escapeHTML(str) {
 }
 
 function escapeAttr(str) {
-  if (!str) return '';
-  return String(str).replace(/"/g, '&quot;');
+  if (str === undefined || str === null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
