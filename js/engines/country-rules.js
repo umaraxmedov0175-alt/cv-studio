@@ -3,6 +3,8 @@
  * Defines localized recruitment laws, anti-bias regulations, and layout conventions.
  */
 
+import { createEmptyCV } from '../model/cv-schema.js';
+
 export const COUNTRY_STANDARDS = {
   DE: {
     code: 'DE',
@@ -66,33 +68,65 @@ export const COUNTRY_STANDARDS = {
   }
 };
 
+function resolveCountryStandard(countryCode = 'DE') {
+  const key = typeof countryCode === 'string' ? countryCode.trim().toUpperCase() : '';
+  return COUNTRY_STANDARDS[key] || COUNTRY_STANDARDS.DE;
+}
+
 /**
- * Adapts CV configuration and flags according to the target European country's norms.
+ * Returns uniform UI field visibility & layout flags for the target country.
  */
-export function adaptCVForCountry(cv, countryCode = 'DE') {
-  const standard = COUNTRY_STANDARDS[countryCode] || COUNTRY_STANDARDS.DE;
-
-  const adapted = JSON.parse(JSON.stringify(cv));
-
-  adapted.meta = adapted.meta || {};
-  adapted.meta.targetCountry = countryCode;
-
-  // Apply photo compliance
-  if (!standard.allowPhoto) {
-    adapted.meta.showPhoto = false;
-  }
-
-  // Apply signature block compliance
-  if (!standard.allowSignatureBlock) {
-    adapted.meta.includeSignatureBlock = false;
-  }
-
-  adapted.rules = {
+export function getCountryFieldRules(countryCode = 'DE') {
+  const standard = resolveCountryStandard(countryCode);
+  return {
     allowPhoto: standard.allowPhoto,
     allowBirthDate: standard.allowBirthDate,
     allowNationality: standard.allowNationality,
     allowSignatureBlock: standard.allowSignatureBlock,
-    compactMode: standard.compactMode,
+    compactMode: standard.compactMode
+  };
+}
+
+/**
+ * Adapts CV configuration and flags according to the target European country's norms.
+ */
+export function adaptCVForCountry(cv, countryCode = 'DE') {
+  const standard = resolveCountryStandard(countryCode);
+
+  let adapted;
+  if (!cv || typeof cv !== 'object' || Array.isArray(cv)) {
+    adapted = createEmptyCV();
+  } else {
+    try {
+      adapted = JSON.parse(JSON.stringify(cv));
+    } catch (_) {
+      adapted = createEmptyCV();
+    }
+  }
+
+  if (!adapted || typeof adapted !== 'object' || Array.isArray(adapted)) {
+    adapted = createEmptyCV();
+  }
+
+  if (!adapted.meta || typeof adapted.meta !== 'object' || Array.isArray(adapted.meta)) {
+    adapted.meta = {};
+  }
+  adapted.meta.targetCountry = standard.code;
+
+  const fieldRules = getCountryFieldRules(standard.code);
+
+  // Apply photo compliance
+  if (!fieldRules.allowPhoto) {
+    adapted.meta.showPhoto = false;
+  }
+
+  // Apply signature block compliance
+  if (!fieldRules.allowSignatureBlock) {
+    adapted.meta.includeSignatureBlock = false;
+  }
+
+  adapted.rules = {
+    ...fieldRules,
     languageCode: standard.languageCode,
     complianceNote: standard.complianceNote
   };

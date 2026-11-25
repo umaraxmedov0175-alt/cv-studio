@@ -4,21 +4,33 @@
  * Supports custom section ordering, localization (en/de/fr), and regional compliance.
  */
 
-import { TEMPLATE_IDS, normalizeSectionOrder } from '../model/cv-schema.js';
+import { TEMPLATE_IDS, normalizeSectionOrder, isSafePhotoUrl } from '../model/cv-schema.js';
 import { adaptCVForCountry } from '../engines/country-rules.js';
 
+const VALID_PREVIEW_TEMPLATES = new Set(Object.values(TEMPLATE_IDS));
+
 export function renderCVPreview(cv, containerElement) {
-  if (!containerElement || !cv) return;
+  if (!containerElement || !cv || typeof cv !== 'object') return;
 
-  const countryCode = cv.meta?.targetCountry || 'DE';
-  const adaptedCV = adaptCVForCountry(cv, countryCode);
+  const rawCountry = typeof cv.meta?.targetCountry === 'string' ? cv.meta.targetCountry : 'DE';
+  const adaptedCV = adaptCVForCountry(cv, rawCountry);
+  const countryCode = adaptedCV.meta?.targetCountry || 'DE';
 
-  const templateId = cv.meta?.template || TEMPLATE_IDS.GERMAN_DIN;
-  const spacingMode = cv.meta?.spacing || 'normal';
+  const rawTpl = adaptedCV.meta?.template;
+  const templateId = VALID_PREVIEW_TEMPLATES.has(rawTpl) ? rawTpl : TEMPLATE_IDS.GERMAN_DIN;
+  const spacingMode = ['compact', 'normal', 'spacious'].includes(adaptedCV.meta?.spacing)
+    ? adaptedCV.meta.spacing
+    : 'normal';
   const spacingClass = spacingMode !== 'normal' ? `spacing-${spacingMode}` : '';
 
+  const rawLang = typeof adaptedCV.meta?.language === 'string' ? adaptedCV.meta.language.trim().toLowerCase() : '';
+  const docLang = ['en', 'de', 'fr'].includes(rawLang) ? rawLang : 'en';
+  const rawAccent = typeof adaptedCV.meta?.accentColor === 'string' ? adaptedCV.meta.accentColor.trim() : '';
+  const safeAccent = /^#[0-9a-f]{3,8}$/i.test(rawAccent) ? rawAccent : '#1e3a8a';
+
+  containerElement.setAttribute('lang', docLang);
   containerElement.className = `a4-sheet template-${templateId} country-${countryCode.toLowerCase()} ${spacingClass}`.trim();
-  containerElement.style.setProperty('--cv-accent', cv.meta?.accentColor || '#1e3a8a');
+  containerElement.style.setProperty('--cv-accent', safeAccent);
 
   const L = getLocalizedLabels(adaptedCV);
   const headerHTML = buildTemplateHeaderHTML(adaptedCV, templateId, L);
@@ -30,6 +42,14 @@ export function renderCVPreview(cv, containerElement) {
 
   const signatureHTML = buildSignatureHTML(adaptedCV, templateId);
   containerElement.innerHTML = `${headerHTML}${sectionsHTML}${signatureHTML}`;
+}
+
+function formatDateRange(startDate, endDate, current, presentLabel) {
+  const start = typeof startDate === 'string' ? startDate.trim() : '';
+  const end = typeof endDate === 'string' ? endDate.trim() : '';
+  const resolvedEnd = end || (current ? presentLabel : '');
+  if (start && resolvedEnd) return `${start} – ${resolvedEnd}`;
+  return start || resolvedEnd || '';
 }
 
 function getLocalizedLabels(cv) {
@@ -45,6 +65,7 @@ function getLocalizedLabels(cv) {
       languages: 'Sprachkenntnisse (GER / CEFR)',
       projects: 'Ausgewählte Projekte',
       certifications: 'Zertifizierungen',
+      projectTag: 'Projekt',
       addExp: '+ Station hinzufügen',
       addEdu: '+ Abschluss hinzufügen',
       email: 'E-Mail:',
@@ -65,6 +86,7 @@ function getLocalizedLabels(cv) {
       languages: 'Langues (CECRL)',
       projects: 'Projets',
       certifications: 'Certifications',
+      projectTag: 'Projet',
       addExp: '+ Ajouter une expérience',
       addEdu: '+ Ajouter une formation',
       email: 'E-mail :',
@@ -84,6 +106,7 @@ function getLocalizedLabels(cv) {
     languages: 'Languages (CEFR)',
     projects: 'Selected Projects',
     certifications: 'Certifications',
+    projectTag: 'Project',
     addExp: '+ Add Position',
     addEdu: '+ Add Degree',
     email: 'Email:',
@@ -98,7 +121,7 @@ function getLocalizedLabels(cv) {
 
 function buildPhotoPlaceholderSVG() {
   return `
-    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <circle cx="12" cy="8" r="4"></circle>
       <path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6"></path>
     </svg>
@@ -106,23 +129,23 @@ function buildPhotoPlaceholderSVG() {
 }
 
 function buildTemplateHeaderHTML(cv, templateId, L) {
-  const p = cv.personal || {};
+  const p = cv.personal && typeof cv.personal === 'object' ? cv.personal : {};
   const rules = cv.rules || {};
-  const countryCode = cv.meta?.targetCountry || 'DE';
-  const isUK = countryCode === 'UK';
-  const fullName = `${escapePreviewHTML(p.firstName || '')} ${escapePreviewHTML(p.lastName || '')}`.trim() || 'Your Name';
-  const roleTitle = escapePreviewHTML(p.title || '') || 'Target Job Title';
+  const first = typeof p.firstName === 'string' ? p.firstName : '';
+  const last = typeof p.lastName === 'string' ? p.lastName : '';
+  const fullName = `${escapePreviewHTML(first)} ${escapePreviewHTML(last)}`.trim() || 'Your Name';
+  const roleTitle = (typeof p.title === 'string' && p.title.trim()) ? escapePreviewHTML(p.title) : 'Target Job Title';
 
   if (templateId === TEMPLATE_IDS.MINIMAL_SWISS) {
     return `
       <header class="swiss-header">
-        <h1 class="applicant-name" contenteditable="true" data-bind="personal.fullName">${fullName}</h1>
-        <div class="applicant-title" contenteditable="true" data-bind="personal.title">${roleTitle}</div>
-        <div style="display: flex; flex-wrap: wrap; gap: 14pt; font-size: 8.5pt; color: #64748b; margin-top: 6pt;">
-          ${p.email ? `<span contenteditable="true" data-bind="personal.email">${escapePreviewHTML(p.email)}</span>` : ''}
-          ${p.phone ? `<span contenteditable="true" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span>` : ''}
-          ${p.city ? `<span contenteditable="true" data-bind="personal.city">${escapePreviewHTML(p.city)}</span>` : ''}
-          ${p.linkedin ? `<span contenteditable="true" data-bind="personal.linkedin">${escapePreviewHTML(p.linkedin)}</span>` : ''}
+        <h1 class="applicant-name" contenteditable="true" role="textbox" aria-label="Full name" data-bind="personal.fullName">${fullName}</h1>
+        <div class="applicant-title" contenteditable="true" role="textbox" aria-label="Target job title" data-bind="personal.title">${roleTitle}</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 14pt; font-size: 8.5pt; color: #475569; margin-top: 6pt;">
+          ${typeof p.email === 'string' && p.email ? `<span contenteditable="true" role="textbox" aria-label="Email address" data-bind="personal.email">${escapePreviewHTML(p.email)}</span>` : ''}
+          ${typeof p.phone === 'string' && p.phone ? `<span contenteditable="true" role="textbox" aria-label="Phone number" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span>` : ''}
+          ${typeof p.city === 'string' && p.city ? `<span contenteditable="true" role="textbox" aria-label="Location" data-bind="personal.city">${escapePreviewHTML(p.city)}</span>` : ''}
+          ${typeof p.linkedin === 'string' && p.linkedin ? `<span contenteditable="true" role="textbox" aria-label="LinkedIn profile" data-bind="personal.linkedin">${escapePreviewHTML(p.linkedin)}</span>` : ''}
         </div>
       </header>
     `;
@@ -130,53 +153,56 @@ function buildTemplateHeaderHTML(cv, templateId, L) {
 
   if (templateId === TEMPLATE_IDS.MODERN_EUROPEAN) {
     const items = [
-      p.city ? `<span contenteditable="true" data-bind="personal.city">${escapePreviewHTML(p.city)}</span>` : '',
-      p.email ? `<span contenteditable="true" data-bind="personal.email">${escapePreviewHTML(p.email)}</span>` : '',
-      p.phone ? `<span contenteditable="true" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span>` : ''
+      typeof p.city === 'string' && p.city ? `<span contenteditable="true" role="textbox" aria-label="Location" data-bind="personal.city">${escapePreviewHTML(p.city)}</span>` : '',
+      typeof p.email === 'string' && p.email ? `<span contenteditable="true" role="textbox" aria-label="Email address" data-bind="personal.email">${escapePreviewHTML(p.email)}</span>` : '',
+      typeof p.phone === 'string' && p.phone ? `<span contenteditable="true" role="textbox" aria-label="Phone number" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span>` : '',
+      typeof p.linkedin === 'string' && p.linkedin ? `<span contenteditable="true" role="textbox" aria-label="LinkedIn profile" data-bind="personal.linkedin">${escapePreviewHTML(p.linkedin)}</span>` : ''
     ].filter(Boolean).join(' · ');
 
     return `
       <header style="text-align: center; border-bottom: 0.5pt solid #111827; padding-bottom: 12pt; margin-bottom: 14pt;">
-        <h1 class="applicant-name" contenteditable="true" data-bind="personal.fullName">${fullName}</h1>
-        <div class="applicant-title" contenteditable="true" data-bind="personal.title">${roleTitle}</div>
-        <div style="font-size: 8.3pt; color: #6b7280; letter-spacing: 0.02em; margin-top: 4pt;">${items}</div>
+        <h1 class="applicant-name" contenteditable="true" role="textbox" aria-label="Full name" data-bind="personal.fullName">${fullName}</h1>
+        <div class="applicant-title" contenteditable="true" role="textbox" aria-label="Target job title" data-bind="personal.title">${roleTitle}</div>
+        <div style="font-size: 8.3pt; color: #4b5563; letter-spacing: 0.02em; margin-top: 4pt;">${items}</div>
       </header>
     `;
   }
 
   // Frankfurt DIN 5008 default header
   const contactParts = [];
-  if (p.email) contactParts.push(`<span class="contact-meta-item"><strong>${L.email}</strong> <span contenteditable="true" data-bind="personal.email">${escapePreviewHTML(p.email)}</span></span>`);
-  if (p.phone) contactParts.push(`<span class="contact-meta-item"><strong>${L.phone}</strong> <span contenteditable="true" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span></span>`);
-  if (p.city) contactParts.push(`<span class="contact-meta-item"><strong>${L.location}</strong> <span contenteditable="true" data-bind="personal.city">${escapePreviewHTML(p.city)}</span></span>`);
-
-  if (!isUK && rules.allowBirthDate && p.birthDate) {
-    contactParts.push(`<span class="contact-meta-item"><strong>${L.birth}</strong> <span contenteditable="true" data-bind="personal.birthDate">${escapePreviewHTML(p.birthDate)}</span></span>`);
+  if (typeof p.email === 'string' && p.email) {
+    contactParts.push(`<span class="contact-meta-item"><strong>${L.email}</strong> <span contenteditable="true" role="textbox" aria-label="Email address" data-bind="personal.email">${escapePreviewHTML(p.email)}</span></span>`);
   }
-  if (!isUK && rules.allowNationality && p.nationality) {
-    contactParts.push(`<span class="contact-meta-item"><strong>${L.nationality}</strong> <span contenteditable="true" data-bind="personal.nationality">${escapePreviewHTML(p.nationality)}</span></span>`);
+  if (typeof p.phone === 'string' && p.phone) {
+    contactParts.push(`<span class="contact-meta-item"><strong>${L.phone}</strong> <span contenteditable="true" role="textbox" aria-label="Phone number" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span></span>`);
   }
-  if (p.linkedin) {
-    contactParts.push(`<span class="contact-meta-item"><strong>LinkedIn:</strong> <span contenteditable="true" data-bind="personal.linkedin">${escapePreviewHTML(p.linkedin)}</span></span>`);
+  if (typeof p.city === 'string' && p.city) {
+    contactParts.push(`<span class="contact-meta-item"><strong>${L.location}</strong> <span contenteditable="true" role="textbox" aria-label="Location" data-bind="personal.city">${escapePreviewHTML(p.city)}</span></span>`);
+  }
+  if (rules.allowBirthDate && typeof p.birthDate === 'string' && p.birthDate) {
+    contactParts.push(`<span class="contact-meta-item"><strong>${L.birth}</strong> <span contenteditable="true" role="textbox" aria-label="Date of birth" data-bind="personal.birthDate">${escapePreviewHTML(p.birthDate)}</span></span>`);
+  }
+  if (rules.allowNationality && typeof p.nationality === 'string' && p.nationality) {
+    contactParts.push(`<span class="contact-meta-item"><strong>${L.nationality}</strong> <span contenteditable="true" role="textbox" aria-label="Nationality" data-bind="personal.nationality">${escapePreviewHTML(p.nationality)}</span></span>`);
+  }
+  if (typeof p.linkedin === 'string' && p.linkedin) {
+    contactParts.push(`<span class="contact-meta-item"><strong>LinkedIn:</strong> <span contenteditable="true" role="textbox" aria-label="LinkedIn profile" data-bind="personal.linkedin">${escapePreviewHTML(p.linkedin)}</span></span>`);
   }
 
   let photoHTML = '';
-  if (!isUK && rules.allowPhoto && cv.meta?.showPhoto) {
-    photoHTML = `
-      <div class="photo-slot">
-        ${p.photoUrl
-          ? `<img src="${escapePreviewHTML(p.photoUrl)}" alt="Applicant portrait">`
-          : buildPhotoPlaceholderSVG()
-        }
-      </div>
-    `;
+  if (rules.allowPhoto && cv.meta?.showPhoto) {
+    const rawPhoto = typeof p.photoUrl === 'string' ? p.photoUrl.trim() : '';
+    const hasSafePhoto = Boolean(rawPhoto && isSafePhotoUrl(rawPhoto));
+    photoHTML = hasSafePhoto
+      ? `<div class="photo-slot"><img src="${escapePreviewHTML(rawPhoto)}" alt="Applicant portrait"></div>`
+      : `<div class="photo-slot photo-slot-empty no-print">${buildPhotoPlaceholderSVG()}</div>`;
   }
 
   return `
     <header class="cv-header">
       <div style="flex: 1;">
-        <h1 class="applicant-name" contenteditable="true" data-bind="personal.fullName">${fullName}</h1>
-        <div class="applicant-title" contenteditable="true" data-bind="personal.title">${roleTitle}</div>
+        <h1 class="applicant-name" contenteditable="true" role="textbox" aria-label="Full name" data-bind="personal.fullName">${fullName}</h1>
+        <div class="applicant-title" contenteditable="true" role="textbox" aria-label="Target job title" data-bind="personal.title">${roleTitle}</div>
         <div class="contact-meta-row">${contactParts.join('')}</div>
       </div>
       ${photoHTML}
@@ -206,14 +232,14 @@ function buildSectionHTML(sectionId, cv, L, templateId) {
 }
 
 function buildSummarySectionHTML(cv, templateId) {
-  const summaryText = cv.summary || '';
+  const summaryText = typeof cv.summary === 'string' ? cv.summary : '';
   if (!summaryText.trim()) return '';
   const isItalic = templateId === TEMPLATE_IDS.MODERN_EUROPEAN ? 'font-style: italic;' : '';
   const color = templateId === TEMPLATE_IDS.MINIMAL_SWISS ? '#334155' : '#374151';
   const fontSize = templateId === TEMPLATE_IDS.MINIMAL_SWISS ? '9pt' : '9.2pt';
   return `
     <section class="cv-section" data-section-id="summary">
-      <p style="font-size: ${fontSize}; color: ${color}; line-height: 1.5; margin-bottom: 10pt; ${isItalic}" contenteditable="true" data-bind="summary">${escapePreviewHTML(summaryText)}</p>
+      <p style="font-size: ${fontSize}; color: ${color}; line-height: 1.5; margin-bottom: 10pt; ${isItalic}" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Professional summary" data-bind="summary">${escapePreviewHTML(summaryText)}</p>
     </section>
   `;
 }
@@ -221,38 +247,54 @@ function buildSummarySectionHTML(cv, templateId) {
 function buildExperienceSectionHTML(cv, L, templateId) {
   const isSwiss = templateId === TEMPLATE_IDS.MINIMAL_SWISS;
   const isParis = templateId === TEMPLATE_IDS.MODERN_EUROPEAN;
-  const expHTML = (cv.experience || []).map((exp, idx) => `
-    <div class="entry-row item-block" data-exp-idx="${idx}">
-      <div class="entry-dates" contenteditable="true" data-exp-field="dateRange" data-idx="${idx}">${escapePreviewHTML(exp.startDate || '')} – ${escapePreviewHTML(exp.endDate || (exp.current ? L.present : ''))}</div>
-      <div>
-        ${isSwiss
-          ? `<div class="entry-role"><span contenteditable="true" data-exp-field="position" data-idx="${idx}">${escapePreviewHTML(exp.position || '')}</span> · <span contenteditable="true" data-exp-field="company" data-idx="${idx}">${escapePreviewHTML(exp.company || '')}</span></div>`
-          : `<div class="entry-role" contenteditable="true" data-exp-field="position" data-idx="${idx}">${escapePreviewHTML(exp.position || '')}</div>
-             <div class="entry-institution"><span contenteditable="true" data-exp-field="company" data-idx="${idx}">${escapePreviewHTML(exp.company || '')}</span>${exp.city ? ` · <span contenteditable="true" data-exp-field="city" data-idx="${idx}">${escapePreviewHTML(exp.city)}</span>` : ''}</div>`
-        }
-        <ul class="bullet-list" ${isSwiss ? 'style="padding-left: 12pt; margin-top: 3pt; font-size: 8.5pt; color: #334155;"' : isParis ? 'style="padding-left: 12pt; font-size: 8.8pt; color: #374151;"' : ''}>
-          ${(exp.bullets || []).map((bullet, bIdx) => `
-            <li contenteditable="true" data-exp-bullet="${idx}:${bIdx}">${escapePreviewHTML(bullet)}</li>
-          `).join('')}
-        </ul>
-        ${(!isSwiss && !isParis && (exp.technologies || []).length) ? `
-          <div class="skills-matrix">
-            ${exp.technologies.map(t => `<span class="skill-pill">${escapePreviewHTML(t)}</span>`).join('')}
-          </div>
-        ` : ''}
+  const rawExperiences = Array.isArray(cv.experience) ? cv.experience : [];
+
+  const expHTML = rawExperiences.map((exp, idx) => {
+    if (!exp || typeof exp !== 'object' || Array.isArray(exp)) return '';
+    const dateRange = formatDateRange(exp.startDate, exp.endDate, Boolean(exp.current), L.present);
+    const position = typeof exp.position === 'string' ? exp.position : '';
+    const company = typeof exp.company === 'string' ? exp.company : '';
+    const city = typeof exp.city === 'string' ? exp.city : '';
+    const bullets = Array.isArray(exp.bullets) ? exp.bullets : [];
+    const techs = (Array.isArray(exp.technologies) ? exp.technologies : [])
+      .filter(t => typeof t === 'string' && t.trim());
+
+    const bulletsHTML = bullets.map((bullet, bIdx) => {
+      if (typeof bullet !== 'string' && typeof bullet !== 'number') return '';
+      return `<li contenteditable="true" role="textbox" aria-label="Achievement ${bIdx + 1} for position ${idx + 1}" data-exp-bullet="${idx}:${bIdx}">${escapePreviewHTML(String(bullet))}</li>`;
+    }).filter(Boolean).join('');
+
+    return `
+      <div class="entry-row item-block" data-exp-idx="${idx}">
+        <div class="entry-dates" contenteditable="true" role="textbox" aria-label="Dates for position ${idx + 1}" data-exp-field="dateRange" data-idx="${idx}">${escapePreviewHTML(dateRange)}</div>
+        <div>
+          ${isSwiss
+            ? `<div class="entry-role"><span contenteditable="true" role="textbox" aria-label="Job title for position ${idx + 1}" data-exp-field="position" data-idx="${idx}">${escapePreviewHTML(position)}</span> · <span contenteditable="true" role="textbox" aria-label="Company for position ${idx + 1}" data-exp-field="company" data-idx="${idx}">${escapePreviewHTML(company)}</span></div>`
+            : `<div class="entry-role" contenteditable="true" role="textbox" aria-label="Job title for position ${idx + 1}" data-exp-field="position" data-idx="${idx}">${escapePreviewHTML(position)}</div>
+               <div class="entry-institution"><span contenteditable="true" role="textbox" aria-label="Company for position ${idx + 1}" data-exp-field="company" data-idx="${idx}">${escapePreviewHTML(company)}</span>${city ? ` · <span contenteditable="true" role="textbox" aria-label="City for position ${idx + 1}" data-exp-field="city" data-idx="${idx}">${escapePreviewHTML(city)}</span>` : ''}</div>`
+          }
+          <ul class="bullet-list" ${isSwiss ? 'style="padding-left: 12pt; margin-top: 3pt; font-size: 8.5pt; color: #334155;"' : isParis ? 'style="padding-left: 12pt; font-size: 8.8pt; color: #374151;"' : ''}>
+            ${bulletsHTML}
+          </ul>
+          ${(!isSwiss && !isParis && techs.length) ? `
+            <div class="skills-matrix">
+              ${techs.map(t => `<span class="skill-pill">${escapePreviewHTML(t)}</span>`).join('')}
+            </div>
+          ` : ''}
+        </div>
+        <div class="item-actions no-print">
+          <button type="button" class="item-action-btn" title="Add bullet" aria-label="Add achievement bullet to position ${idx + 1}" data-add-bullet="${idx}">+</button>
+          <button type="button" class="item-action-btn delete" title="Delete entry" aria-label="Delete position ${idx + 1}" data-delete-exp="${idx}">×</button>
+        </div>
       </div>
-      <div class="item-actions no-print">
-        <button class="item-action-btn" title="Add bullet" data-add-bullet="${idx}">+</button>
-        <button class="item-action-btn delete" title="Delete entry" data-delete-exp="${idx}">×</button>
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).filter(Boolean).join('');
 
   return `
     <section class="cv-section" data-section-id="experience">
       <h2 class="section-heading">${L.experience}</h2>
-      ${expHTML || '<p style="font-size: 8.5pt; color: #9ca3af; font-style: italic;">No positions added yet.</p>'}
-      <div class="no-print"><span class="add-item-trigger" id="btn-trigger-add-exp">${L.addExp}</span></div>
+      ${expHTML || '<p style="font-size: 8.5pt; color: #64748b; font-style: italic;">No positions added yet.</p>'}
+      <div class="no-print"><button type="button" class="add-item-trigger" id="btn-trigger-add-exp">${L.addExp}</button></div>
     </section>
   `;
 }
@@ -260,49 +302,62 @@ function buildExperienceSectionHTML(cv, L, templateId) {
 function buildEducationSectionHTML(cv, L, templateId) {
   const isSwiss = templateId === TEMPLATE_IDS.MINIMAL_SWISS;
   const isParis = templateId === TEMPLATE_IDS.MODERN_EUROPEAN;
-  const eduHTML = (cv.education || []).map((edu, idx) => `
-    <div class="entry-row item-block" data-edu-idx="${idx}">
-      <div class="entry-dates" contenteditable="true" data-edu-field="dateRange" data-idx="${idx}">${escapePreviewHTML(edu.startDate || '')} – ${escapePreviewHTML(edu.endDate || '')}</div>
-      <div>
-        ${isSwiss
-          ? `<div class="entry-role"><span contenteditable="true" data-edu-field="degree" data-idx="${idx}">${escapePreviewHTML(edu.degree || '')}</span> · <span contenteditable="true" data-edu-field="institution" data-idx="${idx}">${escapePreviewHTML(edu.institution || '')}</span></div>
-             ${edu.grade ? `<div style="font-size: 8.2pt; color: #64748b;">${L.grade} <span contenteditable="true" data-edu-field="grade" data-idx="${idx}">${escapePreviewHTML(edu.grade)}</span></div>` : ''}`
-          : `<div class="entry-role" contenteditable="true" data-edu-field="degree" data-idx="${idx}">${escapePreviewHTML(edu.degree || '')}</div>
-             <div class="entry-institution"><span contenteditable="true" data-edu-field="institution" data-idx="${idx}">${escapePreviewHTML(edu.institution || '')}</span>${isParis && edu.grade ? ` · ${L.grade} <span contenteditable="true" data-edu-field="grade" data-idx="${idx}">${escapePreviewHTML(edu.grade)}</span>` : (!isParis && edu.city ? ` · <span contenteditable="true" data-edu-field="city" data-idx="${idx}">${escapePreviewHTML(edu.city)}</span>` : '')}</div>
-             ${(!isParis && edu.grade) ? `<div style="font-size: 8.2pt; color: #6b7280;">${L.grade} <strong contenteditable="true" data-edu-field="grade" data-idx="${idx}">${escapePreviewHTML(edu.grade)}</strong></div>` : ''}`
-        }
+  const rawEducation = Array.isArray(cv.education) ? cv.education : [];
+
+  const eduHTML = rawEducation.map((edu, idx) => {
+    if (!edu || typeof edu !== 'object' || Array.isArray(edu)) return '';
+    const dateRange = formatDateRange(edu.startDate, edu.endDate, Boolean(edu.current), L.present);
+    const degree = typeof edu.degree === 'string' ? edu.degree : '';
+    const institution = typeof edu.institution === 'string' ? edu.institution : '';
+    const city = typeof edu.city === 'string' ? edu.city : '';
+    const grade = typeof edu.grade === 'string' ? edu.grade : '';
+
+    return `
+      <div class="entry-row item-block" data-edu-idx="${idx}">
+        <div class="entry-dates" contenteditable="true" role="textbox" aria-label="Study dates for education ${idx + 1}" data-edu-field="dateRange" data-idx="${idx}">${escapePreviewHTML(dateRange)}</div>
+        <div>
+          ${isSwiss
+            ? `<div class="entry-role"><span contenteditable="true" role="textbox" aria-label="Degree for education ${idx + 1}" data-edu-field="degree" data-idx="${idx}">${escapePreviewHTML(degree)}</span> · <span contenteditable="true" role="textbox" aria-label="Institution for education ${idx + 1}" data-edu-field="institution" data-idx="${idx}">${escapePreviewHTML(institution)}</span></div>
+               ${grade ? `<div style="font-size: 8.2pt; color: #475569;">${L.grade} <span contenteditable="true" role="textbox" aria-label="Grade for education ${idx + 1}" data-edu-field="grade" data-idx="${idx}">${escapePreviewHTML(grade)}</span></div>` : ''}`
+            : `<div class="entry-role" contenteditable="true" role="textbox" aria-label="Degree for education ${idx + 1}" data-edu-field="degree" data-idx="${idx}">${escapePreviewHTML(degree)}</div>
+               <div class="entry-institution"><span contenteditable="true" role="textbox" aria-label="Institution for education ${idx + 1}" data-edu-field="institution" data-idx="${idx}">${escapePreviewHTML(institution)}</span>${isParis && grade ? ` · ${L.grade} <span contenteditable="true" role="textbox" aria-label="Grade for education ${idx + 1}" data-edu-field="grade" data-idx="${idx}">${escapePreviewHTML(grade)}</span>` : (!isParis && city ? ` · <span contenteditable="true" role="textbox" aria-label="City for education ${idx + 1}" data-edu-field="city" data-idx="${idx}">${escapePreviewHTML(city)}</span>` : '')}</div>
+               ${(!isParis && grade) ? `<div style="font-size: 8.2pt; color: #4b5563;">${L.grade} <strong contenteditable="true" role="textbox" aria-label="Grade for education ${idx + 1}" data-edu-field="grade" data-idx="${idx}">${escapePreviewHTML(grade)}</strong></div>` : ''}`
+          }
+        </div>
+        <div class="item-actions no-print">
+          <button type="button" class="item-action-btn delete" title="Delete entry" aria-label="Delete education entry ${idx + 1}" data-delete-edu="${idx}">×</button>
+        </div>
       </div>
-      <div class="item-actions no-print">
-        <button class="item-action-btn delete" title="Delete entry" data-delete-edu="${idx}">×</button>
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).filter(Boolean).join('');
 
   return `
     <section class="cv-section" data-section-id="education">
       <h2 class="section-heading">${L.education}</h2>
-      ${eduHTML || '<p style="font-size: 8.5pt; color: #9ca3af; font-style: italic;">No degrees added yet.</p>'}
-      <div class="no-print"><span class="add-item-trigger" id="btn-trigger-add-edu">${L.addEdu}</span></div>
+      ${eduHTML || '<p style="font-size: 8.5pt; color: #64748b; font-style: italic;">No degrees added yet.</p>'}
+      <div class="no-print"><button type="button" class="add-item-trigger" id="btn-trigger-add-edu">${L.addEdu}</button></div>
     </section>
   `;
 }
 
 function buildSkillsSectionHTML(cv, L) {
-  const skills = cv.skills?.technical || [];
+  const skills = (Array.isArray(cv.skills?.technical) ? cv.skills.technical : [])
+    .filter(s => typeof s === 'string' && s.trim());
   return `
     <section class="cv-section" data-section-id="skills">
       <h2 class="section-heading">${L.skills}</h2>
       <div class="skills-matrix">
         ${skills.length
           ? skills.map(t => `<span class="skill-pill">${escapePreviewHTML(t)}</span>`).join('')
-          : '<span style="font-size: 8.5pt; color: #9ca3af; font-style: italic;">Add technical competencies in the editor.</span>'}
+          : '<span style="font-size: 8.5pt; color: #64748b; font-style: italic;">Add technical competencies in the editor.</span>'}
       </div>
     </section>
   `;
 }
 
 function buildLanguagesSectionHTML(cv, L) {
-  const langs = cv.skills?.languages || [];
+  const langs = (Array.isArray(cv.skills?.languages) ? cv.skills.languages : [])
+    .filter(l => l && typeof l === 'object' && !Array.isArray(l));
   if (!langs.length) return '';
   return `
     <section class="cv-section" data-section-id="languages">
@@ -310,8 +365,8 @@ function buildLanguagesSectionHTML(cv, L) {
       <div class="lang-grid">
         ${langs.map(l => `
           <div class="lang-item">
-            <span class="lang-name">${escapePreviewHTML(l.language || '')}</span>
-            <span class="lang-level">${escapePreviewHTML(l.level || '')}</span>
+            <span class="lang-name">${escapePreviewHTML(typeof l.language === 'string' ? l.language : '')}</span>
+            <span class="lang-level">${escapePreviewHTML(typeof l.level === 'string' ? l.level : '')}</span>
           </div>
         `).join('')}
       </div>
@@ -320,36 +375,45 @@ function buildLanguagesSectionHTML(cv, L) {
 }
 
 function buildProjectsSectionHTML(cv, L) {
-  const projects = cv.projects || [];
+  const projects = (Array.isArray(cv.projects) ? cv.projects : [])
+    .filter(proj => proj && typeof proj === 'object' && !Array.isArray(proj));
   if (!projects.length) return '';
   return `
     <section class="cv-section" data-section-id="projects">
       <h2 class="section-heading">${L.projects}</h2>
-      ${projects.map(proj => `
-        <div class="entry-row item-block">
-          <div class="entry-dates">${escapePreviewHTML(proj.technologies || 'Project')}</div>
-          <div>
-            <div class="entry-role">${escapePreviewHTML(proj.name || '')}</div>
-            ${proj.description ? `<div class="entry-institution">${escapePreviewHTML(proj.description)}</div>` : ''}
+      ${projects.map(proj => {
+        const name = typeof proj.name === 'string' ? proj.name : '';
+        const description = typeof proj.description === 'string' ? proj.description : '';
+        const technologies = typeof proj.technologies === 'string' ? proj.technologies.trim() : '';
+        const leftLabel = typeof proj.year === 'string' && proj.year.trim() ? proj.year.trim() : L.projectTag;
+        return `
+          <div class="entry-row item-block">
+            <div class="entry-dates">${escapePreviewHTML(leftLabel)}</div>
+            <div>
+              <div class="entry-role">${escapePreviewHTML(name)}</div>
+              ${description ? `<div class="entry-institution">${escapePreviewHTML(description)}</div>` : ''}
+              ${technologies ? `<div class="proj-tech-line">${escapePreviewHTML(technologies)}</div>` : ''}
+            </div>
           </div>
-        </div>
-      `).join('')}
+        `;
+      }).join('')}
     </section>
   `;
 }
 
 function buildCertificationsSectionHTML(cv, L) {
-  const certs = cv.certifications || [];
+  const certs = (Array.isArray(cv.certifications) ? cv.certifications : [])
+    .filter(cert => cert && typeof cert === 'object' && !Array.isArray(cert));
   if (!certs.length) return '';
   return `
     <section class="cv-section" data-section-id="certifications">
       <h2 class="section-heading">${L.certifications}</h2>
       ${certs.map(cert => `
         <div class="entry-row item-block">
-          <div class="entry-dates">${escapePreviewHTML(cert.year || '')}</div>
+          <div class="entry-dates">${escapePreviewHTML(cert.year !== undefined && cert.year !== null ? String(cert.year) : '')}</div>
           <div>
-            <div class="entry-role">${escapePreviewHTML(cert.name || '')}</div>
-            ${cert.issuer ? `<div class="entry-institution">${escapePreviewHTML(cert.issuer)}</div>` : ''}
+            <div class="entry-role">${escapePreviewHTML(typeof cert.name === 'string' ? cert.name : '')}</div>
+            ${typeof cert.issuer === 'string' && cert.issuer ? `<div class="entry-institution">${escapePreviewHTML(cert.issuer)}</div>` : ''}
           </div>
         </div>
       `).join('')}
@@ -359,21 +423,28 @@ function buildCertificationsSectionHTML(cv, L) {
 
 function buildSignatureHTML(cv, templateId) {
   if (templateId !== TEMPLATE_IDS.GERMAN_DIN) return '';
-  const p = cv.personal || {};
+  const p = cv.personal && typeof cv.personal === 'object' ? cv.personal : {};
   const rules = cv.rules || {};
-  const isUK = (cv.meta?.targetCountry || 'DE') === 'UK';
-  if (isUK || !rules.allowSignatureBlock || !cv.meta?.includeSignatureBlock) return '';
+  if (!rules.allowSignatureBlock || !cv.meta?.includeSignatureBlock) return '';
 
-  const place = cv.signature?.place || p.city || 'Berlin';
-  const date = cv.signature?.date || new Date().toLocaleDateString('en-GB');
-  const name = cv.signature?.signeeName || `${p.firstName || ''} ${p.lastName || ''}`.trim();
+  const sigPlace = typeof cv.signature?.place === 'string' && cv.signature.place.trim() ? cv.signature.place : '';
+  const pCity = typeof p.city === 'string' && p.city.trim() ? p.city : '';
+  const place = sigPlace || pCity || 'Berlin';
+  const date = (typeof cv.signature?.date === 'string' && cv.signature.date.trim())
+    ? cv.signature.date
+    : new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const sigName = typeof cv.signature?.signeeName === 'string' && cv.signature.signeeName.trim() ? cv.signature.signeeName : '';
+  const pFirst = typeof p.firstName === 'string' ? p.firstName : '';
+  const pLast = typeof p.lastName === 'string' ? p.lastName : '';
+  const name = sigName || `${pFirst} ${pLast}`.trim();
+
   return `
     <div class="din-signature-block">
       <div>
-        <span contenteditable="true" data-bind="signature.place">${escapePreviewHTML(place)}</span>,
-        <span contenteditable="true" data-bind="signature.date">${escapePreviewHTML(date)}</span>
+        <span contenteditable="true" role="textbox" aria-label="Signature location" data-bind="signature.place">${escapePreviewHTML(place)}</span>,
+        <span contenteditable="true" role="textbox" aria-label="Signature date" data-bind="signature.date">${escapePreviewHTML(date)}</span>
       </div>
-      <div class="din-signature-line" contenteditable="true" data-bind="signature.signeeName">${escapePreviewHTML(name)}</div>
+      <div class="din-signature-line" contenteditable="true" role="textbox" aria-label="Signee name" data-bind="signature.signeeName">${escapePreviewHTML(name)}</div>
     </div>
   `;
 }
