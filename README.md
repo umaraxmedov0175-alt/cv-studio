@@ -44,3 +44,25 @@ start index.html
 ```
 
 Or open `tests/run-tests.html` to run the automated unit test suite.
+
+### Running the tests from the terminal
+
+`run_tests.ps1` runs the same suite in headless Chrome or Edge, prints the
+per-suite results, and exits with a non-zero code when anything fails:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run_tests.ps1
+```
+
+### Rebuilding the bundle
+
+`index.html` loads `js/app.bundle.js` when opened directly from disk (`file://`),
+and the modular `js/app.js` when served over HTTP. After changing anything in
+`js/`, regenerate the bundle and the standalone artifact:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build-bundle.ps1
+```
+
+That writes `js/app.bundle.js` plus a single-file `dist/european_cv_builder.html`
+with CSS and JS inlined. Pass `-SkipStandalone` to rebuild only the bundle.

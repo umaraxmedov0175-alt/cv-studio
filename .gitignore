@@ -1,3 +1,4 @@
 # Build / Screenshots
 *.png
 test_output.html
+dist/

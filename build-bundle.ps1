@@ -1,8 +1,9 @@
 # Bundles European CV Studio ES modules into:
 # 1) js/app.bundle.js for file:// protocol compatibility
-# 2) Standalone single-file HTML artifact for sidebar presentation
+# 2) A standalone single-file HTML artifact (dist/ by default)
 param(
-  [string]$StandaloneArtifactPath = "C:\Users\HP\.gemini\antigravity\brain\25a29bbc-04a7-4b88-aee9-fef8760b8024\european_cv_builder.html"
+  [string]$StandaloneArtifactPath = '',
+  [switch]$SkipStandalone
 )
 
 $ErrorActionPreference = 'Stop'
@@ -45,7 +46,15 @@ $outPath = Join-Path $root 'js/app.bundle.js'
 Write-Host "Generated $outPath ($((Get-Item $outPath).Length) bytes)"
 
 # Generate standalone artifact with inlined CSS and bundled JS
-if ($StandaloneArtifactPath -and (Test-Path (Split-Path -Parent $StandaloneArtifactPath))) {
+if (-not $SkipStandalone) {
+  if (-not $StandaloneArtifactPath) {
+    $StandaloneArtifactPath = Join-Path $root 'dist/european_cv_builder.html'
+  }
+  $artifactDir = Split-Path -Parent $StandaloneArtifactPath
+  if (-not (Test-Path $artifactDir)) {
+    New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
+  }
+
   $indexHtml = Get-Content -Path (Join-Path $root 'index.html') -Raw -Encoding UTF8
   $cssPrint = Get-Content -Path (Join-Path $root 'css/print-a4.css') -Raw -Encoding UTF8
   $cssTpl = Get-Content -Path (Join-Path $root 'css/templates.css') -Raw -Encoding UTF8
