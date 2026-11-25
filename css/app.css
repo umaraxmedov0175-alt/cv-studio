@@ -478,6 +478,8 @@ h1, h2, h3, .brand-name, .accordion-title {
   left: 0;
   min-width: 260px;
   max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 130px);
+  overflow-y: auto;
   background-color: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
@@ -1087,6 +1089,7 @@ textarea.field-input {
 
 /* Bullet Writing Coach & Contextual Popover */
 .bullet-coach-row {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1123,7 +1126,7 @@ textarea.field-input {
 }
 
 .bullet-coach-trigger-wrap {
-  position: relative;
+  position: static;
   flex-shrink: 0;
 }
 
@@ -1164,8 +1167,7 @@ textarea.field-input {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  width: 320px;
-  max-width: calc(100vw - 52px);
+  width: min(320px, 100%);
   background-color: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -1836,9 +1838,6 @@ textarea.field-input {
   .btn-label-desktop {
     display: none;
   }
-  .bullet-assistant-popover {
-    width: 280px;
-  }
   .launch-overlay {
     padding: 12px;
   }
@@ -1864,8 +1863,8 @@ textarea.field-input {
     grid-template-columns: 1fr;
   }
   .template-gallery-grid {
-    grid-template-columns: 1fr;
-    width: 260px;
+    grid-template-columns: repeat(3, minmax(84px, 1fr));
+    width: 320px;
   }
   .strength-next-btn {
     display: none;

@@ -147,10 +147,16 @@ function initStudio() {
 
   const clampPopoverToViewport = (menu) => {
     if (!menu) return;
-    menu.classList.remove('align-right');
+    menu.style.left = '';
+    menu.style.right = '';
     const rect = menu.getBoundingClientRect();
     if (rect.right > window.innerWidth - 12) {
-      menu.classList.add('align-right');
+      const shiftLeft = rect.right - (window.innerWidth - 12);
+      menu.style.left = `${-shiftLeft}px`;
+    }
+    const adjusted = menu.getBoundingClientRect();
+    if (adjusted.left < 12) {
+      menu.style.left = `${parseFloat(menu.style.left || '0') + (12 - adjusted.left)}px`;
     }
   };
 
@@ -239,19 +245,25 @@ function initStudio() {
     if (countryCodeEl) countryCodeEl.textContent = country;
     if (countryLabelEl) countryLabelEl.textContent = COUNTRY_SHORT_LABELS[country] || country;
     document.querySelectorAll('#popover-country .studio-menu-item').forEach(btn => {
-      btn.classList.toggle('active', btn.getAttribute('data-country-val') === country);
+      const isSelected = btn.getAttribute('data-country-val') === country;
+      btn.classList.toggle('active', isSelected);
+      btn.setAttribute('aria-selected', String(isSelected));
     });
 
     const langLabelEl = document.getElementById('active-language-label');
     if (langLabelEl) langLabelEl.textContent = LANGUAGE_LABELS[lang] || 'English';
     document.querySelectorAll('#popover-language .studio-menu-item').forEach(btn => {
-      btn.classList.toggle('active', btn.getAttribute('data-lang-val') === lang);
+      const isSelected = btn.getAttribute('data-lang-val') === lang;
+      btn.classList.toggle('active', isSelected);
+      btn.setAttribute('aria-selected', String(isSelected));
     });
 
     const spacingLabelEl = document.getElementById('active-spacing-label');
     if (spacingLabelEl) spacingLabelEl.textContent = SPACING_LABELS[spacing] || 'Standard';
     document.querySelectorAll('#popover-spacing .studio-menu-item').forEach(btn => {
-      btn.classList.toggle('active', btn.getAttribute('data-spacing-val') === spacing);
+      const isSelected = btn.getAttribute('data-spacing-val') === spacing;
+      btn.classList.toggle('active', isSelected);
+      btn.setAttribute('aria-selected', String(isSelected));
     });
 
     if (togglePhoto) togglePhoto.checked = currentCV.meta.showPhoto !== false;
@@ -602,8 +614,8 @@ function initStudio() {
     }
   };
 
-  const COACH_VERBS_REGEX = /\b(architected|engineered|built|developed|automated|reduced|streamlined|optimized|spearheaded|scaled|led|designed|implemented|managed|delivered|improved|constructed|entwickelt|konzipiert|optimiert|reduziert|automatisiert|eingeführt|geleitet|gesteigert|conçu|développé|automatisé|optimisé|réduit|déployé|piloté|coordonné)\b/i;
-  const COACH_METRICS_REGEX = /\b\d+(\.\d+)?%|\d+\s*(years|months|jahre|monate|ans|mois|k|m|€|\$|ms|s|x|\+|hrs|hours|std|users|clients)|\b\d{2,}\b/i;
+  const COACH_VERBS_REGEX = /(?:^|[^\p{L}])(architected|engineered|built|developed|automated|reduced|streamlined|optimized|spearheaded|scaled|led|designed|implemented|managed|delivered|improved|constructed|entwickelt|konzipiert|optimiert|reduziert|automatisiert|eingeführt|geleitet|gesteigert|conçu|développé|automatisé|optimisé|réduit|déployé|piloté|coordonné)(?=$|[^\p{L}])/iu;
+  const COACH_METRICS_REGEX = /\b\d+([.,]\d+)?\s*%|\b\d+([.,]\d+)?\s*(years|months|jahre|monate|ans|mois|k|m|mio|€|\$|ms|s|x|\+|hrs|hours|std|users|clients|teams)|[€$]\s*\d+|\b\d{2,}\b/i;
 
   const analyzeExperienceBullets = (bullets) => {
     const clean = (bullets || []).map(b => String(b).trim()).filter(Boolean);
@@ -772,12 +784,13 @@ function initStudio() {
         const willOpen = pop && !pop.classList.contains('open');
         closeAllPopovers();
         if (willOpen && pop) {
-          const btnRect = btn.getBoundingClientRect();
-          if (btnRect.bottom + 270 > window.innerHeight - 48) {
-            pop.classList.add('pop-up');
-          }
           pop.classList.add('open');
           btn.setAttribute('aria-expanded', 'true');
+          const btnRect = btn.getBoundingClientRect();
+          const popRect = pop.getBoundingClientRect();
+          if (popRect.bottom > window.innerHeight - 48 && btnRect.top - popRect.height > 120) {
+            pop.classList.add('pop-up');
+          }
         }
       });
     });
@@ -1661,6 +1674,7 @@ function initStudio() {
   });
 
   window.addEventListener('resize', () => {
+    closeAllPopovers();
     currentZoom = computeFitZoom();
     applyZoom(currentZoom);
     calculatePageBudget();
