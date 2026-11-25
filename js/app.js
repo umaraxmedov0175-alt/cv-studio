@@ -2329,7 +2329,9 @@ function initStudio() {
   const closeLaunchModal = ({ restoreFocus = true } = {}) => {
     if (!launchOverlay?.classList.contains('open')) return;
     launchOverlay.classList.remove('open');
-    setBackgroundInert(false);
+    if (!drawer?.classList.contains('open')) {
+      setBackgroundInert(false);
+    }
     if (restoreFocus && lastLaunchOpener && lastLaunchOpener !== document.body && lastLaunchOpener.isConnected) {
       lastLaunchOpener.focus();
     }
@@ -2430,6 +2432,7 @@ function initStudio() {
       lastDrawerOpener = opener || document.activeElement;
     }
     updateATSReport();
+    setBackgroundInert(true);
     drawer.removeAttribute('inert');
     drawer.classList.add('open');
     drawerBackdrop?.classList.add('active');
@@ -2441,6 +2444,9 @@ function initStudio() {
     drawer.classList.remove('open');
     drawer.setAttribute('inert', '');
     drawerBackdrop?.classList.remove('active');
+    if (!launchOverlay?.classList.contains('open')) {
+      setBackgroundInert(false);
+    }
     if (restoreFocus && lastDrawerOpener && lastDrawerOpener !== document.body && lastDrawerOpener.isConnected) {
       lastDrawerOpener.focus();
     }

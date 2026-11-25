@@ -24,6 +24,11 @@ const TEMPLATE_IDS = {
   MODERN_EUROPEAN: 'modern-european',
   MINIMAL_SWISS: 'minimal-swiss'
 };
+
+const VALID_TEMPLATES = new Set(Object.values(TEMPLATE_IDS));
+const VALID_LANGUAGES = new Set(['en', 'de', 'fr']);
+const VALID_COUNTRIES = new Set(['DE', 'UK', 'FR', 'NL']);
+const VALID_SPACING = new Set(['compact', 'normal', 'spacious']);
 const DEFAULT_SECTION_ORDER = [
   'summary',
   'experience',
@@ -60,6 +65,39 @@ function normalizeSectionOrder(order) {
 
   return result;
 }
+function isSafePhotoUrl(url) {
+  if (typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (trimmed === '') return true;
+  if (/[\u0000-\u001f\u007f]/.test(trimmed)) return false;
+
+  if (/^data:/i.test(trimmed)) {
+    return /^data:image\/(png|jpeg|jpg|webp|gif);base64,[a-z0-9+/=]+$/i.test(trimmed);
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const parsed = new URL(trimmed);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // Allow only relative paths without a URI scheme or protocol-relative // prefix
+  if (trimmed.startsWith('//') || trimmed.includes('://') || /^[^/?#]*:/.test(trimmed)) {
+    return false;
+  }
+  return true;
+}
+
+function asPlainObject(val) {
+  return val && typeof val === 'object' && !Array.isArray(val) ? val : {};
+}
+
+function asString(val, fallback = '') {
+  return typeof val === 'string' ? val : fallback;
+}
 function createEmptyCV() {
   return {
     meta: {
@@ -68,7 +106,6 @@ function createEmptyCV() {
       language: 'en',
       targetCountry: 'DE',
       accentColor: '#2b3fe8',
-      fontFamily: 'Plus Jakarta Sans',
       spacing: 'normal',
       showPhoto: true,
       includeSignatureBlock: true,
@@ -104,7 +141,7 @@ function createEmptyCV() {
     projects: [],
     signature: {
       place: 'Berlin',
-      date: new Date().toLocaleDateString('en-GB'),
+      date: new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }),
       signeeName: ''
     }
   };
@@ -117,7 +154,6 @@ function createSampleEuropeanCV() {
       language: 'en',
       targetCountry: 'DE',
       accentColor: '#2b3fe8',
-      fontFamily: 'Plus Jakarta Sans',
       spacing: 'normal',
       showPhoto: true,
       includeSignatureBlock: true,
@@ -242,22 +278,181 @@ function createSampleEuropeanCV() {
 
 // Backward compatibility alias
 const createSampleGermanCV = createSampleEuropeanCV;
-function validateCV(cv) {
+
+/**
+ * Coerces untrusted or partial CV payloads into a safe, well-typed CV object.
+ */
+function sanitizeCVData(raw) {
+  const base = createEmptyCV();
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return base;
+  }
+
+  const rawMeta = asPlainObject(raw.meta);
+  const rawCountry = typeof rawMeta.targetCountry === 'string' ? rawMeta.targetCountry.trim().toUpperCase() : '';
+  const rawAccent = typeof rawMeta.accentColor === 'string' ? rawMeta.accentColor.trim() : '';
+
+  const meta = {
+    version: asString(rawMeta.version, base.meta.version),
+    template: VALID_TEMPLATES.has(rawMeta.template) ? rawMeta.template : base.meta.template,
+    language: VALID_LANGUAGES.has(rawMeta.language) ? rawMeta.language : base.meta.language,
+    targetCountry: VALID_COUNTRIES.has(rawCountry) ? rawCountry : base.meta.targetCountry,
+    accentColor: /^#[0-9a-f]{3,8}$/i.test(rawAccent) ? rawAccent : base.meta.accentColor,
+    spacing: VALID_SPACING.has(rawMeta.spacing) ? rawMeta.spacing : base.meta.spacing,
+    showPhoto: typeof rawMeta.showPhoto === 'boolean' ? rawMeta.showPhoto : base.meta.showPhoto,
+    includeSignatureBlock: typeof rawMeta.includeSignatureBlock === 'boolean'
+      ? rawMeta.includeSignatureBlock
+      : base.meta.includeSignatureBlock,
+    sectionOrder: normalizeSectionOrder(rawMeta.sectionOrder)
+  };
+
+  const rawPersonal = asPlainObject(raw.personal);
+  const rawPhoto = typeof rawPersonal.photoUrl === 'string' ? rawPersonal.photoUrl.trim() : '';
+  const personal = {
+    firstName: asString(rawPersonal.firstName),
+    lastName: asString(rawPersonal.lastName),
+    title: asString(rawPersonal.title),
+    email: asString(rawPersonal.email),
+    phone: asString(rawPersonal.phone),
+    address: asString(rawPersonal.address),
+    city: asString(rawPersonal.city),
+    postalCode: asString(rawPersonal.postalCode),
+    country: rawPersonal.country === undefined || rawPersonal.country === null
+      ? base.personal.country
+      : asString(rawPersonal.country),
+    birthDate: asString(rawPersonal.birthDate),
+    birthPlace: asString(rawPersonal.birthPlace),
+    nationality: asString(rawPersonal.nationality),
+    website: asString(rawPersonal.website),
+    linkedin: asString(rawPersonal.linkedin),
+    github: asString(rawPersonal.github),
+    photoUrl: isSafePhotoUrl(rawPhoto) ? rawPhoto : ''
+  };
+
+  const experience = (Array.isArray(raw.experience) ? raw.experience : [])
+    .filter(item => item && typeof item === 'object' && !Array.isArray(item))
+    .map((exp, idx) => ({
+      id: asString(exp.id) || `exp-${idx + 1}`,
+      position: asString(exp.position),
+      company: asString(exp.company),
+      city: asString(exp.city),
+      startDate: asString(exp.startDate),
+      endDate: asString(exp.endDate),
+      current: Boolean(exp.current),
+      bullets: Array.isArray(exp.bullets)
+        ? exp.bullets.filter(b => typeof b === 'string' || typeof b === 'number').map(b => String(b))
+        : [],
+      technologies: Array.isArray(exp.technologies)
+        ? exp.technologies.filter(t => typeof t === 'string').map(t => t.trim()).filter(Boolean)
+        : []
+    }));
+
+  const education = (Array.isArray(raw.education) ? raw.education : [])
+    .filter(item => item && typeof item === 'object' && !Array.isArray(item))
+    .map((edu, idx) => ({
+      id: asString(edu.id) || `edu-${idx + 1}`,
+      degree: asString(edu.degree),
+      institution: asString(edu.institution),
+      city: asString(edu.city),
+      startDate: asString(edu.startDate),
+      endDate: asString(edu.endDate),
+      grade: asString(edu.grade),
+      thesis: asString(edu.thesis)
+    }));
+
+  const rawSkills = asPlainObject(raw.skills);
+  const skills = {
+    technical: Array.isArray(rawSkills.technical)
+      ? rawSkills.technical.filter(s => typeof s === 'string').map(s => s.trim()).filter(Boolean)
+      : [],
+    languages: (Array.isArray(rawSkills.languages) ? rawSkills.languages : [])
+      .filter(l => l && typeof l === 'object' && !Array.isArray(l))
+      .map(l => ({
+        language: asString(l.language),
+        level: asString(l.level)
+      })),
+    tools: Array.isArray(rawSkills.tools)
+      ? rawSkills.tools.filter(t => typeof t === 'string').map(t => t.trim()).filter(Boolean)
+      : []
+  };
+
+  const certifications = (Array.isArray(raw.certifications) ? raw.certifications : [])
+    .filter(c => c && typeof c === 'object' && !Array.isArray(c))
+    .map((c, idx) => ({
+      id: asString(c.id) || `cert-${idx + 1}`,
+      name: asString(c.name),
+      issuer: asString(c.issuer),
+      year: typeof c.year === 'number' && Number.isFinite(c.year) ? String(c.year) : asString(c.year)
+    }));
+
+  const projects = (Array.isArray(raw.projects) ? raw.projects : [])
+    .filter(p => p && typeof p === 'object' && !Array.isArray(p))
+    .map((p, idx) => ({
+      id: asString(p.id) || `proj-${idx + 1}`,
+      name: asString(p.name),
+      description: asString(p.description),
+      technologies: asString(p.technologies),
+      link: asString(p.link)
+    }));
+
+  const rawSig = asPlainObject(raw.signature);
+  const signature = {
+    place: typeof rawSig.place === 'string' ? rawSig.place : base.signature.place,
+    date: typeof rawSig.date === 'string' ? rawSig.date : base.signature.date,
+    signeeName: typeof rawSig.signeeName === 'string' ? rawSig.signeeName : base.signature.signeeName
+  };
+
+  return {
+    meta,
+    personal,
+    summary: asString(raw.summary),
+    experience,
+    education,
+    skills,
+    certifications,
+    projects,
+    signature
+  };
+}
+function validateCV(cv, options = {}) {
   const errors = [];
-  if (!cv) {
+  const { allowDraft = false } = options && typeof options === 'object' ? options : {};
+
+  if (!cv || typeof cv !== 'object' || Array.isArray(cv)) {
     return { valid: false, errors: ['CV object cannot be empty.'] };
   }
-  if (!cv.personal?.firstName?.trim()) {
+  if (!cv.personal || typeof cv.personal !== 'object' || Array.isArray(cv.personal)) {
+    return { valid: false, errors: ['Personal details object is missing or invalid.'] };
+  }
+
+  const p = cv.personal;
+  if (p.firstName !== undefined && p.firstName !== null && typeof p.firstName !== 'string') {
+    errors.push('First name must be text.');
+  } else if (!allowDraft && !(typeof p.firstName === 'string' && p.firstName.trim())) {
     errors.push('First name is required.');
   }
-  if (!cv.personal?.lastName?.trim()) {
+
+  if (p.lastName !== undefined && p.lastName !== null && typeof p.lastName !== 'string') {
+    errors.push('Last name must be text.');
+  } else if (!allowDraft && !(typeof p.lastName === 'string' && p.lastName.trim())) {
     errors.push('Last name is required.');
   }
-  if (!cv.personal?.email?.trim()) {
-    errors.push('Email address is required.');
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cv.personal.email)) {
-    errors.push('Invalid email address format.');
+
+  if (p.email !== undefined && p.email !== null && typeof p.email !== 'string') {
+    errors.push('Email address must be text.');
+  } else {
+    const emailStr = typeof p.email === 'string' ? p.email.trim() : '';
+    if (!allowDraft && !emailStr) {
+      errors.push('Email address is required.');
+    } else if (emailStr && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr)) {
+      errors.push('Invalid email address format.');
+    }
   }
+
+  if (p.photoUrl !== undefined && p.photoUrl !== null && !isSafePhotoUrl(p.photoUrl)) {
+    errors.push('Invalid or unsafe photo URL.');
+  }
+
   return {
     valid: errors.length === 0,
     errors
@@ -273,6 +468,10 @@ const STORAGE_KEY = 'european_cv_studio_v2';
 const AUTOSAVE_DELAY = 400; // ms debounce
 
 let debounceTimer = null;
+let lastStorageError = null;
+function getLastStorageError() {
+  return lastStorageError;
+}
 function hasStoredCV() {
   try {
     return Boolean(localStorage.getItem(STORAGE_KEY));
@@ -285,39 +484,68 @@ function loadStoredCV() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed && parsed.personal) {
-        parsed.meta = parsed.meta || {};
-        parsed.meta.sectionOrder = normalizeSectionOrder(parsed.meta.sectionOrder);
-        return parsed;
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return sanitizeCVData(parsed);
       }
     }
   } catch (err) {
     console.warn('[Storage] Failed to read from localStorage:', err);
   }
-  return createSampleGermanCV();
+  return createSampleEuropeanCV();
 }
-function saveCVDirect(cv) {
+function saveCVWithStatus(cv) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cv));
-    return true;
+    lastStorageError = null;
+    return { ok: true, error: null, isQuotaError: false };
   } catch (err) {
+    const isQuotaError = Boolean(
+      err && (
+        err.name === 'QuotaExceededError' ||
+        err.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+        err.code === 22 ||
+        err.code === 1014
+      )
+    );
+    const message = isQuotaError
+      ? 'Browser storage quota exceeded. Remove or shrink your portrait photo, or download a JSON backup.'
+      : (err?.message || 'Could not save CV to browser storage.');
+    lastStorageError = { name: err?.name || 'StorageError', message, isQuotaError };
     console.error('[Storage] Save failed:', err);
-    return false;
+    return { ok: false, error: message, isQuotaError };
   }
+}
+function saveCVDirect(cv) {
+  return saveCVWithStatus(cv).ok;
 }
 function autoSaveCV(cv, onSavedCallback) {
   if (debounceTimer) {
     clearTimeout(debounceTimer);
   }
   debounceTimer = setTimeout(() => {
-    saveCVDirect(cv);
+    const status = saveCVWithStatus(cv);
     if (typeof onSavedCallback === 'function') {
-      onSavedCallback(new Date());
+      onSavedCallback(new Date(), status);
     }
   }, AUTOSAVE_DELAY);
 }
+
+function sanitizeDownloadStem(rawName) {
+  if (typeof rawName !== 'string') return '';
+  return rawName
+    .trim()
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '')
+    .replace(/[^\p{L}\p{N}._-]+/gu, '-')
+    .replace(/^[.-]+|[.-]+$/g, '')
+    .slice(0, 48);
+}
 function exportCVAsJSON(cv) {
-  const filename = `${(cv.personal?.lastName || 'Candidate')}_CV_${new Date().toISOString().slice(0, 10)}.json`;
+  const safeStem = sanitizeDownloadStem(cv?.personal?.lastName);
+  const dateStamp = new Date().toISOString().slice(0, 10);
+  const filename = safeStem
+    ? `${safeStem}_CV_${dateStamp}.json`
+    : `european-cv_${dateStamp}.json`;
+
   const blob = new Blob([JSON.stringify(cv, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -326,7 +554,7 @@ function exportCVAsJSON(cv) {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 function importCVFromJSON(file) {
   return new Promise((resolve, reject) => {
@@ -337,11 +565,11 @@ function importCVFromJSON(file) {
     reader.onload = (e) => {
       try {
         const parsed = JSON.parse(e.target.result);
-        const validation = validateCV(parsed);
+        const validation = validateCV(parsed, { allowDraft: true });
         if (!validation.valid) {
           return reject(new Error('Invalid CV schema: ' + validation.errors.join(', ')));
         }
-        resolve(parsed);
+        resolve(sanitizeCVData(parsed));
       } catch (err) {
         reject(new Error('Invalid JSON file: ' + err.message));
       }
@@ -419,33 +647,65 @@ const COUNTRY_STANDARDS = {
   }
 };
 
+function resolveCountryStandard(countryCode = 'DE') {
+  const key = typeof countryCode === 'string' ? countryCode.trim().toUpperCase() : '';
+  return COUNTRY_STANDARDS[key] || COUNTRY_STANDARDS.DE;
+}
+
 /**
- * Adapts CV configuration and flags according to the target European country's norms.
+ * Returns uniform UI field visibility & layout flags for the target country.
  */
-function adaptCVForCountry(cv, countryCode = 'DE') {
-  const standard = COUNTRY_STANDARDS[countryCode] || COUNTRY_STANDARDS.DE;
-
-  const adapted = JSON.parse(JSON.stringify(cv));
-
-  adapted.meta = adapted.meta || {};
-  adapted.meta.targetCountry = countryCode;
-
-  // Apply photo compliance
-  if (!standard.allowPhoto) {
-    adapted.meta.showPhoto = false;
-  }
-
-  // Apply signature block compliance
-  if (!standard.allowSignatureBlock) {
-    adapted.meta.includeSignatureBlock = false;
-  }
-
-  adapted.rules = {
+function getCountryFieldRules(countryCode = 'DE') {
+  const standard = resolveCountryStandard(countryCode);
+  return {
     allowPhoto: standard.allowPhoto,
     allowBirthDate: standard.allowBirthDate,
     allowNationality: standard.allowNationality,
     allowSignatureBlock: standard.allowSignatureBlock,
-    compactMode: standard.compactMode,
+    compactMode: standard.compactMode
+  };
+}
+
+/**
+ * Adapts CV configuration and flags according to the target European country's norms.
+ */
+function adaptCVForCountry(cv, countryCode = 'DE') {
+  const standard = resolveCountryStandard(countryCode);
+
+  let adapted;
+  if (!cv || typeof cv !== 'object' || Array.isArray(cv)) {
+    adapted = createEmptyCV();
+  } else {
+    try {
+      adapted = JSON.parse(JSON.stringify(cv));
+    } catch (_) {
+      adapted = createEmptyCV();
+    }
+  }
+
+  if (!adapted || typeof adapted !== 'object' || Array.isArray(adapted)) {
+    adapted = createEmptyCV();
+  }
+
+  if (!adapted.meta || typeof adapted.meta !== 'object' || Array.isArray(adapted.meta)) {
+    adapted.meta = {};
+  }
+  adapted.meta.targetCountry = standard.code;
+
+  const fieldRules = getCountryFieldRules(standard.code);
+
+  // Apply photo compliance
+  if (!fieldRules.allowPhoto) {
+    adapted.meta.showPhoto = false;
+  }
+
+  // Apply signature block compliance
+  if (!fieldRules.allowSignatureBlock) {
+    adapted.meta.includeSignatureBlock = false;
+  }
+
+  adapted.rules = {
+    ...fieldRules,
     languageCode: standard.languageCode,
     complianceNote: standard.complianceNote
   };
@@ -457,43 +717,79 @@ function adaptCVForCountry(cv, countryCode = 'DE') {
 /**
  * ATS (Applicant Tracking System) Compliance & Scoring Engine
  * Calibrated for European, UK, and DACH corporate recruitment filters.
- * Default language: English (with multi-language action verb support).
+ * Default language: English (with multi-language EN/DE/FR action verb & metric support).
  */
+const ACTION_VERBS = {
+  en: [
+    'led', 'developed', 'architected', 'optimized', 'reduced', 'increased',
+    'implemented', 'built', 'spearheaded', 'automated', 'streamlined', 'managed',
+    'designed', 'engineered', 'delivered', 'improved', 'scaled', 'constructed',
+    'mentored', 'launched', 'migrated', 'elevated'
+  ],
+  de: [
+    'entwicklung', 'entwickelt', 'leitung', 'geleitet', 'optimierung', 'optimiert',
+    'steigerung', 'gesteigert', 'konzeption', 'konzipiert', 'einführung', 'eingeführt',
+    'reduzierung', 'reduziert', 'implementierung', 'implementiert', 'aufbau', 'aufgebaut',
+    'analyse', 'analysiert', 'automation', 'automatisiert', 'koordination', 'koordiniert'
+  ],
+  fr: [
+    'conçu', 'développé', 'automatisé', 'optimisé', 'réduit', 'déployé',
+    'piloté', 'coordonné', 'dirigé', 'géré', 'amélioré', 'réalisé', 'conception'
+  ]
+};
 
-const GERMAN_ACTION_VERBS = [
-  'entwicklung', 'entwickelt', 'leitung', 'geleitet', 'optimierung', 'optimiert',
-  'steigerung', 'gesteigert', 'konzeption', 'konzipiert', 'einführung', 'eingeführt',
-  'reduzierung', 'reduziert', 'implementierung', 'implementiert', 'aufbau', 'aufgebaut',
-  'analyse', 'analysiert', 'automation', 'automatisiert', 'koordination', 'koordiniert'
-];
+const ALL_ACTION_VERBS = [...ACTION_VERBS.en, ...ACTION_VERBS.de, ...ACTION_VERBS.fr]
+  .map(v => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+const ACTION_VERB_REGEX = new RegExp(
+  `(?:^|[^\\p{L}])(${ALL_ACTION_VERBS.join('|')})(?=$|[^\\p{L}])`,
+  'iu'
+);
+const METRIC_REGEX = /(?:^|[^\p{L}\d])(?:\d+(?:[.,]\d+)?\s*%|[€$£]\s*\d+(?:[.,]\d+)?(?:\s*(?:k|m|b|mio|bn))?|\d+(?:[.,]\d+)?\s*(?:\+|x(?=$|[^\p{L}\d])|[€$£]|(?:k|m|mio|bn|ms|s|hrs?|hours?|minutes?|seconds?|days?|months?|years?|percent|jahre?n?|monate?n?|tage?n?|prozent|std\.?|ans?|mois|users?|engineers?|developers?|clients?|customers?|teams?|members?|projects?|nutzer|entwickler|kunden|utilisateurs?|ingénieurs?)(?=$|[^\p{L}\d]))|(?!19\d{2}(?=$|[^\p{L}\d])|20\d{2}(?=$|[^\p{L}\d]))\d{2,}(?=$|[^\p{L}\d]))/iu;
 
-const ENGLISH_ACTION_VERBS = [
-  'led', 'developed', 'architected', 'optimized', 'reduced', 'increased',
-  'implemented', 'built', 'spearheaded', 'automated', 'streamlined', 'managed',
-  'designed', 'engineered', 'delivered', 'improved', 'scaled', 'constructed'
-];
+const CEFR_LEVEL_REGEX = /^(A[12]|B[12]|C[12]|Native\b)/i;
+function hasActionVerb(text) {
+  return typeof text === 'string' && ACTION_VERB_REGEX.test(text);
+}
+function hasQuantifiableMetric(text) {
+  return typeof text === 'string' && METRIC_REGEX.test(text);
+}
+
+function trimStr(val) {
+  return typeof val === 'string' ? val.trim() : '';
+}
 function analyzeCVForATS(cv) {
   let score = 0;
   const checks = [];
   const suggestions = [];
 
-  if (!cv || !cv.personal) {
+  if (!cv || typeof cv !== 'object' || Array.isArray(cv) || !cv.personal || typeof cv.personal !== 'object' || Array.isArray(cv.personal)) {
     return {
       score: 0,
       grade: 'F',
       status: 'Critically Incomplete',
-      checks: [{ id: 'data', category: 'Contact Information', label: 'Data available', passed: false, points: 0 }],
+      checks: [{ id: 'data', category: 'Contact Information', label: 'Data available', passed: false, points: 0, maxPoints: 20 }],
       suggestions: ['Please provide your contact details (name, email, phone).']
     };
   }
 
+  const targetCountry = trimStr(cv.meta?.targetCountry) || 'DE';
+  const adapted = adaptCVForCountry(cv, targetCountry);
+  const p = adapted.personal && typeof adapted.personal === 'object' ? adapted.personal : {};
+
   // 1. Personal & Contact Info (Max: 20 pts)
   let contactPts = 0;
-  if (cv.personal.firstName?.trim() && cv.personal.lastName?.trim()) contactPts += 5;
-  if (cv.personal.email?.trim() && cv.personal.email.includes('@')) contactPts += 5;
-  if (cv.personal.phone?.trim()) contactPts += 4;
-  if (cv.personal.city?.trim()) contactPts += 3;
-  if (cv.personal.title?.trim()) contactPts += 3;
+  const firstName = trimStr(p.firstName);
+  const lastName = trimStr(p.lastName);
+  const email = trimStr(p.email);
+  const phone = trimStr(p.phone);
+  const city = trimStr(p.city);
+  const title = trimStr(p.title);
+
+  if (firstName && lastName) contactPts += 5;
+  if (email && email.includes('@')) contactPts += 5;
+  if (phone) contactPts += 4;
+  if (city) contactPts += 3;
+  if (title) contactPts += 3;
   score += contactPts;
 
   checks.push({
@@ -511,44 +807,36 @@ function analyzeCVForATS(cv) {
 
   // 2. Work Experience & Quantifiable Achievements (Max: 30 pts)
   let expPts = 0;
-  const experiences = cv.experience || [];
+  const experiences = (Array.isArray(adapted.experience) ? adapted.experience : [])
+    .filter(e => e && typeof e === 'object' && !Array.isArray(e));
   if (experiences.length > 0) {
     expPts += 10;
-    let hasBullets = false;
     let hasMetrics = false;
-    let hasActionVerbs = false;
+    let hasVerbs = false;
 
-    const allText = experiences
-      .flatMap(e => [...(e.bullets || []), e.position || '', e.company || ''])
-      .join(' ')
-      .toLowerCase();
+    const bullets = experiences
+      .flatMap(e => (Array.isArray(e.bullets) ? e.bullets : []))
+      .filter(b => typeof b === 'string' && b.trim());
+    const bulletText = bullets.join(' ');
 
-    // Check for bullets
-    const totalBullets = experiences.reduce((acc, cur) => acc + (cur.bullets?.length || 0), 0);
-    if (totalBullets >= 3) {
+    if (bullets.length >= 3) {
       expPts += 8;
-      hasBullets = true;
     }
 
-    // Check for quantifiable impact (numbers, %, €, $, k, m)
-    const metricRegex = /\b\d+(\.\d+)?%|\b\d+\s*(years|months|jahre|monate|k|m|€|\$|days|percent|tage|prozent)|\b\d{2,}\b/i;
-    if (metricRegex.test(allText)) {
+    if (hasQuantifiableMetric(bulletText)) {
       expPts += 6;
       hasMetrics = true;
     }
 
-    // Check for action verbs
-    const matchesGerman = GERMAN_ACTION_VERBS.some(v => allText.includes(v));
-    const matchesEnglish = ENGLISH_ACTION_VERBS.some(v => allText.includes(v));
-    if (matchesGerman || matchesEnglish) {
+    if (hasActionVerb(bulletText)) {
       expPts += 6;
-      hasActionVerbs = true;
+      hasVerbs = true;
     }
 
     if (!hasMetrics) {
       suggestions.push('Quantify your achievements with numbers or percentages (e.g., "Reduced latency by 40%").');
     }
-    if (!hasActionVerbs) {
+    if (!hasVerbs) {
       suggestions.push('Start bullet points with impactful action verbs like "Architected", "Spearheaded", or "Optimized".');
     }
   } else {
@@ -567,11 +855,12 @@ function analyzeCVForATS(cv) {
 
   // 3. Education & Formal Qualification (Max: 15 pts)
   let eduPts = 0;
-  const education = cv.education || [];
+  const education = (Array.isArray(adapted.education) ? adapted.education : [])
+    .filter(e => e && typeof e === 'object' && !Array.isArray(e));
   if (education.length > 0) {
     eduPts += 8;
-    const hasDegree = education.some(e => e.degree?.trim());
-    const hasDates = education.some(e => (e.startDate?.trim() || e.dateRange?.trim()));
+    const hasDegree = education.some(e => Boolean(trimStr(e.degree)));
+    const hasDates = education.some(e => Boolean(trimStr(e.startDate) || trimStr(e.dateRange)));
     if (hasDegree) eduPts += 4;
     if (hasDates) eduPts += 3;
   } else {
@@ -588,30 +877,42 @@ function analyzeCVForATS(cv) {
     maxPoints: 15
   });
 
-  // 4. Skills & Language Breakdown with CEFR (Max: 20 pts)
+  // 4. Skills & Language Breakdown with CEFR (Max: 20 pts: up to 12 tech + up to 8 CEFR languages)
   let skillPts = 0;
-  const techSkills = cv.skills?.technical || [];
-  const languages = cv.skills?.languages || [];
+  const techSkills = (Array.isArray(adapted.skills?.technical) ? adapted.skills.technical : [])
+    .filter(s => typeof s === 'string' && s.trim());
+  const languages = (Array.isArray(adapted.skills?.languages) ? adapted.skills.languages : [])
+    .filter(l => l && typeof l === 'object' && Boolean(trimStr(l.language)));
 
   if (techSkills.length >= 4) {
-    skillPts += 10;
+    skillPts += 12;
   } else if (techSkills.length > 0) {
-    skillPts += 5;
+    skillPts += 6;
     suggestions.push('List at least 5-8 relevant technical competencies or tools.');
   } else {
     suggestions.push('Add your technical skill competencies and tools.');
   }
 
-  if (languages.length >= 2) {
-    const hasCefr = languages.some(l => l.level && (l.level.includes('A') || l.level.includes('B') || l.level.includes('C') || l.level.toLowerCase().includes('native') || l.level.toLowerCase().includes('mutter')));
-    skillPts += hasCefr ? 10 : 7;
+  const cefrCount = languages.filter(l => CEFR_LEVEL_REGEX.test(trimStr(l.level))).length;
+  let langPts = 0;
+  if (languages.length === 0) {
+    langPts = 0;
+    suggestions.push('Add spoken languages with official CEFR proficiency levels (e.g., B2, C1, Native).');
   } else if (languages.length === 1) {
-    skillPts += 5;
-    suggestions.push('Add language competencies with official CEFR proficiency levels (e.g., B2, C1, Native).');
+    langPts = cefrCount >= 1 ? 4 : 2;
+    suggestions.push('Add a second language with an official CEFR level (e.g., B2, C1, Native).');
   } else {
-    // If languages aren't in array, give baseline if technical skills are comprehensive
-    if (techSkills.length >= 6) skillPts += 8;
+    if (cefrCount >= 2) {
+      langPts = 8;
+    } else if (cefrCount === 1) {
+      langPts = 6;
+      suggestions.push('Specify official CEFR proficiency levels (A1–C2, Native) for your languages.');
+    } else {
+      langPts = 4;
+      suggestions.push('Specify official CEFR proficiency levels (A1–C2, Native) for your languages.');
+    }
   }
+  skillPts += langPts;
   score += skillPts;
 
   checks.push({
@@ -625,11 +926,22 @@ function analyzeCVForATS(cv) {
 
   // 5. European / Regional Formalities (Max: 15 pts)
   let formalPts = 0;
-  if (cv.meta?.includeSignatureBlock) {
-    if (cv.signature?.place?.trim() && cv.signature?.date?.trim()) formalPts += 8;
-    if (cv.signature?.signeeName?.trim() || (cv.personal?.firstName && cv.personal?.lastName)) formalPts += 7;
-  } else {
-    formalPts += 15; // UK Anti-bias or clean executive layout
+  const hasName = Boolean(firstName && lastName);
+  const sigPlace = trimStr(adapted.signature?.place);
+  const sigDate = trimStr(adapted.signature?.date);
+  const sigName = trimStr(adapted.signature?.signeeName);
+  const hasCandidateIdentity = hasName || Boolean(sigName);
+  const hasSubstantiveContent = (hasName || Boolean(email)) && (expPts > 0 || eduPts > 0 || skillPts > 0);
+
+  if (adapted.meta?.includeSignatureBlock) {
+    if (hasCandidateIdentity && sigPlace && sigDate) {
+      formalPts += 8;
+    }
+    if (hasCandidateIdentity) {
+      formalPts += 7;
+    }
+  } else if (hasSubstantiveContent) {
+    formalPts += adapted.rules?.allowSignatureBlock ? 12 : 15;
   }
   score += formalPts;
 
@@ -677,7 +989,7 @@ function analyzeCVForATS(cv) {
 const KNOWN_SKILL_KEYWORDS = [
   'typescript', 'javascript', 'react', 'next.js', 'vue', 'angular', 'svelte',
   'node.js', 'express', 'python', 'django', 'fastapi', 'flask',
-  'go', 'golang', 'rust', 'c++', 'c#', '.net', 'java', 'spring', 'kotlin', 'swift',
+  'go', 'rust', 'c++', 'c#', '.net', 'java', 'spring', 'kotlin', 'swift',
   'sql', 'postgresql', 'mysql', 'mongodb', 'redis', 'elasticsearch',
   'docker', 'kubernetes', 'aws', 'azure', 'gcp', 'cloud', 'terraform',
   'ci/cd', 'git', 'github actions', 'gitlab', 'linux', 'bash',
@@ -685,68 +997,147 @@ const KNOWN_SKILL_KEYWORDS = [
   'figma', 'ui/ux', 'tailwind', 'css', 'html', 'playwright', 'cypress', 'jest',
   'agile', 'scrum', 'jira', 'confluence', 'tdd', 'architecture'
 ];
-function extractKeywordsFromJob(jobText) {
-  if (!jobText || typeof jobText !== 'string') return [];
 
-  // Clean trailing punctuation like sentence periods while preserving internal dots in "node.js" or "next.js"
-  const normalized = jobText
-    .toLowerCase()
-    .replace(/[.,;:!?]+(\s|$)/g, ' $1')
-    .replace(/["'()[\]{}]/g, ' ');
+const LEFT_BOUND = '(?:^|[^a-z0-9#+.])';
+const RIGHT_BOUND = '(?=$|[^a-z0-9#+.])';
 
+const SKILL_ALIAS_PATTERNS = {
+  react: /(?:^|[^a-z0-9#+.])(?:react(?:\.js)?|reactjs)(?=$|[^a-z0-9#+.])/i,
+  vue: /(?:^|[^a-z0-9#+.])(?:vue(?:\.js)?|vuejs)(?=$|[^a-z0-9#+.])/i,
+  'next.js': /(?:^|[^a-z0-9#+.])(?:next\.js|nextjs)(?=$|[^a-z0-9#+.])/i,
+  'node.js': /(?:^|[^a-z0-9#+.])(?:node\.js|nodejs)(?=$|[^a-z0-9#+.])/i
+};
+
+const AMBIGUOUS_PROSE_MATCHERS = {
+  go: (text) =>
+    /(?:^|[^a-z0-9#+.])golang(?=$|[^a-z0-9#+.])/i.test(text) ||
+    /(?:^|[^a-z0-9#+.])Go(?=$|[^a-z0-9#+.])(?!\s+(?:to|beyond|through|into|for|on|up|out|back|ahead|live|fast|far|away|wrong)\b)/.test(text) ||
+    /(?:^|[,/&])\s*go\s*(?=[,/&]|$)/i.test(text),
+  rest: (text) =>
+    /(?:^|[^a-z0-9#+.])REST(?:ful)?(?=$|[^a-z0-9#+.])/.test(text) ||
+    /(?:^|[^a-z0-9#+.])rest\s*(?:apis?|services?|endpoints?|architecture|interfaces?|&|\/)(?=$|[^a-z0-9#+.])/i.test(text),
+  express: (text) =>
+    /(?:^|[^a-z0-9#+.])express(?:\.?js)(?=$|[^a-z0-9#+.])/i.test(text) ||
+    /(?:^|[^a-z0-9#+.])Express(?=$|[^a-z0-9#+.])(?!\s+(?:interest|yourself|delivery|shipping|lane|opinion|views|concerns|gratitude)\b)/.test(text),
+  spring: (text) =>
+    /(?:^|[^a-z0-9#+.])spring\s*(?:boot|framework|cloud|mvc|data|security|batch|integration)(?=$|[^a-z0-9#+.])/i.test(text) ||
+    /(?:^|[^a-z0-9#+.])Spring(?=$|[^a-z0-9#+.])(?!\s+(?:19\d\d|20\d\d|semester|break|intern\w*|cohort|quarter|term|season|cleaning)\b)/.test(text),
+  swift: (text) =>
+    /(?:^|[^a-z0-9#+.])swiftui(?=$|[^a-z0-9#+.])/i.test(text) ||
+    /(?:^|[^a-z0-9#+.])Swift(?=$|[^a-z0-9#+.])(?!\s+(?:response|action|decision|delivery|execution|resolution|transition)\b)/.test(text),
+  cloud: (text) =>
+    /(?:^|[^a-z0-9#+.])Cloud(?=$|[^a-z0-9#+.])/.test(text) ||
+    /(?:^|[^a-z0-9#+.])cloud[- ](?:native|computing|infrastructure|architecture|platform|services?|engineering|security|deployment|experience|skills?|technologies|environments?)(?=$|[^a-z0-9#+.])/i.test(text) ||
+    /(?:^|[^a-z0-9#+.])(?:aws|azure|gcp|public|private|hybrid|multi[- ])\s*cloud(?=$|[^a-z0-9#+.])/i.test(text) ||
+    /(?:^|[^a-z0-9#+.])in the cloud(?=$|[^a-z0-9#+.])/i.test(text)
+};
+
+function normalizeMatchText(text) {
+  if (typeof text !== 'string' || !text.trim()) return '';
+  return text
+    .replace(/["'()[\]{}]/g, ' ')
+    .replace(/[.,;:!?]+(?=\s|$)/g, ' ');
+}
+
+function collectKeywordsFromText(rawText, { isStructured = false } = {}) {
+  const normalized = normalizeMatchText(rawText);
   const found = new Set();
+  if (!normalized) return found;
 
   for (const skill of KNOWN_SKILL_KEYWORDS) {
+    if (!isStructured && AMBIGUOUS_PROSE_MATCHERS[skill]) {
+      if (AMBIGUOUS_PROSE_MATCHERS[skill](normalized)) {
+        found.add(skill);
+      }
+      continue;
+    }
+
+    if (skill === 'go' && isStructured) {
+      if (/(?:^|[^a-z0-9#+.])(?:go|golang)(?=$|[^a-z0-9#+.])/i.test(normalized)) {
+        found.add('go');
+      }
+      continue;
+    }
+
+    const pattern = SKILL_ALIAS_PATTERNS[skill];
+    if (pattern) {
+      if (pattern.test(normalized)) found.add(skill);
+      continue;
+    }
+
     const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`(^|[^a-z0-9#+])${escaped}([^a-z0-9#+]|$)`, 'i');
+    const regex = new RegExp(`${LEFT_BOUND}${escaped}${RIGHT_BOUND}`, 'i');
     if (regex.test(normalized)) {
       found.add(skill);
     }
   }
 
-  return Array.from(found);
+  return found;
+}
+function extractKeywordsFromJob(jobText) {
+  if (!jobText || typeof jobText !== 'string') return [];
+  return Array.from(collectKeywordsFromText(jobText, { isStructured: false }));
 }
 function extractCVKeywords(cv) {
-  if (!cv) return new Set();
+  if (!cv || typeof cv !== 'object' || Array.isArray(cv)) return new Set();
 
-  const collected = [];
+  const structuredTokens = [];
+  const proseTokens = [];
+  const pushStr = (arr, val) => {
+    if (typeof val === 'string' && val.trim()) arr.push(val);
+  };
 
-  // Skills
-  if (cv.skills?.technical) {
-    collected.push(...cv.skills.technical);
+  if (Array.isArray(cv.skills?.technical)) {
+    cv.skills.technical.forEach(s => pushStr(structuredTokens, s));
   }
-  if (cv.skills?.tools) {
-    collected.push(...cv.skills.tools);
+  if (Array.isArray(cv.skills?.tools)) {
+    cv.skills.tools.forEach(t => pushStr(structuredTokens, t));
   }
 
-  // Experience
-  if (cv.experience) {
+  if (Array.isArray(cv.experience)) {
     for (const exp of cv.experience) {
-      if (exp.position) collected.push(exp.position);
-      if (exp.company) collected.push(exp.company);
-      if (exp.technologies) collected.push(...exp.technologies);
-      if (exp.bullets) collected.push(...exp.bullets);
+      if (!exp || typeof exp !== 'object') continue;
+      pushStr(proseTokens, exp.position);
+      pushStr(proseTokens, exp.company);
+      if (Array.isArray(exp.technologies)) {
+        exp.technologies.forEach(t => pushStr(structuredTokens, t));
+      }
+      if (Array.isArray(exp.bullets)) {
+        exp.bullets.forEach(b => pushStr(proseTokens, b));
+      }
     }
   }
 
-  // Summary & Education
-  if (cv.summary) collected.push(cv.summary);
-  if (cv.education) {
+  pushStr(proseTokens, cv.summary);
+
+  if (Array.isArray(cv.education)) {
     for (const edu of cv.education) {
-      if (edu.degree) collected.push(edu.degree);
-      if (edu.thesis) collected.push(edu.thesis);
+      if (!edu || typeof edu !== 'object') continue;
+      pushStr(proseTokens, edu.degree);
+      pushStr(proseTokens, edu.thesis);
     }
   }
 
-  const normalizedText = collected.join(' ').toLowerCase();
-  const cvKeywords = new Set();
-
-  for (const skill of KNOWN_SKILL_KEYWORDS) {
-    const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`(^|[^a-z0-9#+.])${escaped}([^a-z0-9#+.]|$)`, 'i');
-    if (regex.test(normalizedText)) {
-      cvKeywords.add(skill);
+  if (Array.isArray(cv.projects)) {
+    for (const proj of cv.projects) {
+      if (!proj || typeof proj !== 'object') continue;
+      pushStr(proseTokens, proj.name);
+      pushStr(proseTokens, proj.description);
+      pushStr(structuredTokens, proj.technologies);
     }
+  }
+
+  if (Array.isArray(cv.certifications)) {
+    for (const cert of cv.certifications) {
+      if (!cert || typeof cert !== 'object') continue;
+      pushStr(proseTokens, cert.name);
+      pushStr(proseTokens, cert.issuer);
+    }
+  }
+
+  const cvKeywords = collectKeywordsFromText(structuredTokens.join(', '), { isStructured: true });
+  for (const kw of collectKeywordsFromText(proseTokens.join(' '), { isStructured: false })) {
+    cvKeywords.add(kw);
   }
 
   return cvKeywords;
@@ -801,29 +1192,39 @@ function calculateJobMatch(cv, jobText) {
  * per-section completeness states, and next-best-action prompts.
  */
 
-const METRIC_REGEX = /\b\d+(\.\d+)?%|\d+\s*(years|months|k|m|€|\$|ms|s|x|\+)/i;
+function cleanStr(val) {
+  return typeof val === 'string' ? val.trim() : '';
+}
 
 /**
  * Evaluates a CV document and returns weighted completion metrics.
  * Weights: Identity (10), Summary (10), Experience (40), Education (15), Skills & Languages (25).
  */
 function calculateCVCompletion(cv) {
-  const safeCV = cv || {};
-  const p = safeCV.personal || {};
-  const summaryText = (safeCV.summary || '').trim();
-  const experiences = Array.isArray(safeCV.experience) ? safeCV.experience : [];
-  const education = Array.isArray(safeCV.education) ? safeCV.education : [];
-  const techSkills = Array.isArray(safeCV.skills?.technical) ? safeCV.skills.technical.filter(Boolean) : [];
-  const languages = Array.isArray(safeCV.skills?.languages) ? safeCV.skills.languages.filter(l => l?.language?.trim()) : [];
-  const projects = Array.isArray(safeCV.projects) ? safeCV.projects : [];
-  const certifications = Array.isArray(safeCV.certifications) ? safeCV.certifications : [];
+  const safeCV = cv && typeof cv === 'object' && !Array.isArray(cv) ? cv : {};
+  const p = safeCV.personal && typeof safeCV.personal === 'object' && !Array.isArray(safeCV.personal)
+    ? safeCV.personal
+    : {};
+  const summaryText = cleanStr(safeCV.summary);
+  const experiences = (Array.isArray(safeCV.experience) ? safeCV.experience : [])
+    .filter(item => item && typeof item === 'object' && !Array.isArray(item));
+  const education = (Array.isArray(safeCV.education) ? safeCV.education : [])
+    .filter(item => item && typeof item === 'object' && !Array.isArray(item));
+  const techSkills = (Array.isArray(safeCV.skills?.technical) ? safeCV.skills.technical : [])
+    .filter(s => typeof s === 'string' && s.trim());
+  const languages = (Array.isArray(safeCV.skills?.languages) ? safeCV.skills.languages : [])
+    .filter(l => l && typeof l === 'object' && Boolean(cleanStr(l.language)));
+  const projects = (Array.isArray(safeCV.projects) ? safeCV.projects : [])
+    .filter(item => item && typeof item === 'object' && !Array.isArray(item));
+  const certifications = (Array.isArray(safeCV.certifications) ? safeCV.certifications : [])
+    .filter(item => item && typeof item === 'object' && !Array.isArray(item));
 
   // 1. Identity (10 pts)
   let identityPts = 0;
-  if (p.firstName?.trim() && p.lastName?.trim()) identityPts += 4;
-  if (p.email?.trim() && p.email.includes('@')) identityPts += 3;
-  if (p.phone?.trim() || p.city?.trim()) identityPts += 2;
-  if (p.title?.trim()) identityPts += 1;
+  if (cleanStr(p.firstName) && cleanStr(p.lastName)) identityPts += 4;
+  if (cleanStr(p.email).includes('@')) identityPts += 3;
+  if (cleanStr(p.phone) || cleanStr(p.city)) identityPts += 2;
+  if (cleanStr(p.title)) identityPts += 1;
 
   // 2. Summary (10 pts)
   let summaryPts = 0;
@@ -839,14 +1240,20 @@ function calculateCVCompletion(cv) {
   let totalBullets = 0;
   if (experiences.length > 0) {
     expPts += 15;
-    totalBullets = experiences.reduce((acc, item) => acc + ((item.bullets || []).filter(Boolean).length), 0);
+    const allBullets = experiences.flatMap(item =>
+      (Array.isArray(item.bullets) ? item.bullets : [])
+        .filter(b => typeof b === 'string' || typeof b === 'number')
+        .map(b => String(b).trim())
+        .filter(Boolean)
+    );
+    totalBullets = allBullets.length;
     if (experiences.length >= 2 || totalBullets >= 3) {
       expPts += 15;
     } else if (totalBullets >= 1) {
       expPts += 7;
     }
-    const bulletText = experiences.flatMap(item => item.bullets || []).join(' ');
-    if (METRIC_REGEX.test(bulletText)) {
+    const bulletText = allBullets.join(' ');
+    if (hasQuantifiableMetric(bulletText)) {
       expPts += 10;
       hasExpMetrics = true;
     }
@@ -855,7 +1262,7 @@ function calculateCVCompletion(cv) {
   // 4. Education (15 pts)
   let eduPts = 0;
   if (education.length > 0) {
-    const completeEdu = education.some(e => e.degree?.trim() && e.institution?.trim());
+    const completeEdu = education.some(e => Boolean(cleanStr(e.degree) && cleanStr(e.institution)));
     eduPts = completeEdu ? 15 : 8;
   }
 
@@ -894,8 +1301,7 @@ function calculateCVCompletion(cv) {
     techSkills,
     eduPts,
     summaryPts,
-    languages,
-    percentage
+    languages
   });
 
   return {
@@ -906,9 +1312,14 @@ function calculateCVCompletion(cv) {
   };
 }
 
-function pickNextAction({ identityPts, experiences, hasExpMetrics, totalBullets, techSkills, eduPts, summaryPts, languages, percentage }) {
-  if (identityPts < 7) {
-    return { sectionId: 'identity', prompt: 'Add your name, target title, and email (+10%)' };
+function pickNextAction({ identityPts, experiences, hasExpMetrics, totalBullets, techSkills, eduPts, summaryPts, languages }) {
+  if (identityPts < 10) {
+    return {
+      sectionId: 'identity',
+      prompt: identityPts < 7
+        ? 'Add your name, target title, and email (+10%)'
+        : 'Add your phone, city, and target role title to complete Identity'
+    };
   }
   if (experiences.length === 0) {
     return { sectionId: 'experience', prompt: 'Add 1 work experience to reach Interview Ready (+40%)' };
@@ -931,10 +1342,16 @@ function pickNextAction({ identityPts, experiences, hasExpMetrics, totalBullets,
   if (experiences.length < 2 && totalBullets < 3) {
     return { sectionId: 'experience', prompt: 'Add a second achievement bullet to strengthen your history' };
   }
-  if (percentage < 100) {
+  if (techSkills.length < 5) {
     return {
-      sectionId: techSkills.length < 5 ? 'skills' : 'languages',
-      prompt: 'Reach 5+ skills and 2+ CEFR languages for All-Star status'
+      sectionId: 'skills',
+      prompt: 'Reach 5+ skills to unlock All-Star status'
+    };
+  }
+  if (languages.length < 2) {
+    return {
+      sectionId: 'languages',
+      prompt: 'Add 2+ CEFR languages to unlock All-Star status'
     };
   }
   return { sectionId: 'export', prompt: 'All-Star CV ready — Download A4 PDF or run Job Matcher' };
@@ -951,20 +1368,39 @@ function exportCVToPDF(cv) {
     return;
   }
 
-  const firstName = cv.personal.firstName?.trim() || 'Candidate';
-  const lastName = cv.personal.lastName?.trim() || 'CV';
+  const firstName = typeof cv.personal.firstName === 'string' && cv.personal.firstName.trim()
+    ? cv.personal.firstName.trim()
+    : 'Candidate';
+  const lastName = typeof cv.personal.lastName === 'string' && cv.personal.lastName.trim()
+    ? cv.personal.lastName.trim()
+    : 'CV';
   const oldTitle = document.title;
 
   // Set document title to format default PDF file name
   document.title = `CV_${lastName}_${firstName}`;
 
+  let restored = false;
+  let fallbackTimer = null;
+  const restoreTitle = () => {
+    if (restored) return;
+    restored = true;
+    if (fallbackTimer) {
+      clearTimeout(fallbackTimer);
+      fallbackTimer = null;
+    }
+    if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+      window.removeEventListener('afterprint', restoreTitle);
+    }
+    document.title = oldTitle;
+  };
+
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('afterprint', restoreTitle, { once: true });
+    fallbackTimer = setTimeout(restoreTitle, 30000);
+  }
+
   // Execute native high-fidelity print to PDF dialog
   window.print();
-
-  // Restore title after print dialog closes
-  setTimeout(() => {
-    document.title = oldTitle;
-  }, 1000);
 }
 
   // --- js/components/preview-renderer.js ---
@@ -973,18 +1409,31 @@ function exportCVToPDF(cv) {
  * Renders European CV templates as live, directly-editable typography on A4 paper.
  * Supports custom section ordering, localization (en/de/fr), and regional compliance.
  */
+
+
+const VALID_PREVIEW_TEMPLATES = new Set(Object.values(TEMPLATE_IDS));
 function renderCVPreview(cv, containerElement) {
-  if (!containerElement || !cv) return;
+  if (!containerElement || !cv || typeof cv !== 'object') return;
 
-  const countryCode = cv.meta?.targetCountry || 'DE';
-  const adaptedCV = adaptCVForCountry(cv, countryCode);
+  const rawCountry = typeof cv.meta?.targetCountry === 'string' ? cv.meta.targetCountry : 'DE';
+  const adaptedCV = adaptCVForCountry(cv, rawCountry);
+  const countryCode = adaptedCV.meta?.targetCountry || 'DE';
 
-  const templateId = cv.meta?.template || TEMPLATE_IDS.GERMAN_DIN;
-  const spacingMode = cv.meta?.spacing || 'normal';
+  const rawTpl = adaptedCV.meta?.template;
+  const templateId = VALID_PREVIEW_TEMPLATES.has(rawTpl) ? rawTpl : TEMPLATE_IDS.GERMAN_DIN;
+  const spacingMode = ['compact', 'normal', 'spacious'].includes(adaptedCV.meta?.spacing)
+    ? adaptedCV.meta.spacing
+    : 'normal';
   const spacingClass = spacingMode !== 'normal' ? `spacing-${spacingMode}` : '';
 
+  const rawLang = typeof adaptedCV.meta?.language === 'string' ? adaptedCV.meta.language.trim().toLowerCase() : '';
+  const docLang = ['en', 'de', 'fr'].includes(rawLang) ? rawLang : 'en';
+  const rawAccent = typeof adaptedCV.meta?.accentColor === 'string' ? adaptedCV.meta.accentColor.trim() : '';
+  const safeAccent = /^#[0-9a-f]{3,8}$/i.test(rawAccent) ? rawAccent : '#1e3a8a';
+
+  containerElement.setAttribute('lang', docLang);
   containerElement.className = `a4-sheet template-${templateId} country-${countryCode.toLowerCase()} ${spacingClass}`.trim();
-  containerElement.style.setProperty('--cv-accent', cv.meta?.accentColor || '#1e3a8a');
+  containerElement.style.setProperty('--cv-accent', safeAccent);
 
   const L = getLocalizedLabels(adaptedCV);
   const headerHTML = buildTemplateHeaderHTML(adaptedCV, templateId, L);
@@ -996,6 +1445,14 @@ function renderCVPreview(cv, containerElement) {
 
   const signatureHTML = buildSignatureHTML(adaptedCV, templateId);
   containerElement.innerHTML = `${headerHTML}${sectionsHTML}${signatureHTML}`;
+}
+
+function formatDateRange(startDate, endDate, current, presentLabel) {
+  const start = typeof startDate === 'string' ? startDate.trim() : '';
+  const end = typeof endDate === 'string' ? endDate.trim() : '';
+  const resolvedEnd = end || (current ? presentLabel : '');
+  if (start && resolvedEnd) return `${start} – ${resolvedEnd}`;
+  return start || resolvedEnd || '';
 }
 
 function getLocalizedLabels(cv) {
@@ -1011,6 +1468,7 @@ function getLocalizedLabels(cv) {
       languages: 'Sprachkenntnisse (GER / CEFR)',
       projects: 'Ausgewählte Projekte',
       certifications: 'Zertifizierungen',
+      projectTag: 'Projekt',
       addExp: '+ Station hinzufügen',
       addEdu: '+ Abschluss hinzufügen',
       email: 'E-Mail:',
@@ -1031,6 +1489,7 @@ function getLocalizedLabels(cv) {
       languages: 'Langues (CECRL)',
       projects: 'Projets',
       certifications: 'Certifications',
+      projectTag: 'Projet',
       addExp: '+ Ajouter une expérience',
       addEdu: '+ Ajouter une formation',
       email: 'E-mail :',
@@ -1050,6 +1509,7 @@ function getLocalizedLabels(cv) {
     languages: 'Languages (CEFR)',
     projects: 'Selected Projects',
     certifications: 'Certifications',
+    projectTag: 'Project',
     addExp: '+ Add Position',
     addEdu: '+ Add Degree',
     email: 'Email:',
@@ -1064,7 +1524,7 @@ function getLocalizedLabels(cv) {
 
 function buildPhotoPlaceholderSVG() {
   return `
-    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <circle cx="12" cy="8" r="4"></circle>
       <path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6"></path>
     </svg>
@@ -1072,23 +1532,23 @@ function buildPhotoPlaceholderSVG() {
 }
 
 function buildTemplateHeaderHTML(cv, templateId, L) {
-  const p = cv.personal || {};
+  const p = cv.personal && typeof cv.personal === 'object' ? cv.personal : {};
   const rules = cv.rules || {};
-  const countryCode = cv.meta?.targetCountry || 'DE';
-  const isUK = countryCode === 'UK';
-  const fullName = `${escapePreviewHTML(p.firstName || '')} ${escapePreviewHTML(p.lastName || '')}`.trim() || 'Your Name';
-  const roleTitle = escapePreviewHTML(p.title || '') || 'Target Job Title';
+  const first = typeof p.firstName === 'string' ? p.firstName : '';
+  const last = typeof p.lastName === 'string' ? p.lastName : '';
+  const fullName = `${escapePreviewHTML(first)} ${escapePreviewHTML(last)}`.trim() || 'Your Name';
+  const roleTitle = (typeof p.title === 'string' && p.title.trim()) ? escapePreviewHTML(p.title) : 'Target Job Title';
 
   if (templateId === TEMPLATE_IDS.MINIMAL_SWISS) {
     return `
       <header class="swiss-header">
-        <h1 class="applicant-name" contenteditable="true" data-bind="personal.fullName">${fullName}</h1>
-        <div class="applicant-title" contenteditable="true" data-bind="personal.title">${roleTitle}</div>
-        <div style="display: flex; flex-wrap: wrap; gap: 14pt; font-size: 8.5pt; color: #64748b; margin-top: 6pt;">
-          ${p.email ? `<span contenteditable="true" data-bind="personal.email">${escapePreviewHTML(p.email)}</span>` : ''}
-          ${p.phone ? `<span contenteditable="true" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span>` : ''}
-          ${p.city ? `<span contenteditable="true" data-bind="personal.city">${escapePreviewHTML(p.city)}</span>` : ''}
-          ${p.linkedin ? `<span contenteditable="true" data-bind="personal.linkedin">${escapePreviewHTML(p.linkedin)}</span>` : ''}
+        <h1 class="applicant-name" contenteditable="true" role="textbox" aria-label="Full name" data-bind="personal.fullName">${fullName}</h1>
+        <div class="applicant-title" contenteditable="true" role="textbox" aria-label="Target job title" data-bind="personal.title">${roleTitle}</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 14pt; font-size: 8.5pt; color: #475569; margin-top: 6pt;">
+          ${typeof p.email === 'string' && p.email ? `<span contenteditable="true" role="textbox" aria-label="Email address" data-bind="personal.email">${escapePreviewHTML(p.email)}</span>` : ''}
+          ${typeof p.phone === 'string' && p.phone ? `<span contenteditable="true" role="textbox" aria-label="Phone number" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span>` : ''}
+          ${typeof p.city === 'string' && p.city ? `<span contenteditable="true" role="textbox" aria-label="Location" data-bind="personal.city">${escapePreviewHTML(p.city)}</span>` : ''}
+          ${typeof p.linkedin === 'string' && p.linkedin ? `<span contenteditable="true" role="textbox" aria-label="LinkedIn profile" data-bind="personal.linkedin">${escapePreviewHTML(p.linkedin)}</span>` : ''}
         </div>
       </header>
     `;
@@ -1096,53 +1556,56 @@ function buildTemplateHeaderHTML(cv, templateId, L) {
 
   if (templateId === TEMPLATE_IDS.MODERN_EUROPEAN) {
     const items = [
-      p.city ? `<span contenteditable="true" data-bind="personal.city">${escapePreviewHTML(p.city)}</span>` : '',
-      p.email ? `<span contenteditable="true" data-bind="personal.email">${escapePreviewHTML(p.email)}</span>` : '',
-      p.phone ? `<span contenteditable="true" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span>` : ''
+      typeof p.city === 'string' && p.city ? `<span contenteditable="true" role="textbox" aria-label="Location" data-bind="personal.city">${escapePreviewHTML(p.city)}</span>` : '',
+      typeof p.email === 'string' && p.email ? `<span contenteditable="true" role="textbox" aria-label="Email address" data-bind="personal.email">${escapePreviewHTML(p.email)}</span>` : '',
+      typeof p.phone === 'string' && p.phone ? `<span contenteditable="true" role="textbox" aria-label="Phone number" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span>` : '',
+      typeof p.linkedin === 'string' && p.linkedin ? `<span contenteditable="true" role="textbox" aria-label="LinkedIn profile" data-bind="personal.linkedin">${escapePreviewHTML(p.linkedin)}</span>` : ''
     ].filter(Boolean).join(' · ');
 
     return `
       <header style="text-align: center; border-bottom: 0.5pt solid #111827; padding-bottom: 12pt; margin-bottom: 14pt;">
-        <h1 class="applicant-name" contenteditable="true" data-bind="personal.fullName">${fullName}</h1>
-        <div class="applicant-title" contenteditable="true" data-bind="personal.title">${roleTitle}</div>
-        <div style="font-size: 8.3pt; color: #6b7280; letter-spacing: 0.02em; margin-top: 4pt;">${items}</div>
+        <h1 class="applicant-name" contenteditable="true" role="textbox" aria-label="Full name" data-bind="personal.fullName">${fullName}</h1>
+        <div class="applicant-title" contenteditable="true" role="textbox" aria-label="Target job title" data-bind="personal.title">${roleTitle}</div>
+        <div style="font-size: 8.3pt; color: #4b5563; letter-spacing: 0.02em; margin-top: 4pt;">${items}</div>
       </header>
     `;
   }
 
   // Frankfurt DIN 5008 default header
   const contactParts = [];
-  if (p.email) contactParts.push(`<span class="contact-meta-item"><strong>${L.email}</strong> <span contenteditable="true" data-bind="personal.email">${escapePreviewHTML(p.email)}</span></span>`);
-  if (p.phone) contactParts.push(`<span class="contact-meta-item"><strong>${L.phone}</strong> <span contenteditable="true" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span></span>`);
-  if (p.city) contactParts.push(`<span class="contact-meta-item"><strong>${L.location}</strong> <span contenteditable="true" data-bind="personal.city">${escapePreviewHTML(p.city)}</span></span>`);
-
-  if (!isUK && rules.allowBirthDate && p.birthDate) {
-    contactParts.push(`<span class="contact-meta-item"><strong>${L.birth}</strong> <span contenteditable="true" data-bind="personal.birthDate">${escapePreviewHTML(p.birthDate)}</span></span>`);
+  if (typeof p.email === 'string' && p.email) {
+    contactParts.push(`<span class="contact-meta-item"><strong>${L.email}</strong> <span contenteditable="true" role="textbox" aria-label="Email address" data-bind="personal.email">${escapePreviewHTML(p.email)}</span></span>`);
   }
-  if (!isUK && rules.allowNationality && p.nationality) {
-    contactParts.push(`<span class="contact-meta-item"><strong>${L.nationality}</strong> <span contenteditable="true" data-bind="personal.nationality">${escapePreviewHTML(p.nationality)}</span></span>`);
+  if (typeof p.phone === 'string' && p.phone) {
+    contactParts.push(`<span class="contact-meta-item"><strong>${L.phone}</strong> <span contenteditable="true" role="textbox" aria-label="Phone number" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span></span>`);
   }
-  if (p.linkedin) {
-    contactParts.push(`<span class="contact-meta-item"><strong>LinkedIn:</strong> <span contenteditable="true" data-bind="personal.linkedin">${escapePreviewHTML(p.linkedin)}</span></span>`);
+  if (typeof p.city === 'string' && p.city) {
+    contactParts.push(`<span class="contact-meta-item"><strong>${L.location}</strong> <span contenteditable="true" role="textbox" aria-label="Location" data-bind="personal.city">${escapePreviewHTML(p.city)}</span></span>`);
+  }
+  if (rules.allowBirthDate && typeof p.birthDate === 'string' && p.birthDate) {
+    contactParts.push(`<span class="contact-meta-item"><strong>${L.birth}</strong> <span contenteditable="true" role="textbox" aria-label="Date of birth" data-bind="personal.birthDate">${escapePreviewHTML(p.birthDate)}</span></span>`);
+  }
+  if (rules.allowNationality && typeof p.nationality === 'string' && p.nationality) {
+    contactParts.push(`<span class="contact-meta-item"><strong>${L.nationality}</strong> <span contenteditable="true" role="textbox" aria-label="Nationality" data-bind="personal.nationality">${escapePreviewHTML(p.nationality)}</span></span>`);
+  }
+  if (typeof p.linkedin === 'string' && p.linkedin) {
+    contactParts.push(`<span class="contact-meta-item"><strong>LinkedIn:</strong> <span contenteditable="true" role="textbox" aria-label="LinkedIn profile" data-bind="personal.linkedin">${escapePreviewHTML(p.linkedin)}</span></span>`);
   }
 
   let photoHTML = '';
-  if (!isUK && rules.allowPhoto && cv.meta?.showPhoto) {
-    photoHTML = `
-      <div class="photo-slot">
-        ${p.photoUrl
-          ? `<img src="${escapePreviewHTML(p.photoUrl)}" alt="Applicant portrait">`
-          : buildPhotoPlaceholderSVG()
-        }
-      </div>
-    `;
+  if (rules.allowPhoto && cv.meta?.showPhoto) {
+    const rawPhoto = typeof p.photoUrl === 'string' ? p.photoUrl.trim() : '';
+    const hasSafePhoto = Boolean(rawPhoto && isSafePhotoUrl(rawPhoto));
+    photoHTML = hasSafePhoto
+      ? `<div class="photo-slot"><img src="${escapePreviewHTML(rawPhoto)}" alt="Applicant portrait"></div>`
+      : `<div class="photo-slot photo-slot-empty no-print">${buildPhotoPlaceholderSVG()}</div>`;
   }
 
   return `
     <header class="cv-header">
       <div style="flex: 1;">
-        <h1 class="applicant-name" contenteditable="true" data-bind="personal.fullName">${fullName}</h1>
-        <div class="applicant-title" contenteditable="true" data-bind="personal.title">${roleTitle}</div>
+        <h1 class="applicant-name" contenteditable="true" role="textbox" aria-label="Full name" data-bind="personal.fullName">${fullName}</h1>
+        <div class="applicant-title" contenteditable="true" role="textbox" aria-label="Target job title" data-bind="personal.title">${roleTitle}</div>
         <div class="contact-meta-row">${contactParts.join('')}</div>
       </div>
       ${photoHTML}
@@ -1172,14 +1635,14 @@ function buildSectionHTML(sectionId, cv, L, templateId) {
 }
 
 function buildSummarySectionHTML(cv, templateId) {
-  const summaryText = cv.summary || '';
+  const summaryText = typeof cv.summary === 'string' ? cv.summary : '';
   if (!summaryText.trim()) return '';
   const isItalic = templateId === TEMPLATE_IDS.MODERN_EUROPEAN ? 'font-style: italic;' : '';
   const color = templateId === TEMPLATE_IDS.MINIMAL_SWISS ? '#334155' : '#374151';
   const fontSize = templateId === TEMPLATE_IDS.MINIMAL_SWISS ? '9pt' : '9.2pt';
   return `
     <section class="cv-section" data-section-id="summary">
-      <p style="font-size: ${fontSize}; color: ${color}; line-height: 1.5; margin-bottom: 10pt; ${isItalic}" contenteditable="true" data-bind="summary">${escapePreviewHTML(summaryText)}</p>
+      <p style="font-size: ${fontSize}; color: ${color}; line-height: 1.5; margin-bottom: 10pt; ${isItalic}" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Professional summary" data-bind="summary">${escapePreviewHTML(summaryText)}</p>
     </section>
   `;
 }
@@ -1187,38 +1650,54 @@ function buildSummarySectionHTML(cv, templateId) {
 function buildExperienceSectionHTML(cv, L, templateId) {
   const isSwiss = templateId === TEMPLATE_IDS.MINIMAL_SWISS;
   const isParis = templateId === TEMPLATE_IDS.MODERN_EUROPEAN;
-  const expHTML = (cv.experience || []).map((exp, idx) => `
-    <div class="entry-row item-block" data-exp-idx="${idx}">
-      <div class="entry-dates" contenteditable="true" data-exp-field="dateRange" data-idx="${idx}">${escapePreviewHTML(exp.startDate || '')} – ${escapePreviewHTML(exp.endDate || (exp.current ? L.present : ''))}</div>
-      <div>
-        ${isSwiss
-          ? `<div class="entry-role"><span contenteditable="true" data-exp-field="position" data-idx="${idx}">${escapePreviewHTML(exp.position || '')}</span> · <span contenteditable="true" data-exp-field="company" data-idx="${idx}">${escapePreviewHTML(exp.company || '')}</span></div>`
-          : `<div class="entry-role" contenteditable="true" data-exp-field="position" data-idx="${idx}">${escapePreviewHTML(exp.position || '')}</div>
-             <div class="entry-institution"><span contenteditable="true" data-exp-field="company" data-idx="${idx}">${escapePreviewHTML(exp.company || '')}</span>${exp.city ? ` · <span contenteditable="true" data-exp-field="city" data-idx="${idx}">${escapePreviewHTML(exp.city)}</span>` : ''}</div>`
-        }
-        <ul class="bullet-list" ${isSwiss ? 'style="padding-left: 12pt; margin-top: 3pt; font-size: 8.5pt; color: #334155;"' : isParis ? 'style="padding-left: 12pt; font-size: 8.8pt; color: #374151;"' : ''}>
-          ${(exp.bullets || []).map((bullet, bIdx) => `
-            <li contenteditable="true" data-exp-bullet="${idx}:${bIdx}">${escapePreviewHTML(bullet)}</li>
-          `).join('')}
-        </ul>
-        ${(!isSwiss && !isParis && (exp.technologies || []).length) ? `
-          <div class="skills-matrix">
-            ${exp.technologies.map(t => `<span class="skill-pill">${escapePreviewHTML(t)}</span>`).join('')}
-          </div>
-        ` : ''}
+  const rawExperiences = Array.isArray(cv.experience) ? cv.experience : [];
+
+  const expHTML = rawExperiences.map((exp, idx) => {
+    if (!exp || typeof exp !== 'object' || Array.isArray(exp)) return '';
+    const dateRange = formatDateRange(exp.startDate, exp.endDate, Boolean(exp.current), L.present);
+    const position = typeof exp.position === 'string' ? exp.position : '';
+    const company = typeof exp.company === 'string' ? exp.company : '';
+    const city = typeof exp.city === 'string' ? exp.city : '';
+    const bullets = Array.isArray(exp.bullets) ? exp.bullets : [];
+    const techs = (Array.isArray(exp.technologies) ? exp.technologies : [])
+      .filter(t => typeof t === 'string' && t.trim());
+
+    const bulletsHTML = bullets.map((bullet, bIdx) => {
+      if (typeof bullet !== 'string' && typeof bullet !== 'number') return '';
+      return `<li contenteditable="true" role="textbox" aria-label="Achievement ${bIdx + 1} for position ${idx + 1}" data-exp-bullet="${idx}:${bIdx}">${escapePreviewHTML(String(bullet))}</li>`;
+    }).filter(Boolean).join('');
+
+    return `
+      <div class="entry-row item-block" data-exp-idx="${idx}">
+        <div class="entry-dates" contenteditable="true" role="textbox" aria-label="Dates for position ${idx + 1}" data-exp-field="dateRange" data-idx="${idx}">${escapePreviewHTML(dateRange)}</div>
+        <div>
+          ${isSwiss
+            ? `<div class="entry-role"><span contenteditable="true" role="textbox" aria-label="Job title for position ${idx + 1}" data-exp-field="position" data-idx="${idx}">${escapePreviewHTML(position)}</span> · <span contenteditable="true" role="textbox" aria-label="Company for position ${idx + 1}" data-exp-field="company" data-idx="${idx}">${escapePreviewHTML(company)}</span></div>`
+            : `<div class="entry-role" contenteditable="true" role="textbox" aria-label="Job title for position ${idx + 1}" data-exp-field="position" data-idx="${idx}">${escapePreviewHTML(position)}</div>
+               <div class="entry-institution"><span contenteditable="true" role="textbox" aria-label="Company for position ${idx + 1}" data-exp-field="company" data-idx="${idx}">${escapePreviewHTML(company)}</span>${city ? ` · <span contenteditable="true" role="textbox" aria-label="City for position ${idx + 1}" data-exp-field="city" data-idx="${idx}">${escapePreviewHTML(city)}</span>` : ''}</div>`
+          }
+          <ul class="bullet-list" ${isSwiss ? 'style="padding-left: 12pt; margin-top: 3pt; font-size: 8.5pt; color: #334155;"' : isParis ? 'style="padding-left: 12pt; font-size: 8.8pt; color: #374151;"' : ''}>
+            ${bulletsHTML}
+          </ul>
+          ${(!isSwiss && !isParis && techs.length) ? `
+            <div class="skills-matrix">
+              ${techs.map(t => `<span class="skill-pill">${escapePreviewHTML(t)}</span>`).join('')}
+            </div>
+          ` : ''}
+        </div>
+        <div class="item-actions no-print">
+          <button type="button" class="item-action-btn" title="Add bullet" aria-label="Add achievement bullet to position ${idx + 1}" data-add-bullet="${idx}">+</button>
+          <button type="button" class="item-action-btn delete" title="Delete entry" aria-label="Delete position ${idx + 1}" data-delete-exp="${idx}">×</button>
+        </div>
       </div>
-      <div class="item-actions no-print">
-        <button class="item-action-btn" title="Add bullet" data-add-bullet="${idx}">+</button>
-        <button class="item-action-btn delete" title="Delete entry" data-delete-exp="${idx}">×</button>
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).filter(Boolean).join('');
 
   return `
     <section class="cv-section" data-section-id="experience">
       <h2 class="section-heading">${L.experience}</h2>
-      ${expHTML || '<p style="font-size: 8.5pt; color: #9ca3af; font-style: italic;">No positions added yet.</p>'}
-      <div class="no-print"><span class="add-item-trigger" id="btn-trigger-add-exp">${L.addExp}</span></div>
+      ${expHTML || '<p style="font-size: 8.5pt; color: #64748b; font-style: italic;">No positions added yet.</p>'}
+      <div class="no-print"><button type="button" class="add-item-trigger" id="btn-trigger-add-exp">${L.addExp}</button></div>
     </section>
   `;
 }
@@ -1226,49 +1705,62 @@ function buildExperienceSectionHTML(cv, L, templateId) {
 function buildEducationSectionHTML(cv, L, templateId) {
   const isSwiss = templateId === TEMPLATE_IDS.MINIMAL_SWISS;
   const isParis = templateId === TEMPLATE_IDS.MODERN_EUROPEAN;
-  const eduHTML = (cv.education || []).map((edu, idx) => `
-    <div class="entry-row item-block" data-edu-idx="${idx}">
-      <div class="entry-dates" contenteditable="true" data-edu-field="dateRange" data-idx="${idx}">${escapePreviewHTML(edu.startDate || '')} – ${escapePreviewHTML(edu.endDate || '')}</div>
-      <div>
-        ${isSwiss
-          ? `<div class="entry-role"><span contenteditable="true" data-edu-field="degree" data-idx="${idx}">${escapePreviewHTML(edu.degree || '')}</span> · <span contenteditable="true" data-edu-field="institution" data-idx="${idx}">${escapePreviewHTML(edu.institution || '')}</span></div>
-             ${edu.grade ? `<div style="font-size: 8.2pt; color: #64748b;">${L.grade} <span contenteditable="true" data-edu-field="grade" data-idx="${idx}">${escapePreviewHTML(edu.grade)}</span></div>` : ''}`
-          : `<div class="entry-role" contenteditable="true" data-edu-field="degree" data-idx="${idx}">${escapePreviewHTML(edu.degree || '')}</div>
-             <div class="entry-institution"><span contenteditable="true" data-edu-field="institution" data-idx="${idx}">${escapePreviewHTML(edu.institution || '')}</span>${isParis && edu.grade ? ` · ${L.grade} <span contenteditable="true" data-edu-field="grade" data-idx="${idx}">${escapePreviewHTML(edu.grade)}</span>` : (!isParis && edu.city ? ` · <span contenteditable="true" data-edu-field="city" data-idx="${idx}">${escapePreviewHTML(edu.city)}</span>` : '')}</div>
-             ${(!isParis && edu.grade) ? `<div style="font-size: 8.2pt; color: #6b7280;">${L.grade} <strong contenteditable="true" data-edu-field="grade" data-idx="${idx}">${escapePreviewHTML(edu.grade)}</strong></div>` : ''}`
-        }
+  const rawEducation = Array.isArray(cv.education) ? cv.education : [];
+
+  const eduHTML = rawEducation.map((edu, idx) => {
+    if (!edu || typeof edu !== 'object' || Array.isArray(edu)) return '';
+    const dateRange = formatDateRange(edu.startDate, edu.endDate, Boolean(edu.current), L.present);
+    const degree = typeof edu.degree === 'string' ? edu.degree : '';
+    const institution = typeof edu.institution === 'string' ? edu.institution : '';
+    const city = typeof edu.city === 'string' ? edu.city : '';
+    const grade = typeof edu.grade === 'string' ? edu.grade : '';
+
+    return `
+      <div class="entry-row item-block" data-edu-idx="${idx}">
+        <div class="entry-dates" contenteditable="true" role="textbox" aria-label="Study dates for education ${idx + 1}" data-edu-field="dateRange" data-idx="${idx}">${escapePreviewHTML(dateRange)}</div>
+        <div>
+          ${isSwiss
+            ? `<div class="entry-role"><span contenteditable="true" role="textbox" aria-label="Degree for education ${idx + 1}" data-edu-field="degree" data-idx="${idx}">${escapePreviewHTML(degree)}</span> · <span contenteditable="true" role="textbox" aria-label="Institution for education ${idx + 1}" data-edu-field="institution" data-idx="${idx}">${escapePreviewHTML(institution)}</span></div>
+               ${grade ? `<div style="font-size: 8.2pt; color: #475569;">${L.grade} <span contenteditable="true" role="textbox" aria-label="Grade for education ${idx + 1}" data-edu-field="grade" data-idx="${idx}">${escapePreviewHTML(grade)}</span></div>` : ''}`
+            : `<div class="entry-role" contenteditable="true" role="textbox" aria-label="Degree for education ${idx + 1}" data-edu-field="degree" data-idx="${idx}">${escapePreviewHTML(degree)}</div>
+               <div class="entry-institution"><span contenteditable="true" role="textbox" aria-label="Institution for education ${idx + 1}" data-edu-field="institution" data-idx="${idx}">${escapePreviewHTML(institution)}</span>${isParis && grade ? ` · ${L.grade} <span contenteditable="true" role="textbox" aria-label="Grade for education ${idx + 1}" data-edu-field="grade" data-idx="${idx}">${escapePreviewHTML(grade)}</span>` : (!isParis && city ? ` · <span contenteditable="true" role="textbox" aria-label="City for education ${idx + 1}" data-edu-field="city" data-idx="${idx}">${escapePreviewHTML(city)}</span>` : '')}</div>
+               ${(!isParis && grade) ? `<div style="font-size: 8.2pt; color: #4b5563;">${L.grade} <strong contenteditable="true" role="textbox" aria-label="Grade for education ${idx + 1}" data-edu-field="grade" data-idx="${idx}">${escapePreviewHTML(grade)}</strong></div>` : ''}`
+          }
+        </div>
+        <div class="item-actions no-print">
+          <button type="button" class="item-action-btn delete" title="Delete entry" aria-label="Delete education entry ${idx + 1}" data-delete-edu="${idx}">×</button>
+        </div>
       </div>
-      <div class="item-actions no-print">
-        <button class="item-action-btn delete" title="Delete entry" data-delete-edu="${idx}">×</button>
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).filter(Boolean).join('');
 
   return `
     <section class="cv-section" data-section-id="education">
       <h2 class="section-heading">${L.education}</h2>
-      ${eduHTML || '<p style="font-size: 8.5pt; color: #9ca3af; font-style: italic;">No degrees added yet.</p>'}
-      <div class="no-print"><span class="add-item-trigger" id="btn-trigger-add-edu">${L.addEdu}</span></div>
+      ${eduHTML || '<p style="font-size: 8.5pt; color: #64748b; font-style: italic;">No degrees added yet.</p>'}
+      <div class="no-print"><button type="button" class="add-item-trigger" id="btn-trigger-add-edu">${L.addEdu}</button></div>
     </section>
   `;
 }
 
 function buildSkillsSectionHTML(cv, L) {
-  const skills = cv.skills?.technical || [];
+  const skills = (Array.isArray(cv.skills?.technical) ? cv.skills.technical : [])
+    .filter(s => typeof s === 'string' && s.trim());
   return `
     <section class="cv-section" data-section-id="skills">
       <h2 class="section-heading">${L.skills}</h2>
       <div class="skills-matrix">
         ${skills.length
           ? skills.map(t => `<span class="skill-pill">${escapePreviewHTML(t)}</span>`).join('')
-          : '<span style="font-size: 8.5pt; color: #9ca3af; font-style: italic;">Add technical competencies in the editor.</span>'}
+          : '<span style="font-size: 8.5pt; color: #64748b; font-style: italic;">Add technical competencies in the editor.</span>'}
       </div>
     </section>
   `;
 }
 
 function buildLanguagesSectionHTML(cv, L) {
-  const langs = cv.skills?.languages || [];
+  const langs = (Array.isArray(cv.skills?.languages) ? cv.skills.languages : [])
+    .filter(l => l && typeof l === 'object' && !Array.isArray(l));
   if (!langs.length) return '';
   return `
     <section class="cv-section" data-section-id="languages">
@@ -1276,8 +1768,8 @@ function buildLanguagesSectionHTML(cv, L) {
       <div class="lang-grid">
         ${langs.map(l => `
           <div class="lang-item">
-            <span class="lang-name">${escapePreviewHTML(l.language || '')}</span>
-            <span class="lang-level">${escapePreviewHTML(l.level || '')}</span>
+            <span class="lang-name">${escapePreviewHTML(typeof l.language === 'string' ? l.language : '')}</span>
+            <span class="lang-level">${escapePreviewHTML(typeof l.level === 'string' ? l.level : '')}</span>
           </div>
         `).join('')}
       </div>
@@ -1286,36 +1778,45 @@ function buildLanguagesSectionHTML(cv, L) {
 }
 
 function buildProjectsSectionHTML(cv, L) {
-  const projects = cv.projects || [];
+  const projects = (Array.isArray(cv.projects) ? cv.projects : [])
+    .filter(proj => proj && typeof proj === 'object' && !Array.isArray(proj));
   if (!projects.length) return '';
   return `
     <section class="cv-section" data-section-id="projects">
       <h2 class="section-heading">${L.projects}</h2>
-      ${projects.map(proj => `
-        <div class="entry-row item-block">
-          <div class="entry-dates">${escapePreviewHTML(proj.technologies || 'Project')}</div>
-          <div>
-            <div class="entry-role">${escapePreviewHTML(proj.name || '')}</div>
-            ${proj.description ? `<div class="entry-institution">${escapePreviewHTML(proj.description)}</div>` : ''}
+      ${projects.map(proj => {
+        const name = typeof proj.name === 'string' ? proj.name : '';
+        const description = typeof proj.description === 'string' ? proj.description : '';
+        const technologies = typeof proj.technologies === 'string' ? proj.technologies.trim() : '';
+        const leftLabel = typeof proj.year === 'string' && proj.year.trim() ? proj.year.trim() : L.projectTag;
+        return `
+          <div class="entry-row item-block">
+            <div class="entry-dates">${escapePreviewHTML(leftLabel)}</div>
+            <div>
+              <div class="entry-role">${escapePreviewHTML(name)}</div>
+              ${description ? `<div class="entry-institution">${escapePreviewHTML(description)}</div>` : ''}
+              ${technologies ? `<div class="proj-tech-line">${escapePreviewHTML(technologies)}</div>` : ''}
+            </div>
           </div>
-        </div>
-      `).join('')}
+        `;
+      }).join('')}
     </section>
   `;
 }
 
 function buildCertificationsSectionHTML(cv, L) {
-  const certs = cv.certifications || [];
+  const certs = (Array.isArray(cv.certifications) ? cv.certifications : [])
+    .filter(cert => cert && typeof cert === 'object' && !Array.isArray(cert));
   if (!certs.length) return '';
   return `
     <section class="cv-section" data-section-id="certifications">
       <h2 class="section-heading">${L.certifications}</h2>
       ${certs.map(cert => `
         <div class="entry-row item-block">
-          <div class="entry-dates">${escapePreviewHTML(cert.year || '')}</div>
+          <div class="entry-dates">${escapePreviewHTML(cert.year !== undefined && cert.year !== null ? String(cert.year) : '')}</div>
           <div>
-            <div class="entry-role">${escapePreviewHTML(cert.name || '')}</div>
-            ${cert.issuer ? `<div class="entry-institution">${escapePreviewHTML(cert.issuer)}</div>` : ''}
+            <div class="entry-role">${escapePreviewHTML(typeof cert.name === 'string' ? cert.name : '')}</div>
+            ${typeof cert.issuer === 'string' && cert.issuer ? `<div class="entry-institution">${escapePreviewHTML(cert.issuer)}</div>` : ''}
           </div>
         </div>
       `).join('')}
@@ -1325,21 +1826,28 @@ function buildCertificationsSectionHTML(cv, L) {
 
 function buildSignatureHTML(cv, templateId) {
   if (templateId !== TEMPLATE_IDS.GERMAN_DIN) return '';
-  const p = cv.personal || {};
+  const p = cv.personal && typeof cv.personal === 'object' ? cv.personal : {};
   const rules = cv.rules || {};
-  const isUK = (cv.meta?.targetCountry || 'DE') === 'UK';
-  if (isUK || !rules.allowSignatureBlock || !cv.meta?.includeSignatureBlock) return '';
+  if (!rules.allowSignatureBlock || !cv.meta?.includeSignatureBlock) return '';
 
-  const place = cv.signature?.place || p.city || 'Berlin';
-  const date = cv.signature?.date || new Date().toLocaleDateString('en-GB');
-  const name = cv.signature?.signeeName || `${p.firstName || ''} ${p.lastName || ''}`.trim();
+  const sigPlace = typeof cv.signature?.place === 'string' && cv.signature.place.trim() ? cv.signature.place : '';
+  const pCity = typeof p.city === 'string' && p.city.trim() ? p.city : '';
+  const place = sigPlace || pCity || 'Berlin';
+  const date = (typeof cv.signature?.date === 'string' && cv.signature.date.trim())
+    ? cv.signature.date
+    : new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const sigName = typeof cv.signature?.signeeName === 'string' && cv.signature.signeeName.trim() ? cv.signature.signeeName : '';
+  const pFirst = typeof p.firstName === 'string' ? p.firstName : '';
+  const pLast = typeof p.lastName === 'string' ? p.lastName : '';
+  const name = sigName || `${pFirst} ${pLast}`.trim();
+
   return `
     <div class="din-signature-block">
       <div>
-        <span contenteditable="true" data-bind="signature.place">${escapePreviewHTML(place)}</span>,
-        <span contenteditable="true" data-bind="signature.date">${escapePreviewHTML(date)}</span>
+        <span contenteditable="true" role="textbox" aria-label="Signature location" data-bind="signature.place">${escapePreviewHTML(place)}</span>,
+        <span contenteditable="true" role="textbox" aria-label="Signature date" data-bind="signature.date">${escapePreviewHTML(date)}</span>
       </div>
-      <div class="din-signature-line" contenteditable="true" data-bind="signature.signeeName">${escapePreviewHTML(name)}</div>
+      <div class="din-signature-line" contenteditable="true" role="textbox" aria-label="Signee name" data-bind="signature.signeeName">${escapePreviewHTML(name)}</div>
     </div>
   `;
 }
@@ -1426,10 +1934,150 @@ const STUDIO_INK_KEYS = {
   '#334155': 'obsidian'
 };
 
+const DISPLAY_KEYWORD_MAP = {
+  'typescript': 'TypeScript',
+  'javascript': 'JavaScript',
+  'next.js': 'Next.js',
+  'node.js': 'Node.js',
+  'vue': 'Vue',
+  'c++': 'C++',
+  'c#': 'C#',
+  '.net': '.NET',
+  'sql': 'SQL',
+  'postgresql': 'PostgreSQL',
+  'mysql': 'MySQL',
+  'mongodb': 'MongoDB',
+  'aws': 'AWS',
+  'gcp': 'GCP',
+  'ci/cd': 'CI/CD',
+  'github actions': 'GitHub Actions',
+  'rest': 'REST',
+  'graphql': 'GraphQL',
+  'grpc': 'gRPC',
+  'ui/ux': 'UI/UX',
+  'css': 'CSS',
+  'html': 'HTML',
+  'tdd': 'TDD',
+  'fastapi': 'FastAPI'
+};
+
+const BACKGROUND_LANDMARKS_SELECTOR = 'header.app-header, nav.settings-toolbar, .mobile-pane-tabs, main.studio-layout, footer.strength-footer';
+const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+  '[contenteditable="true"]'
+].join(', ');
+
 let currentCV = null;
 let currentZoom = 0.85;
 let activeSectionId = 'identity';
 let draggedSectionId = null;
+let manualSpacingOverride = false;
+let autoAppliedCompact = false;
+let lastScrolledTabId = null;
+
+function formatSkillKeyword(kw) {
+  const lower = String(kw || '').trim().toLowerCase();
+  if (!lower) return '';
+  if (DISPLAY_KEYWORD_MAP[lower]) return DISPLAY_KEYWORD_MAP[lower];
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
+function splitDateRange(rawValue) {
+  const str = String(rawValue || '').trim();
+  if (!str) return { startDate: '', endDate: '' };
+  const match = str.match(/^(.*?)\s*(?:[–—]|\s+-\s+|\s+(?:to|bis)\s+)\s*(.*)$/i);
+  if (match) {
+    return { startDate: match[1].trim(), endDate: match[2].trim() };
+  }
+  return { startDate: str, endDate: '' };
+}
+
+function formatInputDateRange(item) {
+  const start = typeof item?.startDate === 'string' ? item.startDate.trim() : '';
+  const end = typeof item?.endDate === 'string' ? item.endDate.trim() : '';
+  const resolvedEnd = end || (item?.current ? 'Present' : '');
+  if (start && resolvedEnd) return `${start} – ${resolvedEnd}`;
+  return start || resolvedEnd || '';
+}
+
+function generateEntryId(prefix) {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function getFocusableElements(container) {
+  if (!container) return [];
+  return Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR)).filter(el => {
+    if (el.closest('[inert]') || el.hasAttribute('disabled')) return false;
+    const style = window.getComputedStyle(el);
+    return style.display !== 'none' && style.visibility !== 'hidden';
+  });
+}
+
+function handleFocusTrapKeydown(e, container) {
+  if (e.key !== 'Tab' || !container) return;
+  const focusables = getFocusableElements(container);
+  if (focusables.length === 0) {
+    e.preventDefault();
+    return;
+  }
+  const first = focusables[0];
+  const last = focusables[focusables.length - 1];
+  if (e.shiftKey) {
+    if (document.activeElement === first || !container.contains(document.activeElement)) {
+      e.preventDefault();
+      last.focus();
+    }
+  } else if (document.activeElement === last || !container.contains(document.activeElement)) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
+function downscalePhotoFile(file, maxWidth = 600, maxHeight = 750, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const origW = img.naturalWidth || img.width || 1;
+        const origH = img.naturalHeight || img.height || 1;
+        const scale = Math.min(1, maxWidth / origW, maxHeight / origH);
+        const targetW = Math.max(1, Math.round(origW * scale));
+        const targetH = Math.max(1, Math.round(origH * scale));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error('Could not initialize image processor.'));
+          return;
+        }
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, targetW, targetH);
+        ctx.drawImage(img, 0, 0, targetW, targetH);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        URL.revokeObjectURL(objectUrl);
+        resolve(dataUrl);
+      } catch (err) {
+        URL.revokeObjectURL(objectUrl);
+        reject(err);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Could not read the selected image file.'));
+    };
+    img.src = objectUrl;
+  });
+}
 
 function initStudio() {
   const isFirstVisit = !hasStoredCV();
@@ -1450,13 +2098,26 @@ function initStudio() {
   const studioLayout = document.getElementById('studio-layout');
 
   let toastTimer = null;
-  const showToast = (message) => {
+  const showToast = (message, durationMs = 2600) => {
     if (!toastEl) return;
     toastEl.textContent = message;
     toastEl.classList.add('show');
     if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2600);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), durationMs);
   };
+
+  let lastQuotaToastAt = 0;
+  const handleStorageStatus = (status, { forceToast = false } = {}) => {
+    if (!status || status.ok) return true;
+    const now = Date.now();
+    if (forceToast || now - lastQuotaToastAt > 3500) {
+      lastQuotaToastAt = now;
+      showToast(status.error || 'Could not save CV to browser storage.', 4200);
+    }
+    return false;
+  };
+
+  const persistCV = (options = {}) => handleStorageStatus(saveCVWithStatus(currentCV), options);
 
   /* ------------------------------------------------------------------
      Theme Management (Light default + Dark Toggle)
@@ -1497,9 +2158,20 @@ function initStudio() {
     { btnId: 'btn-quick-add-toggle', menuId: 'quick-add-menu' }
   ];
 
+  let activePopoverTrigger = null;
+  let lastLaunchOpener = null;
+  let lastDrawerOpener = null;
+
+  const hasOpenPopover = () => {
+    if (document.querySelector('.bullet-assistant-popover.open')) return true;
+    return popoverConfigs.some(({ menuId }) => document.getElementById(menuId)?.classList.contains('open'));
+  };
+
   const closeBulletPopovers = () => {
     document.querySelectorAll('.bullet-assistant-popover.open').forEach(p => {
       p.classList.remove('open', 'pop-up');
+      p.style.left = '';
+      p.style.right = '';
     });
     document.querySelectorAll('[data-toggle-bullet-popover]').forEach(btn => {
       btn.setAttribute('aria-expanded', 'false');
@@ -1510,6 +2182,9 @@ function initStudio() {
     if (!menu) return;
     menu.style.left = '';
     menu.style.right = '';
+    menu.style.top = '';
+    menu.style.bottom = '';
+
     const rect = menu.getBoundingClientRect();
     if (rect.right > window.innerWidth - 12) {
       const shiftLeft = rect.right - (window.innerWidth - 12);
@@ -1517,16 +2192,73 @@ function initStudio() {
     }
     const adjusted = menu.getBoundingClientRect();
     if (adjusted.left < 12) {
-      menu.style.left = `${parseFloat(menu.style.left || '0') + (12 - adjusted.left)}px`;
+      menu.style.left = `${(parseFloat(menu.style.left || '0') || 0) + (12 - adjusted.left)}px`;
+    }
+
+    const yRect = menu.getBoundingClientRect();
+    if (yRect.top < 12) {
+      if (menu.id === 'quick-add-menu') {
+        menu.style.bottom = 'auto';
+        menu.style.top = 'calc(100% + 8px)';
+        const flipped = menu.getBoundingClientRect();
+        if (flipped.bottom > window.innerHeight - 12) {
+          const currentTop = parseFloat(getComputedStyle(menu).top || '0') || 0;
+          menu.style.top = `${currentTop - (flipped.bottom - (window.innerHeight - 12))}px`;
+        }
+      } else {
+        const currentTop = parseFloat(getComputedStyle(menu).top || '0') || 0;
+        menu.style.top = `${currentTop + (12 - yRect.top)}px`;
+      }
+    } else if (yRect.bottom > window.innerHeight - 12) {
+      const overflow = yRect.bottom - (window.innerHeight - 12);
+      if (menu.id === 'quick-add-menu') {
+        const currentBottom = parseFloat(getComputedStyle(menu).bottom || '0') || 0;
+        menu.style.bottom = `${currentBottom + overflow}px`;
+      } else {
+        const parentRect = menu.parentElement?.getBoundingClientRect();
+        if (parentRect && parentRect.top - yRect.height - 8 >= 12) {
+          menu.style.top = 'auto';
+          menu.style.bottom = 'calc(100% + 6px)';
+        } else {
+          const currentTop = parseFloat(getComputedStyle(menu).top || '0') || 0;
+          menu.style.top = `${currentTop - overflow}px`;
+        }
+      }
     }
   };
 
-  const closeAllPopovers = () => {
+  const closeAllPopovers = ({ restoreFocus = false } = {}) => {
+    const triggerToRestore = restoreFocus ? activePopoverTrigger : null;
     popoverConfigs.forEach(({ btnId, menuId }) => {
       document.getElementById(menuId)?.classList.remove('open');
       document.getElementById(btnId)?.setAttribute('aria-expanded', 'false');
     });
     closeBulletPopovers();
+    activePopoverTrigger = null;
+    if (triggerToRestore && triggerToRestore.isConnected && typeof triggerToRestore.focus === 'function') {
+      triggerToRestore.focus();
+    }
+  };
+
+  const openToolbarPopover = (btn, menu, { focusOption = null } = {}) => {
+    if (!btn || !menu) return;
+    closeAllPopovers({ restoreFocus: false });
+    menu.classList.add('open');
+    btn.setAttribute('aria-expanded', 'true');
+    activePopoverTrigger = btn;
+    clampPopoverToViewport(menu);
+
+    const listbox = menu.querySelector('[role="listbox"]');
+    if (listbox) {
+      const options = Array.from(listbox.querySelectorAll('[role="option"]'));
+      if (options.length) {
+        let targetOption = null;
+        if (focusOption === 'first') targetOption = options[0];
+        else if (focusOption === 'last') targetOption = options[options.length - 1];
+        else targetOption = options.find(opt => opt.getAttribute('aria-selected') === 'true' || opt.classList.contains('active')) || options[0];
+        targetOption?.focus();
+      }
+    }
   };
 
   popoverConfigs.forEach(({ btnId, menuId }) => {
@@ -1535,23 +2267,69 @@ function initStudio() {
     btn?.addEventListener('click', (e) => {
       e.stopPropagation();
       const willOpen = !menu?.classList.contains('open');
-      closeAllPopovers();
       if (willOpen && menu) {
-        menu.classList.add('open');
-        btn.setAttribute('aria-expanded', 'true');
-        clampPopoverToViewport(menu);
+        openToolbarPopover(btn, menu);
+      } else {
+        closeAllPopovers({ restoreFocus: false });
+      }
+    });
+    btn?.addEventListener('keydown', (e) => {
+      if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && menu?.querySelector('[role="listbox"]')) {
+        e.preventDefault();
+        e.stopPropagation();
+        openToolbarPopover(btn, menu, { focusOption: e.key === 'ArrowUp' ? 'last' : 'active' });
       }
     });
     menu?.addEventListener('click', (e) => e.stopPropagation());
+
+    const listbox = menu?.querySelector('[role="listbox"]');
+    listbox?.addEventListener('keydown', (e) => {
+      const options = Array.from(listbox.querySelectorAll('[role="option"]'));
+      if (!options.length) return;
+      const idx = options.indexOf(document.activeElement);
+      let nextIdx = -1;
+      if (e.key === 'ArrowDown') nextIdx = idx >= 0 ? (idx + 1) % options.length : 0;
+      else if (e.key === 'ArrowUp') nextIdx = idx >= 0 ? (idx - 1 + options.length) % options.length : options.length - 1;
+      else if (e.key === 'Home') nextIdx = 0;
+      else if (e.key === 'End') nextIdx = options.length - 1;
+      if (nextIdx >= 0) {
+        e.preventDefault();
+        options[nextIdx]?.focus();
+      }
+    });
   });
 
-  document.addEventListener('click', closeAllPopovers);
+  document.addEventListener('click', () => closeAllPopovers({ restoreFocus: false }));
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      closeAllPopovers();
-      closeDrawer();
-      closeLaunchModal();
+    if (launchOverlay?.classList.contains('open')) {
+      if (e.key === 'Tab') {
+        handleFocusTrapKeydown(e, launchOverlay);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        persistCV();
+        closeLaunchModal({ restoreFocus: true });
+        return;
+      }
+    }
+
+    if (e.key === 'Escape' && hasOpenPopover()) {
+      e.preventDefault();
+      closeAllPopovers({ restoreFocus: true });
+      return;
+    }
+
+    if (drawer?.classList.contains('open')) {
+      if (e.key === 'Tab') {
+        handleFocusTrapKeydown(e, drawer);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeDrawer({ restoreFocus: true });
+      }
     }
   });
 
@@ -1589,10 +2367,11 @@ function initStudio() {
   const syncPhotoThumb = () => {
     const thumb = document.getElementById('photo-mini-preview');
     if (!thumb) return;
-    if (currentCV.personal?.photoUrl) {
-      thumb.innerHTML = `<img src="${escapeAttr(currentCV.personal.photoUrl)}" alt="Portrait thumbnail">`;
+    const rawPhoto = typeof currentCV.personal?.photoUrl === 'string' ? currentCV.personal.photoUrl.trim() : '';
+    if (rawPhoto && isSafePhotoUrl(rawPhoto)) {
+      thumb.innerHTML = `<img src="${escapeAttr(rawPhoto)}" alt="Portrait thumbnail">`;
     } else {
-      thumb.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"></circle><path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6"></path></svg>`;
+      thumb.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6"></path></svg>`;
     }
   };
 
@@ -1600,6 +2379,8 @@ function initStudio() {
     const country = currentCV.meta.targetCountry || 'DE';
     const lang = currentCV.meta.language || 'en';
     const spacing = currentCV.meta.spacing || 'normal';
+    const tplId = currentCV.meta.template || TEMPLATE_IDS.GERMAN_DIN;
+    const rules = getCountryFieldRules(country);
 
     const countryCodeEl = document.getElementById('active-country-code');
     const countryLabelEl = document.getElementById('active-country-label');
@@ -1631,21 +2412,37 @@ function initStudio() {
     if (toggleSignature) toggleSignature.checked = currentCV.meta.includeSignatureBlock !== false;
 
     const std = COUNTRY_STANDARDS[country] || COUNTRY_STANDARDS.DE;
-    if (complianceBox) complianceBox.textContent = std.complianceNote;
+    let complianceText = std.complianceNote;
+    if (rules.compactMode) {
+      complianceText += ' Compact spacing is recommended for 1-page presentation.';
+    }
+    if (tplId !== TEMPLATE_IDS.GERMAN_DIN && (rules.allowPhoto || rules.allowSignatureBlock)) {
+      complianceText += ` Note: ${TEMPLATE_NAMES[tplId] || 'This'} layout omits portrait photo and closing signature blocks.`;
+    }
+    if (complianceBox) complianceBox.textContent = complianceText;
 
-    const isUK = country === 'UK';
     const regIdentity = document.getElementById('regional-identity-fields');
+    const groupBirth = document.getElementById('group-birth');
+    const groupNationality = document.getElementById('group-nationality');
     const photoUploadGrp = document.getElementById('group-photo-upload');
+    const rowTogglePhoto = document.getElementById('row-toggle-photo');
+    const rowToggleSignature = document.getElementById('row-toggle-signature');
     const formalSection = document.getElementById('formal-toggles-section');
-    if (regIdentity) regIdentity.style.display = isUK ? 'none' : 'grid';
-    if (photoUploadGrp) photoUploadGrp.style.display = isUK ? 'none' : 'flex';
-    if (formalSection) formalSection.style.display = isUK ? 'none' : 'block';
 
-    const tplId = currentCV.meta.template || TEMPLATE_IDS.GERMAN_DIN;
+    if (groupBirth) groupBirth.style.display = rules.allowBirthDate ? '' : 'none';
+    if (groupNationality) groupNationality.style.display = rules.allowNationality ? '' : 'none';
+    if (regIdentity) regIdentity.style.display = (rules.allowBirthDate || rules.allowNationality) ? 'grid' : 'none';
+    if (photoUploadGrp) photoUploadGrp.style.display = rules.allowPhoto ? 'flex' : 'none';
+    if (rowTogglePhoto) rowTogglePhoto.style.display = rules.allowPhoto ? 'flex' : 'none';
+    if (rowToggleSignature) rowToggleSignature.style.display = rules.allowSignatureBlock ? 'flex' : 'none';
+    if (formalSection) formalSection.style.display = (rules.allowPhoto || rules.allowSignatureBlock) ? 'block' : 'none';
+
     const tplLabel = document.getElementById('active-template-label');
     if (tplLabel) tplLabel.textContent = TEMPLATE_NAMES[tplId] || 'Frankfurt';
     document.querySelectorAll('#template-gallery .template-card-option').forEach(card => {
-      card.classList.toggle('active', card.getAttribute('data-template-id') === tplId);
+      const isActive = card.getAttribute('data-template-id') === tplId;
+      card.classList.toggle('active', isActive);
+      card.setAttribute('aria-pressed', String(isActive));
     });
 
     const activeColor = (currentCV.meta.accentColor || '#2b3fe8').toLowerCase();
@@ -1657,7 +2454,9 @@ function initStudio() {
     if (activeDot) activeDot.style.background = activeColor;
     if (activeColorName) activeColorName.textContent = COLOR_NAMES[activeColor] || 'Accent';
     document.querySelectorAll('#popover-color .color-dot').forEach(dot => {
-      dot.classList.toggle('active', (dot.getAttribute('data-color') || '').toLowerCase() === activeColor);
+      const isActive = (dot.getAttribute('data-color') || '').toLowerCase() === activeColor;
+      dot.classList.toggle('active', isActive);
+      dot.setAttribute('aria-pressed', String(isActive));
     });
   };
 
@@ -1669,6 +2468,20 @@ function initStudio() {
     return ['identity', ...currentCV.meta.sectionOrder];
   };
 
+  const syncStepNavFooters = () => {
+    const ordered = getOrderedAllSections();
+    document.querySelectorAll('[data-step-next]').forEach(btn => {
+      const secId = btn.getAttribute('data-step-next');
+      const idx = ordered.indexOf(secId);
+      if (idx >= 0 && idx < ordered.length - 1) {
+        const nextId = ordered[idx + 1];
+        btn.textContent = `Next: ${SECTION_LABELS[nextId] || nextId}`;
+      } else {
+        btn.textContent = 'Finish & Export';
+      }
+    });
+  };
+
   const setActiveSection = (sectionId, { focusInput = false } = {}) => {
     const ordered = getOrderedAllSections();
     if (!ordered.includes(sectionId)) return;
@@ -1678,8 +2491,8 @@ function initStudio() {
       const id = card.getAttribute('data-section-id');
       const isOpen = id === sectionId;
       card.classList.toggle('is-open', isOpen);
-      const header = card.querySelector('.accordion-header');
-      header?.setAttribute('aria-expanded', String(isOpen));
+      const toggleBtn = card.querySelector(`.accordion-toggle[data-section-toggle="${id}"]`);
+      toggleBtn?.setAttribute('aria-expanded', String(isOpen));
     });
 
     renderStepper();
@@ -1699,7 +2512,7 @@ function initStudio() {
     const alreadyOpen = targetCard?.classList.contains('is-open');
     if (alreadyOpen) {
       targetCard.classList.remove('is-open');
-      targetCard.querySelector('.accordion-header')?.setAttribute('aria-expanded', 'false');
+      targetCard.querySelector(`.accordion-toggle[data-section-toggle="${sectionId}"]`)?.setAttribute('aria-expanded', 'false');
       activeSectionId = null;
       renderStepper();
     } else {
@@ -1717,11 +2530,15 @@ function initStudio() {
     const cardMap = Object.fromEntries(allCards.map(el => [el.getAttribute('data-section-id'), el]));
 
     // Show active ordered sections in sequence, keep inactive optional sections hidden at bottom
-    order.forEach(id => {
+    order.forEach((id, idx) => {
       const card = cardMap[id];
       if (card) {
         card.style.display = 'block';
         container.appendChild(card);
+        const upBtn = card.querySelector(`[data-move-up="${id}"]`);
+        const downBtn = card.querySelector(`[data-move-down="${id}"]`);
+        if (upBtn) upBtn.disabled = idx === 0;
+        if (downBtn) downBtn.disabled = idx === order.length - 1;
       }
     });
 
@@ -1733,32 +2550,80 @@ function initStudio() {
       }
     });
 
+    syncStepNavFooters();
     renderStepper();
   };
 
+  const stepperBar = document.getElementById('stepper-bar');
+  stepperBar?.addEventListener('click', (e) => {
+    const tab = e.target.closest('[data-step-target]');
+    if (tab) {
+      setActiveSection(tab.getAttribute('data-step-target'), { focusInput: false });
+    }
+  });
+  stepperBar?.addEventListener('keydown', (e) => {
+    const tab = e.target.closest('[data-step-target]');
+    if (!tab) return;
+    const tabs = Array.from(stepperBar.querySelectorAll('[data-step-target]'));
+    const idx = tabs.indexOf(tab);
+    if (idx < 0) return;
+
+    let nextIdx = -1;
+    if (e.key === 'ArrowRight') nextIdx = (idx + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') nextIdx = (idx - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') nextIdx = 0;
+    else if (e.key === 'End') nextIdx = tabs.length - 1;
+
+    if (nextIdx >= 0) {
+      e.preventDefault();
+      const targetId = tabs[nextIdx].getAttribute('data-step-target');
+      setActiveSection(targetId, { focusInput: false });
+      stepperBar.querySelector(`[data-step-target="${targetId}"]`)?.focus();
+    }
+  });
+
   const renderStepper = () => {
-    const bar = document.getElementById('stepper-bar');
-    if (!bar) return;
+    if (!stepperBar) return;
     const completion = calculateCVCompletion(currentCV);
     const ordered = getOrderedAllSections();
+    const focusableId = (activeSectionId && ordered.includes(activeSectionId)) ? activeSectionId : ordered[0];
 
-    bar.innerHTML = ordered.map((id) => {
-      const status = completion.sectionStatus[id] || 'empty';
-      const statusClass = status === 'complete' ? 'done' : status === 'partial' ? 'partial' : '';
-      const isActive = activeSectionId === id;
-      return `
-        <button type="button" class="step-tab ${isActive ? 'active' : ''} ${statusClass}" data-step-target="${id}" role="tab" aria-selected="${isActive}">
-          <span class="step-dot" aria-hidden="true"></span>
-          <span>${SECTION_LABELS[id] || id}</span>
-        </button>
-      `;
-    }).join('');
+    const existingTabs = Array.from(stepperBar.querySelectorAll('[data-step-target]'));
+    const matchesOrder = existingTabs.length === ordered.length &&
+      existingTabs.every((tab, i) => tab.getAttribute('data-step-target') === ordered[i]);
 
-    bar.querySelectorAll('[data-step-target]').forEach(tab => {
-      tab.addEventListener('click', () => {
-        setActiveSection(tab.getAttribute('data-step-target'), { focusInput: false });
+    if (matchesOrder) {
+      existingTabs.forEach((tab, i) => {
+        const id = ordered[i];
+        const status = completion.sectionStatus[id] || 'empty';
+        const isActive = activeSectionId === id;
+        tab.classList.toggle('active', isActive);
+        tab.classList.toggle('done', status === 'complete');
+        tab.classList.toggle('partial', status === 'partial');
+        tab.setAttribute('aria-selected', String(isActive));
+        tab.setAttribute('aria-controls', `body-${id}`);
+        tab.setAttribute('tabindex', id === focusableId ? '0' : '-1');
       });
-    });
+    } else {
+      stepperBar.innerHTML = ordered.map((id) => {
+        const status = completion.sectionStatus[id] || 'empty';
+        const statusClass = status === 'complete' ? 'done' : status === 'partial' ? 'partial' : '';
+        const isActive = activeSectionId === id;
+        const tabIdx = id === focusableId ? '0' : '-1';
+        return `
+          <button type="button" class="step-tab ${isActive ? 'active' : ''} ${statusClass}" id="step-tab-${id}" data-step-target="${id}" role="tab" aria-selected="${isActive}" aria-controls="body-${id}" tabindex="${tabIdx}">
+            <span class="step-dot" aria-hidden="true"></span>
+            <span>${SECTION_LABELS[id] || id}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    if (activeSectionId && activeSectionId !== lastScrolledTabId) {
+      lastScrolledTabId = activeSectionId;
+      const activeTab = stepperBar.querySelector(`[data-step-target="${activeSectionId}"]`);
+      activeTab?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
   };
 
   const updateAccordionSummariesAndStrength = () => {
@@ -1810,11 +2675,13 @@ function initStudio() {
     // Update sticky bottom Strength Meter
     const pctEl = document.getElementById('strength-pct');
     const fillEl = document.getElementById('strength-fill');
+    const trackEl = document.getElementById('strength-track');
     const tierEl = document.getElementById('strength-tier');
     const nextBtn = document.getElementById('strength-next-btn');
 
     if (pctEl) pctEl.textContent = `${completion.percentage}%`;
     if (fillEl) fillEl.style.width = `${completion.percentage}%`;
+    if (trackEl) trackEl.setAttribute('aria-valuenow', String(completion.percentage));
     if (tierEl) tierEl.textContent = completion.tier;
     if (nextBtn) {
       nextBtn.textContent = completion.nextAction.prompt;
@@ -1882,9 +2749,10 @@ function initStudio() {
 
   const calculatePageBudget = () => {
     requestAnimationFrame(() => {
-      if (!previewSheet) return;
+      if (!previewSheet || previewSheet.offsetParent === null || previewSheet.offsetWidth === 0) return;
       const singlePageMax = 1123;
       const actualScrollHeight = previewSheet.scrollHeight;
+      const budgetTrack = document.getElementById('budget-track');
 
       let contentHeight = actualScrollHeight;
       const lastChild = previewSheet.lastElementChild;
@@ -1901,6 +2769,7 @@ function initStudio() {
           budgetFill.style.width = `${pct}%`;
           budgetFill.style.backgroundColor = 'var(--success)';
         }
+        if (budgetTrack) budgetTrack.setAttribute('aria-valuenow', String(pct));
         if (budgetLabel) {
           budgetLabel.textContent = `Page 1: ${pct}% full`;
           budgetLabel.style.color = 'var(--success)';
@@ -1913,20 +2782,25 @@ function initStudio() {
           budgetFill.style.width = '100%';
           budgetFill.style.backgroundColor = 'var(--warning)';
         }
+        if (budgetTrack) budgetTrack.setAttribute('aria-valuenow', '100');
         if (budgetLabel) {
           budgetLabel.textContent = `Page 2: +${page2Pct}% overflow`;
           budgetLabel.style.color = 'var(--warning)';
         }
-        if (btnAutoFit) btnAutoFit.style.display = 'inline-flex';
+        const canCompact = (currentCV.meta?.spacing || 'normal') !== 'compact';
+        if (btnAutoFit) btnAutoFit.style.display = canCompact ? 'inline-flex' : 'none';
       }
     });
   };
+
+  let syncJobMatchIfOpen = () => {};
 
   const refreshCanvas = () => {
     renderCVPreview(currentCV, previewSheet);
     calculatePageBudget();
     updateATSReport();
     updateAccordionSummariesAndStrength();
+    syncJobMatchIfOpen();
   };
 
   /* ------------------------------------------------------------------
@@ -1978,9 +2852,6 @@ function initStudio() {
     }
   };
 
-  const COACH_VERBS_REGEX = /(?:^|[^\p{L}])(architected|engineered|built|developed|automated|reduced|streamlined|optimized|spearheaded|scaled|led|designed|implemented|managed|delivered|improved|constructed|entwickelt|konzipiert|optimiert|reduziert|automatisiert|eingeführt|geleitet|gesteigert|conçu|développé|automatisé|optimisé|réduit|déployé|piloté|coordonné)(?=$|[^\p{L}])/iu;
-  const COACH_METRICS_REGEX = /\b\d+([.,]\d+)?\s*%|\b\d+([.,]\d+)?\s*(years|months|jahre|monate|ans|mois|k|m|mio|€|\$|ms|s|x|\+|hrs|hours|std|users|clients|teams)|[€$]\s*\d+|\b\d{2,}\b/i;
-
   const analyzeExperienceBullets = (bullets) => {
     const clean = (bullets || []).map(b => String(b).trim()).filter(Boolean);
     const count = clean.length;
@@ -1988,8 +2859,8 @@ function initStudio() {
       return { state: 'neutral', text: 'One achievement per line — lead with outcomes' };
     }
     const joined = clean.join(' ');
-    const hasMetrics = COACH_METRICS_REGEX.test(joined);
-    const hasVerb = COACH_VERBS_REGEX.test(joined);
+    const hasMetrics = hasQuantifiableMetric(joined);
+    const hasVerb = hasActionVerb(joined);
     const plural = count === 1 ? 'bullet' : 'bullets';
 
     if (hasMetrics && hasVerb) {
@@ -2026,6 +2897,7 @@ function initStudio() {
 
     container.innerHTML = list.map((exp, idx) => {
       const diag = analyzeExperienceBullets(exp.bullets);
+      const dateValue = formatInputDateRange(exp);
       return `
       <div class="subcard">
         <div class="subcard-head">
@@ -2035,27 +2907,27 @@ function initStudio() {
         <div class="subcard-body">
           <div class="field-grid-2">
             <div class="field-group">
-              <label class="field-label">Role title</label>
-              <input type="text" class="field-input" data-exp-f="position" data-idx="${idx}" value="${escapeAttr(exp.position || '')}">
+              <label class="field-label" for="exp-${idx}-position">Role title</label>
+              <input type="text" id="exp-${idx}-position" class="field-input" data-exp-f="position" data-idx="${idx}" value="${escapeAttr(exp.position || '')}">
             </div>
             <div class="field-group">
-              <label class="field-label">Company</label>
-              <input type="text" class="field-input" data-exp-f="company" data-idx="${idx}" value="${escapeAttr(exp.company || '')}">
+              <label class="field-label" for="exp-${idx}-company">Company</label>
+              <input type="text" id="exp-${idx}-company" class="field-input" data-exp-f="company" data-idx="${idx}" value="${escapeAttr(exp.company || '')}">
             </div>
           </div>
           <div class="field-grid-2">
             <div class="field-group">
-              <label class="field-label">Date range</label>
-              <input type="text" class="field-input" data-exp-f="dateRange" data-idx="${idx}" value="${escapeAttr((exp.startDate || '') + ' – ' + (exp.endDate || ''))}">
+              <label class="field-label" for="exp-${idx}-dateRange">Date range</label>
+              <input type="text" id="exp-${idx}-dateRange" class="field-input" data-exp-f="dateRange" data-idx="${idx}" value="${escapeAttr(dateValue)}">
             </div>
             <div class="field-group">
-              <label class="field-label">City / country</label>
-              <input type="text" class="field-input" data-exp-f="city" data-idx="${idx}" value="${escapeAttr(exp.city || '')}">
+              <label class="field-label" for="exp-${idx}-city">City / country</label>
+              <input type="text" id="exp-${idx}-city" class="field-input" data-exp-f="city" data-idx="${idx}" value="${escapeAttr(exp.city || '')}">
             </div>
           </div>
           <div class="field-group">
-            <label class="field-label">Achievements &amp; impact (1 per line)</label>
-            <textarea class="field-input" data-exp-f="bullets" data-idx="${idx}" rows="3">${escapeHTML((exp.bullets || []).join('\n'))}</textarea>
+            <label class="field-label" for="exp-${idx}-bullets">Achievements &amp; impact (1 per line)</label>
+            <textarea id="exp-${idx}-bullets" class="field-input" data-exp-f="bullets" data-idx="${idx}" rows="3">${escapeHTML((exp.bullets || []).join('\n'))}</textarea>
           </div>
           <div class="bullet-coach-row">
             <span class="bullet-diag" data-bullet-diag="${idx}">
@@ -2064,9 +2936,9 @@ function initStudio() {
             </span>
             <div class="bullet-coach-trigger-wrap">
               <button type="button" class="bullet-coach-trigger" data-toggle-bullet-popover="${idx}" aria-expanded="false">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                 <span>Impact guide</span>
-                <svg class="chevron-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                <svg class="chevron-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
               </button>
               <div class="bullet-assistant-popover" id="bullet-popover-${idx}">
                 <div class="coach-pop-head">
@@ -2111,9 +2983,10 @@ function initStudio() {
         if (!item) return;
 
         if (f === 'dateRange') {
-          const parts = inp.value.split(/[–-]/).map(s => s.trim());
-          item.startDate = parts[0] || '';
-          item.endDate = parts[1] || '';
+          const { startDate, endDate } = splitDateRange(inp.value);
+          item.startDate = startDate;
+          item.endDate = endDate;
+          item.current = /^(present|heute|présent|current|now|aktuell)$/i.test(endDate);
         } else if (f === 'bullets') {
           item.bullets = inp.value.split('\n').filter(Boolean);
           syncBulletDiagnosticUI(idx);
@@ -2125,7 +2998,7 @@ function initStudio() {
         if (headerTitle) {
           headerTitle.textContent = `${item.position || 'Position'} · ${item.company || 'Company'}`;
         }
-        saveCVDirect(currentCV);
+        persistCV();
         refreshCanvas();
       });
     });
@@ -2134,7 +3007,7 @@ function initStudio() {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.getAttribute('data-del-exp'), 10);
         currentCV.experience.splice(idx, 1);
-        saveCVDirect(currentCV);
+        persistCV();
         renderExperienceCards();
         refreshCanvas();
       });
@@ -2146,14 +3019,19 @@ function initStudio() {
         const idx = btn.getAttribute('data-toggle-bullet-popover');
         const pop = document.getElementById(`bullet-popover-${idx}`);
         const willOpen = pop && !pop.classList.contains('open');
-        closeAllPopovers();
+        closeAllPopovers({ restoreFocus: false });
         if (willOpen && pop) {
           pop.classList.add('open');
           btn.setAttribute('aria-expanded', 'true');
+          activePopoverTrigger = btn;
           const btnRect = btn.getBoundingClientRect();
           const popRect = pop.getBoundingClientRect();
           if (popRect.bottom > window.innerHeight - 48 && btnRect.top - popRect.height > 120) {
             pop.classList.add('pop-up');
+          }
+          if (popRect.left < 12) {
+            pop.style.right = 'auto';
+            pop.style.left = '0';
           }
         }
       });
@@ -2179,9 +3057,9 @@ function initStudio() {
         textarea.value = nextValue;
         item.bullets = nextValue.split('\n').filter(Boolean);
         syncBulletDiagnosticUI(idx);
-        saveCVDirect(currentCV);
+        persistCV();
         refreshCanvas();
-        closeAllPopovers();
+        closeAllPopovers({ restoreFocus: false });
 
         textarea.focus();
         if (isFormula) {
@@ -2214,7 +3092,9 @@ function initStudio() {
       return;
     }
 
-    container.innerHTML = list.map((edu, idx) => `
+    container.innerHTML = list.map((edu, idx) => {
+      const dateValue = formatInputDateRange(edu);
+      return `
       <div class="subcard">
         <div class="subcard-head">
           <span class="subcard-title">${escapeHTML(edu.degree || 'Degree')}</span>
@@ -2223,27 +3103,28 @@ function initStudio() {
         <div class="subcard-body">
           <div class="field-grid-2">
             <div class="field-group">
-              <label class="field-label">Degree / field</label>
-              <input type="text" class="field-input" data-edu-f="degree" data-idx="${idx}" value="${escapeAttr(edu.degree || '')}">
+              <label class="field-label" for="edu-${idx}-degree">Degree / field</label>
+              <input type="text" id="edu-${idx}-degree" class="field-input" data-edu-f="degree" data-idx="${idx}" value="${escapeAttr(edu.degree || '')}">
             </div>
             <div class="field-group">
-              <label class="field-label">Institution</label>
-              <input type="text" class="field-input" data-edu-f="institution" data-idx="${idx}" value="${escapeAttr(edu.institution || '')}">
+              <label class="field-label" for="edu-${idx}-institution">Institution</label>
+              <input type="text" id="edu-${idx}-institution" class="field-input" data-edu-f="institution" data-idx="${idx}" value="${escapeAttr(edu.institution || '')}">
             </div>
           </div>
           <div class="field-grid-2">
             <div class="field-group">
-              <label class="field-label">Dates</label>
-              <input type="text" class="field-input" data-edu-f="dateRange" data-idx="${idx}" value="${escapeAttr((edu.startDate || '') + ' – ' + (edu.endDate || ''))}">
+              <label class="field-label" for="edu-${idx}-dateRange">Dates</label>
+              <input type="text" id="edu-${idx}-dateRange" class="field-input" data-edu-f="dateRange" data-idx="${idx}" value="${escapeAttr(dateValue)}">
             </div>
             <div class="field-group">
-              <label class="field-label">Honors / grade</label>
-              <input type="text" class="field-input" data-edu-f="grade" data-idx="${idx}" placeholder="e.g. 1.3 / First Class" value="${escapeAttr(edu.grade || '')}">
+              <label class="field-label" for="edu-${idx}-grade">Honors / grade</label>
+              <input type="text" id="edu-${idx}-grade" class="field-input" data-edu-f="grade" data-idx="${idx}" placeholder="e.g. 1.3 / First Class" value="${escapeAttr(edu.grade || '')}">
             </div>
           </div>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     container.querySelectorAll('[data-edu-f]').forEach(inp => {
       inp.addEventListener('input', () => {
@@ -2253,9 +3134,9 @@ function initStudio() {
         if (!item) return;
 
         if (f === 'dateRange') {
-          const parts = inp.value.split(/[–-]/).map(s => s.trim());
-          item.startDate = parts[0] || '';
-          item.endDate = parts[1] || '';
+          const { startDate, endDate } = splitDateRange(inp.value);
+          item.startDate = startDate;
+          item.endDate = endDate;
         } else {
           item[f] = inp.value;
         }
@@ -2263,7 +3144,7 @@ function initStudio() {
         const headerTitle = inp.closest('.subcard')?.querySelector('.subcard-title');
         if (headerTitle) headerTitle.textContent = item.degree || 'Degree';
 
-        saveCVDirect(currentCV);
+        persistCV();
         refreshCanvas();
       });
     });
@@ -2272,7 +3153,7 @@ function initStudio() {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.getAttribute('data-del-edu'), 10);
         currentCV.education.splice(idx, 1);
-        saveCVDirect(currentCV);
+        persistCV();
         renderEducationCards();
         refreshCanvas();
       });
@@ -2304,7 +3185,7 @@ function initStudio() {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.getAttribute('data-del-skill'), 10);
         currentCV.skills.technical.splice(idx, 1);
-        saveCVDirect(currentCV);
+        persistCV();
         renderSkillsChips();
         refreshCanvas();
       });
@@ -2348,18 +3229,19 @@ function initStudio() {
     container.innerHTML = langs.map((lang, idx) => {
       const matched = resolveCEFRMatch(lang.level);
       const badgeLabel = CEFR_SHORT_BADGE[matched.code] || matched.code;
+      const langDisplay = lang.language?.trim() || `Language ${idx + 1}`;
       return `
       <div class="lang-pill-card" data-lang-card="${idx}">
         <div class="lang-card-top">
-          <input type="text" class="field-input lang-name-input" placeholder="Language (e.g. German)" data-lang-f="language" data-idx="${idx}" value="${escapeAttr(lang.language || '')}">
+          <input type="text" id="lang-${idx}-name" class="field-input lang-name-input" aria-label="Language name" placeholder="Language (e.g. German)" data-lang-f="language" data-idx="${idx}" value="${escapeAttr(lang.language || '')}">
           <span class="lang-level-badge" data-lang-badge="${idx}">${escapeHTML(badgeLabel)}</span>
-          <button class="btn-icon-remove" data-del-lang="${idx}" type="button" title="Remove language" aria-label="Remove language">×</button>
+          <button class="btn-icon-remove" data-del-lang="${idx}" type="button" title="Remove language" aria-label="Remove ${escapeAttr(langDisplay)}">×</button>
         </div>
-        <div class="cefr-track" role="group" aria-label="CEFR proficiency level for ${escapeAttr(lang.language || 'language')}">
+        <div class="cefr-track" role="radiogroup" aria-label="CEFR level for ${escapeAttr(langDisplay)}">
           ${ORDERED_CEFR.map(lvl => {
             const isSelected = matched.code === lvl.code;
             const shortCode = lvl.code === 'native' ? 'Native' : lvl.code;
-            return `<button type="button" class="cefr-pill ${isSelected ? 'active' : ''}" data-set-cefr="${idx}" data-cefr-code="${escapeAttr(lvl.code)}" data-level-val="${escapeAttr(lvl.label)}" aria-pressed="${isSelected}">${shortCode}</button>`;
+            return `<button type="button" class="cefr-pill ${isSelected ? 'active' : ''}" role="radio" aria-checked="${isSelected}" tabindex="${isSelected ? '0' : '-1'}" data-set-cefr="${idx}" data-cefr-code="${escapeAttr(lvl.code)}" data-level-val="${escapeAttr(lvl.label)}">${shortCode}</button>`;
           }).join('')}
         </div>
         <div class="cefr-desc-caption" data-lang-desc="${idx}">${escapeHTML(matched.label)}</div>
@@ -2367,39 +3249,64 @@ function initStudio() {
     `;
     }).join('');
 
+    const selectCefrPill = (pill, { focusPill = false } = {}) => {
+      const idx = parseInt(pill.getAttribute('data-set-cefr'), 10);
+      const code = pill.getAttribute('data-cefr-code');
+      const nextLevel = pill.getAttribute('data-level-val');
+      const entry = currentCV.skills.languages[idx];
+      if (!entry) return;
+
+      entry.level = nextLevel;
+      const card = container.querySelector(`[data-lang-card="${idx}"]`);
+      card?.querySelectorAll('[data-set-cefr]').forEach(btn => {
+        const active = btn === pill;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-checked', String(active));
+        btn.setAttribute('tabindex', active ? '0' : '-1');
+      });
+      const badgeEl = container.querySelector(`[data-lang-badge="${idx}"]`);
+      if (badgeEl) badgeEl.textContent = CEFR_SHORT_BADGE[code] || code;
+      const descEl = container.querySelector(`[data-lang-desc="${idx}"]`);
+      if (descEl) descEl.textContent = nextLevel;
+
+      persistCV();
+      refreshCanvas();
+      if (focusPill) pill.focus();
+    };
+
     container.querySelectorAll('[data-lang-f="language"]').forEach(el => {
       el.addEventListener('input', () => {
         const idx = parseInt(el.getAttribute('data-idx'), 10);
         if (currentCV.skills.languages[idx]) {
           currentCV.skills.languages[idx].language = el.value;
-          saveCVDirect(currentCV);
+          const card = container.querySelector(`[data-lang-card="${idx}"]`);
+          const track = card?.querySelector('.cefr-track');
+          if (track) track.setAttribute('aria-label', `CEFR level for ${el.value.trim() || `Language ${idx + 1}`}`);
+          persistCV();
           refreshCanvas();
         }
       });
     });
 
     container.querySelectorAll('[data-set-cefr]').forEach(pill => {
-      pill.addEventListener('click', () => {
-        const idx = parseInt(pill.getAttribute('data-set-cefr'), 10);
-        const code = pill.getAttribute('data-cefr-code');
-        const nextLevel = pill.getAttribute('data-level-val');
-        const entry = currentCV.skills.languages[idx];
-        if (!entry) return;
+      pill.addEventListener('click', () => selectCefrPill(pill));
+      pill.addEventListener('keydown', (e) => {
+        const track = pill.closest('.cefr-track');
+        if (!track) return;
+        const pills = Array.from(track.querySelectorAll('[data-set-cefr]'));
+        const idx = pills.indexOf(pill);
+        if (idx < 0) return;
 
-        entry.level = nextLevel;
-        const card = container.querySelector(`[data-lang-card="${idx}"]`);
-        card?.querySelectorAll('[data-set-cefr]').forEach(btn => {
-          const active = btn === pill;
-          btn.classList.toggle('active', active);
-          btn.setAttribute('aria-pressed', String(active));
-        });
-        const badgeEl = container.querySelector(`[data-lang-badge="${idx}"]`);
-        if (badgeEl) badgeEl.textContent = CEFR_SHORT_BADGE[code] || code;
-        const descEl = container.querySelector(`[data-lang-desc="${idx}"]`);
-        if (descEl) descEl.textContent = nextLevel;
+        let nextIdx = -1;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextIdx = (idx + 1) % pills.length;
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') nextIdx = (idx - 1 + pills.length) % pills.length;
+        else if (e.key === 'Home') nextIdx = 0;
+        else if (e.key === 'End') nextIdx = pills.length - 1;
 
-        saveCVDirect(currentCV);
-        refreshCanvas();
+        if (nextIdx >= 0) {
+          e.preventDefault();
+          selectCefrPill(pills[nextIdx], { focusPill: true });
+        }
       });
     });
 
@@ -2407,7 +3314,7 @@ function initStudio() {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.getAttribute('data-del-lang'), 10);
         currentCV.skills.languages.splice(idx, 1);
-        saveCVDirect(currentCV);
+        persistCV();
         renderLanguageCards();
         refreshCanvas();
       });
@@ -2438,17 +3345,17 @@ function initStudio() {
         <div class="subcard-body">
           <div class="field-grid-2">
             <div class="field-group">
-              <label class="field-label">Project name</label>
-              <input type="text" class="field-input" data-proj-f="name" data-idx="${idx}" value="${escapeAttr(proj.name || '')}">
+              <label class="field-label" for="proj-${idx}-name">Project name</label>
+              <input type="text" id="proj-${idx}-name" class="field-input" data-proj-f="name" data-idx="${idx}" value="${escapeAttr(proj.name || '')}">
             </div>
             <div class="field-group">
-              <label class="field-label">Technologies</label>
-              <input type="text" class="field-input" data-proj-f="technologies" data-idx="${idx}" value="${escapeAttr(proj.technologies || '')}">
+              <label class="field-label" for="proj-${idx}-technologies">Technologies</label>
+              <input type="text" id="proj-${idx}-technologies" class="field-input" data-proj-f="technologies" data-idx="${idx}" value="${escapeAttr(proj.technologies || '')}">
             </div>
           </div>
           <div class="field-group">
-            <label class="field-label">Summary</label>
-            <input type="text" class="field-input" data-proj-f="description" data-idx="${idx}" value="${escapeAttr(proj.description || '')}">
+            <label class="field-label" for="proj-${idx}-description">Summary</label>
+            <input type="text" id="proj-${idx}-description" class="field-input" data-proj-f="description" data-idx="${idx}" value="${escapeAttr(proj.description || '')}">
           </div>
         </div>
       </div>
@@ -2462,7 +3369,7 @@ function initStudio() {
           currentCV.projects[idx][f] = inp.value;
           const title = inp.closest('.subcard')?.querySelector('.subcard-title');
           if (title) title.textContent = currentCV.projects[idx].name || 'Project';
-          saveCVDirect(currentCV);
+          persistCV();
           refreshCanvas();
         }
       });
@@ -2472,7 +3379,7 @@ function initStudio() {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.getAttribute('data-del-proj'), 10);
         currentCV.projects.splice(idx, 1);
-        saveCVDirect(currentCV);
+        persistCV();
         renderProjectsCards();
         refreshCanvas();
       });
@@ -2502,17 +3409,17 @@ function initStudio() {
         </div>
         <div class="subcard-body">
           <div class="field-group">
-            <label class="field-label">Credential name</label>
-            <input type="text" class="field-input" data-cert-f="name" data-idx="${idx}" value="${escapeAttr(cert.name || '')}">
+            <label class="field-label" for="cert-${idx}-name">Credential name</label>
+            <input type="text" id="cert-${idx}-name" class="field-input" data-cert-f="name" data-idx="${idx}" value="${escapeAttr(cert.name || '')}">
           </div>
           <div class="field-grid-2">
             <div class="field-group">
-              <label class="field-label">Issuer</label>
-              <input type="text" class="field-input" data-cert-f="issuer" data-idx="${idx}" value="${escapeAttr(cert.issuer || '')}">
+              <label class="field-label" for="cert-${idx}-issuer">Issuer</label>
+              <input type="text" id="cert-${idx}-issuer" class="field-input" data-cert-f="issuer" data-idx="${idx}" value="${escapeAttr(cert.issuer || '')}">
             </div>
             <div class="field-group">
-              <label class="field-label">Year</label>
-              <input type="text" class="field-input" data-cert-f="year" data-idx="${idx}" value="${escapeAttr(cert.year || '')}">
+              <label class="field-label" for="cert-${idx}-year">Year</label>
+              <input type="text" id="cert-${idx}-year" class="field-input" data-cert-f="year" data-idx="${idx}" value="${escapeAttr(cert.year || '')}">
             </div>
           </div>
         </div>
@@ -2527,7 +3434,7 @@ function initStudio() {
           currentCV.certifications[idx][f] = inp.value;
           const title = inp.closest('.subcard')?.querySelector('.subcard-title');
           if (title) title.textContent = currentCV.certifications[idx].name || 'Certification';
-          saveCVDirect(currentCV);
+          persistCV();
           refreshCanvas();
         }
       });
@@ -2537,7 +3444,7 @@ function initStudio() {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.getAttribute('data-del-cert'), 10);
         currentCV.certifications.splice(idx, 1);
-        saveCVDirect(currentCV);
+        persistCV();
         renderCertificationsCards();
         refreshCanvas();
       });
@@ -2552,7 +3459,7 @@ function initStudio() {
     if (!el) return;
     el.addEventListener('input', (e) => {
       setter(e.target.value);
-      saveCVDirect(currentCV);
+      persistCV();
       if (id === 'f-summary') {
         const charHint = document.getElementById('summary-char-hint');
         if (charHint) {
@@ -2564,12 +3471,37 @@ function initStudio() {
     });
   };
 
-  bindStaticField('p-first-name', val => { currentCV.personal.firstName = val; });
-  bindStaticField('p-last-name', val => { currentCV.personal.lastName = val; });
+  const syncSignatureNameIfLinked = (prevFullName) => {
+    const nextFullName = [currentCV.personal.firstName, currentCV.personal.lastName].filter(Boolean).join(' ').trim();
+    const curSigName = (currentCV.signature?.signeeName || '').trim();
+    if (!curSigName || curSigName === prevFullName) {
+      currentCV.signature = currentCV.signature || {};
+      currentCV.signature.signeeName = nextFullName;
+    }
+  };
+
+  bindStaticField('p-first-name', val => {
+    const prevFull = [currentCV.personal.firstName, currentCV.personal.lastName].filter(Boolean).join(' ').trim();
+    currentCV.personal.firstName = val;
+    syncSignatureNameIfLinked(prevFull);
+  });
+  bindStaticField('p-last-name', val => {
+    const prevFull = [currentCV.personal.firstName, currentCV.personal.lastName].filter(Boolean).join(' ').trim();
+    currentCV.personal.lastName = val;
+    syncSignatureNameIfLinked(prevFull);
+  });
   bindStaticField('p-title', val => { currentCV.personal.title = val; });
   bindStaticField('p-email', val => { currentCV.personal.email = val; });
   bindStaticField('p-phone', val => { currentCV.personal.phone = val; });
-  bindStaticField('p-city', val => { currentCV.personal.city = val; });
+  bindStaticField('p-city', val => {
+    const prevCity = (currentCV.personal.city || '').trim();
+    currentCV.personal.city = val;
+    const curSigPlace = (currentCV.signature?.place || '').trim();
+    if (!curSigPlace || curSigPlace === prevCity || curSigPlace === 'Berlin') {
+      currentCV.signature = currentCV.signature || {};
+      currentCV.signature.place = val.trim() || 'Berlin';
+    }
+  });
   bindStaticField('p-birth', val => { currentCV.personal.birthDate = val; });
   bindStaticField('p-nationality', val => { currentCV.personal.nationality = val; });
   bindStaticField('p-linkedin', val => { currentCV.personal.linkedin = val; });
@@ -2577,7 +3509,7 @@ function initStudio() {
 
   document.getElementById('f-skills-tech')?.addEventListener('input', (e) => {
     currentCV.skills.technical = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-    saveCVDirect(currentCV);
+    persistCV();
     renderSkillsChips();
     refreshCanvas();
   });
@@ -2595,7 +3527,7 @@ function initStudio() {
       }
     });
     if (input) input.value = '';
-    saveCVDirect(currentCV);
+    persistCV();
     renderSkillsChips();
     refreshCanvas();
   };
@@ -2608,28 +3540,49 @@ function initStudio() {
     }
   });
 
-  // Photo upload & clear
+  // Photo upload & clear (with MIME validation, canvas downscale & storage quota rollback)
   const photoInput = document.getElementById('p-photo-file');
   document.getElementById('btn-upload-photo')?.addEventListener('click', () => photoInput?.click());
-  photoInput?.addEventListener('change', (e) => {
+  photoInput?.addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      currentCV.personal.photoUrl = ev.target.result;
+    if (!ALLOWED_IMAGE_MIME_TYPES.has((file.type || '').toLowerCase())) {
+      photoInput.value = '';
+      showToast('Please select a JPEG, PNG, WebP, or GIF image.', 3600);
+      return;
+    }
+
+    const prevPhoto = currentCV.personal.photoUrl || '';
+    const prevShowPhoto = currentCV.meta.showPhoto;
+    try {
+      const compressedDataUrl = await downscalePhotoFile(file, 600, 750, 0.85);
+      currentCV.personal.photoUrl = compressedDataUrl;
       currentCV.meta.showPhoto = true;
+      const saveStatus = saveCVWithStatus(currentCV);
+      if (!saveStatus.ok) {
+        currentCV.personal.photoUrl = prevPhoto;
+        currentCV.meta.showPhoto = prevShowPhoto;
+        if (togglePhoto) togglePhoto.checked = prevShowPhoto !== false;
+        syncPhotoThumb();
+        handleStorageStatus(saveStatus, { forceToast: true });
+        return;
+      }
       if (togglePhoto) togglePhoto.checked = true;
-      saveCVDirect(currentCV);
       syncPhotoThumb();
       refreshCanvas();
       showToast('Portrait photo updated.');
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      currentCV.personal.photoUrl = prevPhoto;
+      currentCV.meta.showPhoto = prevShowPhoto;
+      showToast(err?.message || 'Could not process selected photo.', 3600);
+    } finally {
+      photoInput.value = '';
+    }
   });
   document.getElementById('btn-clear-photo')?.addEventListener('click', () => {
     currentCV.personal.photoUrl = '';
     if (photoInput) photoInput.value = '';
-    saveCVDirect(currentCV);
+    persistCV();
     syncPhotoThumb();
     refreshCanvas();
     showToast('Portrait photo cleared.');
@@ -2638,15 +3591,17 @@ function initStudio() {
   const addNewExperience = () => {
     currentCV.experience = currentCV.experience || [];
     currentCV.experience.unshift({
+      id: generateEntryId('exp'),
       position: 'Senior Engineer',
       company: 'Tech Enterprise',
       city: 'Berlin, Germany',
       startDate: '01/2023',
       endDate: 'Present',
+      current: true,
       bullets: ['Spearheaded cross-functional initiative delivering 30% latency reduction.'],
       technologies: ['TypeScript', 'Go']
     });
-    saveCVDirect(currentCV);
+    persistCV();
     renderExperienceCards();
     setActiveSection('experience');
     refreshCanvas();
@@ -2655,13 +3610,14 @@ function initStudio() {
   const addNewEducation = () => {
     currentCV.education = currentCV.education || [];
     currentCV.education.unshift({
+      id: generateEntryId('edu'),
       degree: 'B.Sc. Computer Science',
       institution: 'Technical University',
       startDate: '10/2019',
       endDate: '07/2023',
       grade: 'First Class'
     });
-    saveCVDirect(currentCV);
+    persistCV();
     renderEducationCards();
     setActiveSection('education');
     refreshCanvas();
@@ -2670,7 +3626,7 @@ function initStudio() {
   const addNewLanguage = () => {
     currentCV.skills.languages = currentCV.skills.languages || [];
     currentCV.skills.languages.push({ language: 'German', level: CEFR_LEVELS[2].label });
-    saveCVDirect(currentCV);
+    persistCV();
     renderLanguageCards();
     setActiveSection('languages');
     refreshCanvas();
@@ -2679,11 +3635,12 @@ function initStudio() {
   const addNewProject = () => {
     currentCV.projects = currentCV.projects || [];
     currentCV.projects.push({
+      id: generateEntryId('proj'),
       name: 'Open Source Tooling',
       description: 'Designed modular TypeScript CLI used by internal engineering teams.',
       technologies: 'TypeScript, Node.js'
     });
-    saveCVDirect(currentCV);
+    persistCV();
     renderProjectsCards();
     refreshCanvas();
   };
@@ -2691,11 +3648,12 @@ function initStudio() {
   const addNewCert = () => {
     currentCV.certifications = currentCV.certifications || [];
     currentCV.certifications.push({
+      id: generateEntryId('cert'),
       name: 'AWS Solutions Architect',
       issuer: 'Amazon Web Services',
       year: '2024'
     });
-    saveCVDirect(currentCV);
+    persistCV();
     renderCertificationsCards();
     refreshCanvas();
   };
@@ -2709,15 +3667,25 @@ function initStudio() {
   /* ------------------------------------------------------------------
      Accordion Header Clicks, Stepper Next/Back, & Optional Sections
      ------------------------------------------------------------------ */
-  document.querySelectorAll('[data-toggle-section]').forEach(header => {
-    header.addEventListener('click', (e) => {
-      if (e.target.closest('button') || e.target.closest('.drag-handle')) return;
-      toggleSection(header.getAttribute('data-toggle-section'));
+  document.querySelectorAll('button.accordion-toggle[data-section-toggle]').forEach(toggleBtn => {
+    toggleBtn.addEventListener('click', () => {
+      toggleSection(toggleBtn.getAttribute('data-section-toggle'));
     });
-    header.addEventListener('keydown', (e) => {
-      if ((e.key === 'Enter' || e.key === ' ') && e.target === header) {
+    toggleBtn.addEventListener('keydown', (e) => {
+      const visibleToggles = Array.from(document.querySelectorAll('button.accordion-toggle[data-section-toggle]'))
+        .filter(btn => btn.closest('.accordion-card')?.style.display !== 'none');
+      const idx = visibleToggles.indexOf(toggleBtn);
+      if (idx < 0) return;
+
+      let nextIdx = -1;
+      if (e.key === 'ArrowDown') nextIdx = (idx + 1) % visibleToggles.length;
+      else if (e.key === 'ArrowUp') nextIdx = (idx - 1 + visibleToggles.length) % visibleToggles.length;
+      else if (e.key === 'Home') nextIdx = 0;
+      else if (e.key === 'End') nextIdx = visibleToggles.length - 1;
+
+      if (nextIdx >= 0) {
         e.preventDefault();
-        toggleSection(header.getAttribute('data-toggle-section'));
+        visibleToggles[nextIdx]?.focus();
       }
     });
   });
@@ -2750,7 +3718,7 @@ function initStudio() {
     btn.addEventListener('click', () => {
       const secId = btn.getAttribute('data-remove-section');
       currentCV.meta.sectionOrder = currentCV.meta.sectionOrder.filter(id => id !== secId);
-      saveCVDirect(currentCV);
+      persistCV();
       syncAccordionOrderDOM();
       setActiveSection('experience');
       refreshCanvas();
@@ -2761,7 +3729,7 @@ function initStudio() {
   document.querySelectorAll('[data-quick-action]').forEach(item => {
     item.addEventListener('click', () => {
       const action = item.getAttribute('data-quick-action');
-      closeAllPopovers();
+      closeAllPopovers({ restoreFocus: false });
       if (action === 'experience') addNewExperience();
       else if (action === 'education') addNewEducation();
       else if (action === 'language') addNewLanguage();
@@ -2771,7 +3739,7 @@ function initStudio() {
         }
         if (!(currentCV.projects || []).length) addNewProject();
         syncAccordionOrderDOM();
-        saveCVDirect(currentCV);
+        persistCV();
         setActiveSection('projects');
         refreshCanvas();
       } else if (action === 'section-certifications') {
@@ -2780,7 +3748,7 @@ function initStudio() {
         }
         if (!(currentCV.certifications || []).length) addNewCert();
         syncAccordionOrderDOM();
-        saveCVDirect(currentCV);
+        persistCV();
         setActiveSection('certifications');
         refreshCanvas();
       }
@@ -2797,9 +3765,17 @@ function initStudio() {
     if (idx < 0 || targetIdx < 0 || targetIdx >= order.length) return;
     [order[idx], order[targetIdx]] = [order[targetIdx], order[idx]];
     currentCV.meta.sectionOrder = order;
-    saveCVDirect(currentCV);
+    persistCV();
     syncAccordionOrderDOM();
     refreshCanvas();
+
+    const card = document.querySelector(`.accordion-card[data-section-id="${sectionId}"]`);
+    if (card) {
+      const preferred = card.querySelector(delta < 0 ? `[data-move-up="${sectionId}"]` : `[data-move-down="${sectionId}"]`);
+      const alternate = card.querySelector(delta < 0 ? `[data-move-down="${sectionId}"]` : `[data-move-up="${sectionId}"]`);
+      const targetBtn = (preferred && !preferred.disabled) ? preferred : alternate;
+      targetBtn?.focus();
+    }
     showToast(`Moved ${SECTION_LABELS[sectionId]} ${delta < 0 ? 'up' : 'down'}.`);
   };
 
@@ -2816,10 +3792,28 @@ function initStudio() {
     });
   });
 
+  document.addEventListener('mouseup', () => {
+    if (!draggedSectionId) {
+      document.querySelectorAll('#reorderable-sections .accordion-card').forEach(el => {
+        el.draggable = false;
+      });
+    }
+  });
+
   document.querySelectorAll('#reorderable-sections .accordion-card').forEach(card => {
+    card.draggable = false;
+    const handle = card.querySelector('.drag-handle');
+    handle?.addEventListener('mousedown', () => {
+      card.draggable = true;
+    });
+    handle?.addEventListener('mouseup', () => {
+      if (!draggedSectionId) card.draggable = false;
+    });
+
     card.addEventListener('dragstart', (e) => {
-      if (e.target.closest('input, textarea, select')) {
+      if (!card.draggable || e.target.closest('input, textarea, select, button')) {
         e.preventDefault();
+        card.draggable = false;
         return;
       }
       draggedSectionId = card.getAttribute('data-section-id');
@@ -2833,6 +3827,7 @@ function initStudio() {
     card.addEventListener('dragend', () => {
       draggedSectionId = null;
       document.querySelectorAll('.accordion-card').forEach(el => {
+        el.draggable = false;
         el.classList.remove('dragging', 'drag-over');
       });
     });
@@ -2863,7 +3858,7 @@ function initStudio() {
       const [moved] = order.splice(fromIdx, 1);
       order.splice(toIdx, 0, moved);
       currentCV.meta.sectionOrder = order;
-      saveCVDirect(currentCV);
+      persistCV();
       syncAccordionOrderDOM();
       refreshCanvas();
     });
@@ -2872,6 +3867,38 @@ function initStudio() {
   /* ------------------------------------------------------------------
      Direct WYSIWYG Canvas Editing
      ------------------------------------------------------------------ */
+  previewSheet?.addEventListener('keydown', (e) => {
+    const target = e.target?.closest?.('[contenteditable="true"]');
+    if (!target) return;
+    if (e.key === 'Enter') {
+      const isMultiline = target.getAttribute('data-bind') === 'summary' || target.getAttribute('aria-multiline') === 'true';
+      if (!isMultiline) {
+        e.preventDefault();
+      }
+    }
+  });
+
+  previewSheet?.addEventListener('paste', (e) => {
+    const target = e.target?.closest?.('[contenteditable="true"]');
+    if (!target) return;
+    e.preventDefault();
+    const rawText = (e.clipboardData || window.clipboardData)?.getData('text/plain') || '';
+    const isMultiline = target.getAttribute('data-bind') === 'summary' || target.getAttribute('aria-multiline') === 'true';
+    const cleanText = isMultiline ? rawText : rawText.replace(/[\r\n]+/g, ' ');
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      const textNode = document.createTextNode(cleanText);
+      range.insertNode(textNode);
+      range.setStartAfter(textNode);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      target.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  });
+
   previewSheet?.addEventListener('input', (e) => {
     const target = e.target;
     if (!target || target.getAttribute('contenteditable') !== 'true') return;
@@ -2880,9 +3907,11 @@ function initStudio() {
     const bind = target.getAttribute('data-bind');
     if (bind) {
       if (bind === 'personal.fullName') {
+        const prevFull = [currentCV.personal.firstName, currentCV.personal.lastName].filter(Boolean).join(' ').trim();
         const parts = text.split(/\s+/);
         currentCV.personal.firstName = parts[0] || '';
         currentCV.personal.lastName = parts.slice(1).join(' ') || '';
+        syncSignatureNameIfLinked(prevFull);
       } else if (bind.startsWith('personal.')) {
         currentCV.personal[bind.split('.')[1]] = text;
       } else if (bind === 'summary') {
@@ -2900,9 +3929,10 @@ function initStudio() {
       const item = currentCV.experience?.[idx];
       if (item) {
         if (expField === 'dateRange') {
-          const parts = text.split(/[–-]/).map(s => s.trim());
-          item.startDate = parts[0] || '';
-          item.endDate = parts[1] || '';
+          const { startDate, endDate } = splitDateRange(text);
+          item.startDate = startDate;
+          item.endDate = endDate;
+          item.current = /^(present|heute|présent|current|now|aktuell)$/i.test(endDate);
         } else {
           item[expField] = text;
         }
@@ -2927,9 +3957,9 @@ function initStudio() {
       const item = currentCV.education?.[idx];
       if (item) {
         if (eduField === 'dateRange') {
-          const parts = text.split(/[–-]/).map(s => s.trim());
-          item.startDate = parts[0] || '';
-          item.endDate = parts[1] || '';
+          const { startDate, endDate } = splitDateRange(text);
+          item.startDate = startDate;
+          item.endDate = endDate;
         } else {
           item[eduField] = text;
         }
@@ -2937,10 +3967,11 @@ function initStudio() {
       }
     }
 
-    saveCVDirect(currentCV);
+    persistCV();
     calculatePageBudget();
     updateATSReport();
     updateAccordionSummariesAndStrength();
+    syncJobMatchIfOpen();
   });
 
   previewSheet?.addEventListener('click', (e) => {
@@ -2951,7 +3982,7 @@ function initStudio() {
       if (item) {
         item.bullets = item.bullets || [];
         item.bullets.push('Delivered scalable engineering outcome with measurable performance gains.');
-        saveCVDirect(currentCV);
+        persistCV();
         renderExperienceCards();
         refreshCanvas();
       }
@@ -2962,7 +3993,7 @@ function initStudio() {
     if (delExpBtn) {
       const idx = parseInt(delExpBtn.getAttribute('data-delete-exp'), 10);
       currentCV.experience.splice(idx, 1);
-      saveCVDirect(currentCV);
+      persistCV();
       renderExperienceCards();
       refreshCanvas();
       return;
@@ -2972,7 +4003,7 @@ function initStudio() {
     if (delEduBtn) {
       const idx = parseInt(delEduBtn.getAttribute('data-delete-edu'), 10);
       currentCV.education.splice(idx, 1);
-      saveCVDirect(currentCV);
+      persistCV();
       renderEducationCards();
       refreshCanvas();
       return;
@@ -2987,10 +4018,19 @@ function initStudio() {
      ------------------------------------------------------------------ */
   document.querySelectorAll('#popover-country [data-country-val]').forEach(btn => {
     btn.addEventListener('click', () => {
-      currentCV.meta.targetCountry = btn.getAttribute('data-country-val');
-      saveCVDirect(currentCV);
+      const nextCountry = btn.getAttribute('data-country-val');
+      currentCV.meta.targetCountry = nextCountry;
+      const nextRules = getCountryFieldRules(nextCountry);
+      if (nextRules.compactMode && !manualSpacingOverride && currentCV.meta.spacing === 'normal') {
+        currentCV.meta.spacing = 'compact';
+        autoAppliedCompact = true;
+      } else if (!nextRules.compactMode && autoAppliedCompact && !manualSpacingOverride && currentCV.meta.spacing === 'compact') {
+        currentCV.meta.spacing = 'normal';
+        autoAppliedCompact = false;
+      }
+      persistCV();
       syncToolbarState();
-      closeAllPopovers();
+      closeAllPopovers({ restoreFocus: true });
       refreshCanvas();
     });
   });
@@ -2999,9 +4039,9 @@ function initStudio() {
     btn.addEventListener('click', () => {
       const lang = btn.getAttribute('data-lang-val');
       currentCV.meta.language = lang;
-      saveCVDirect(currentCV);
+      persistCV();
       syncToolbarState();
-      closeAllPopovers();
+      closeAllPopovers({ restoreFocus: true });
       renderExperienceCards();
       refreshCanvas();
       showToast(`CV headings updated (${LANGUAGE_LABELS[lang] || lang}).`);
@@ -3010,10 +4050,12 @@ function initStudio() {
 
   document.querySelectorAll('#popover-spacing [data-spacing-val]').forEach(btn => {
     btn.addEventListener('click', () => {
+      manualSpacingOverride = true;
+      autoAppliedCompact = false;
       currentCV.meta.spacing = btn.getAttribute('data-spacing-val');
-      saveCVDirect(currentCV);
+      persistCV();
       syncToolbarState();
-      closeAllPopovers();
+      closeAllPopovers({ restoreFocus: true });
       refreshCanvas();
     });
   });
@@ -3021,9 +4063,9 @@ function initStudio() {
   document.querySelectorAll('#template-gallery .template-card-option').forEach(card => {
     card.addEventListener('click', () => {
       currentCV.meta.template = card.getAttribute('data-template-id');
-      saveCVDirect(currentCV);
+      persistCV();
       syncToolbarState();
-      closeAllPopovers();
+      closeAllPopovers({ restoreFocus: true });
       refreshCanvas();
     });
   });
@@ -3031,29 +4073,32 @@ function initStudio() {
   document.querySelectorAll('#popover-color .color-dot').forEach(dot => {
     dot.addEventListener('click', () => {
       currentCV.meta.accentColor = dot.getAttribute('data-color');
-      saveCVDirect(currentCV);
+      persistCV();
       syncToolbarState();
-      closeAllPopovers();
+      closeAllPopovers({ restoreFocus: true });
       refreshCanvas();
     });
   });
 
   togglePhoto?.addEventListener('change', (e) => {
     currentCV.meta.showPhoto = e.target.checked;
-    saveCVDirect(currentCV);
+    persistCV();
     refreshCanvas();
   });
 
   toggleSignature?.addEventListener('change', (e) => {
     currentCV.meta.includeSignatureBlock = e.target.checked;
-    saveCVDirect(currentCV);
+    persistCV();
     refreshCanvas();
   });
 
   btnAutoFit?.addEventListener('click', () => {
+    if (currentCV.meta.spacing === 'compact') return;
+    manualSpacingOverride = true;
+    autoAppliedCompact = false;
     currentCV.meta.spacing = 'compact';
     syncToolbarState();
-    saveCVDirect(currentCV);
+    persistCV();
     refreshCanvas();
     showToast('Margins tightened to fit cleanly onto 1 A4 page.');
   });
@@ -3089,7 +4134,7 @@ function initStudio() {
   });
 
   window.addEventListener('resize', () => {
-    closeAllPopovers();
+    closeAllPopovers({ restoreFocus: false });
     currentZoom = computeFitZoom();
     applyZoom(currentZoom);
     calculatePageBudget();
@@ -3098,8 +4143,12 @@ function initStudio() {
   const switchMobileView = (view) => {
     if (!studioLayout) return;
     studioLayout.setAttribute('data-mobile-view', view);
-    document.getElementById('tab-mobile-editor')?.classList.toggle('active', view === 'editor');
-    document.getElementById('tab-mobile-preview')?.classList.toggle('active', view === 'preview');
+    const editorTab = document.getElementById('tab-mobile-editor');
+    const previewTab = document.getElementById('tab-mobile-preview');
+    editorTab?.classList.toggle('active', view === 'editor');
+    editorTab?.setAttribute('aria-pressed', String(view === 'editor'));
+    previewTab?.classList.toggle('active', view === 'preview');
+    previewTab?.setAttribute('aria-pressed', String(view === 'preview'));
     if (view === 'preview') {
       requestAnimationFrame(() => {
         currentZoom = computeFitZoom();
@@ -3115,23 +4164,56 @@ function initStudio() {
   /* ------------------------------------------------------------------
      Launch Modal ("How would you like to start?") + JSON Import/Export
      ------------------------------------------------------------------ */
-  const openLaunchModal = () => launchOverlay?.classList.add('open');
-  const closeLaunchModal = () => launchOverlay?.classList.remove('open');
+  const setBackgroundInert = (isInert) => {
+    document.querySelectorAll(BACKGROUND_LANDMARKS_SELECTOR).forEach(el => {
+      if (isInert) el.setAttribute('inert', '');
+      else el.removeAttribute('inert');
+    });
+  };
 
-  document.getElementById('btn-open-launch')?.addEventListener('click', openLaunchModal);
+  const openLaunchModal = (opener = null) => {
+    if (!launchOverlay) return;
+    if (!launchOverlay.classList.contains('open')) {
+      lastLaunchOpener = opener || document.activeElement;
+    }
+    setBackgroundInert(true);
+    launchOverlay.classList.add('open');
+    const focusTarget = document.getElementById('btn-start-sample') || getFocusableElements(launchOverlay)[0];
+    focusTarget?.focus();
+  };
+
+  const closeLaunchModal = ({ restoreFocus = true } = {}) => {
+    if (!launchOverlay?.classList.contains('open')) return;
+    launchOverlay.classList.remove('open');
+    if (!drawer?.classList.contains('open')) {
+      setBackgroundInert(false);
+    }
+    if (restoreFocus && lastLaunchOpener && lastLaunchOpener !== document.body && lastLaunchOpener.isConnected) {
+      lastLaunchOpener.focus();
+    }
+    lastLaunchOpener = null;
+  };
+
+  document.getElementById('btn-open-launch')?.addEventListener('click', (e) => openLaunchModal(e.currentTarget));
   document.getElementById('btn-close-launch')?.addEventListener('click', () => {
-    saveCVDirect(currentCV);
-    closeLaunchModal();
+    persistCV();
+    closeLaunchModal({ restoreFocus: true });
   });
   launchOverlay?.addEventListener('click', (e) => {
     if (e.target === launchOverlay) {
-      saveCVDirect(currentCV);
-      closeLaunchModal();
+      persistCV();
+      closeLaunchModal({ restoreFocus: true });
     }
   });
 
-  const hydrateAll = () => {
+  const resetJobMatchResults = () => {
+    const resultsBox = document.getElementById('job-analysis-results');
+    if (resultsBox) resultsBox.style.display = 'none';
+  };
+
+  const hydrateAll = ({ clearJobMatch = true } = {}) => {
     ensureCVShape(currentCV);
+    if (clearJobMatch) resetJobMatchResults();
     syncStaticInputsFromCV();
     syncToolbarState();
     syncAccordionOrderDOM();
@@ -3146,19 +4228,23 @@ function initStudio() {
 
   document.getElementById('btn-start-guided')?.addEventListener('click', () => {
     currentCV = createEmptyCV();
-    saveCVDirect(currentCV);
-    hydrateAll();
-    closeLaunchModal();
+    manualSpacingOverride = false;
+    autoAppliedCompact = false;
+    persistCV();
+    hydrateAll({ clearJobMatch: true });
+    closeLaunchModal({ restoreFocus: false });
     setActiveSection('identity', { focusInput: true });
     showToast('Guided mode ready — start with your name and target role.');
   });
 
   document.getElementById('btn-start-sample')?.addEventListener('click', () => {
     currentCV = createSampleEuropeanCV();
-    saveCVDirect(currentCV);
-    hydrateAll();
-    closeLaunchModal();
-    setActiveSection('experience');
+    manualSpacingOverride = false;
+    autoAppliedCompact = false;
+    persistCV();
+    hydrateAll({ clearJobMatch: true });
+    closeLaunchModal({ restoreFocus: false });
+    setActiveSection('experience', { focusInput: true });
     showToast('Sample European CV loaded.');
   });
 
@@ -3170,9 +4256,12 @@ function initStudio() {
     try {
       const imported = await importCVFromJSON(file);
       currentCV = imported;
-      saveCVDirect(currentCV);
-      hydrateAll();
-      closeLaunchModal();
+      manualSpacingOverride = false;
+      autoAppliedCompact = false;
+      persistCV();
+      hydrateAll({ clearJobMatch: true });
+      closeLaunchModal({ restoreFocus: false });
+      setActiveSection('identity', { focusInput: true });
       showToast('CV imported cleanly from JSON.');
     } catch (err) {
       showToast(err.message || 'Could not import JSON file.');
@@ -3193,67 +4282,132 @@ function initStudio() {
   /* ------------------------------------------------------------------
      ATS & Job Matcher Drawer
      ------------------------------------------------------------------ */
-  const openDrawer = () => {
+  const openDrawer = ({ focusTargetId = 'btn-close-drawer', opener = null } = {}) => {
+    if (!drawer) return;
+    if (!drawer.classList.contains('open')) {
+      lastDrawerOpener = opener || document.activeElement;
+    }
     updateATSReport();
-    drawer?.classList.add('open');
+    setBackgroundInert(true);
+    drawer.removeAttribute('inert');
+    drawer.classList.add('open');
     drawerBackdrop?.classList.add('active');
+    const focusTarget = document.getElementById(focusTargetId) || getFocusableElements(drawer)[0];
+    focusTarget?.focus();
   };
-  const closeDrawer = () => {
-    drawer?.classList.remove('open');
+  const closeDrawer = ({ restoreFocus = true } = {}) => {
+    if (!drawer?.classList.contains('open')) return;
+    drawer.classList.remove('open');
+    drawer.setAttribute('inert', '');
     drawerBackdrop?.classList.remove('active');
+    if (!launchOverlay?.classList.contains('open')) {
+      setBackgroundInert(false);
+    }
+    if (restoreFocus && lastDrawerOpener && lastDrawerOpener !== document.body && lastDrawerOpener.isConnected) {
+      lastDrawerOpener.focus();
+    }
+    lastDrawerOpener = null;
   };
 
-  document.getElementById('btn-ats-pill')?.addEventListener('click', openDrawer);
-  document.getElementById('btn-open-matcher')?.addEventListener('click', () => {
-    openDrawer();
-    document.getElementById('job-description-input')?.focus();
+  document.getElementById('btn-ats-pill')?.addEventListener('click', (e) => {
+    openDrawer({ focusTargetId: 'btn-close-drawer', opener: e.currentTarget });
   });
-  document.getElementById('btn-close-drawer')?.addEventListener('click', closeDrawer);
-  drawerBackdrop?.addEventListener('click', closeDrawer);
+  document.getElementById('btn-open-matcher')?.addEventListener('click', (e) => {
+    openDrawer({ focusTargetId: 'job-description-input', opener: e.currentTarget });
+  });
+  document.getElementById('btn-close-drawer')?.addEventListener('click', () => closeDrawer({ restoreFocus: true }));
+  drawerBackdrop?.addEventListener('click', () => closeDrawer({ restoreFocus: true }));
 
-  document.getElementById('btn-analyze-job')?.addEventListener('click', () => {
+  let isUpdatingJobMatch = false;
+  const runJobMatchAnalysis = ({ silent = false, focusMissingIdx = null } = {}) => {
     const text = document.getElementById('job-description-input')?.value || '';
+    const resultsBox = document.getElementById('job-analysis-results');
     if (!text.trim()) {
-      showToast('Paste a job posting first to run keyword matching.');
+      if (resultsBox) resultsBox.style.display = 'none';
+      if (!silent) showToast('Paste a job posting first to run keyword matching.');
       return;
     }
 
-    const match = calculateJobMatch(currentCV, text);
-    document.getElementById('job-analysis-results').style.display = 'block';
-    const badge = document.getElementById('job-match-badge');
-    badge.textContent = `${match.matchPercentage}% Match`;
-    badge.className = `ats-pill ${match.matchPercentage < 40 ? 'state-low' : match.matchPercentage < 70 ? 'state-warn' : ''}`.trim();
+    isUpdatingJobMatch = true;
+    try {
+      const match = calculateJobMatch(currentCV, text);
+      if (resultsBox) resultsBox.style.display = 'block';
+      const badge = document.getElementById('job-match-badge');
+      if (badge) {
+        badge.textContent = `${match.matchPercentage}% Match`;
+        badge.className = `ats-pill ${match.matchPercentage < 40 ? 'state-low' : match.matchPercentage < 70 ? 'state-warn' : ''}`.trim();
+      }
 
-    const matchedBox = document.getElementById('job-matched-tags');
-    matchedBox.innerHTML = match.matched.length > 0
-      ? match.matched.map(m => `<span class="tag-interactive tag-matched">✓ ${escapeHTML(m)}</span>`).join('')
-      : '<span style="font-size: 12px; color: var(--text-secondary);">No direct keyword matches yet.</span>';
+      const matchedBox = document.getElementById('job-matched-tags');
+      if (matchedBox) {
+        matchedBox.innerHTML = match.matched.length > 0
+          ? match.matched.map(m => `<span class="tag-interactive tag-matched">✓ ${escapeHTML(formatSkillKeyword(m))}</span>`).join('')
+          : '<span style="font-size: 12px; color: var(--text-secondary);">No direct keyword matches yet.</span>';
+      }
 
-    const missingBox = document.getElementById('job-missing-tags');
-    missingBox.innerHTML = match.missing.length > 0
-      ? match.missing.map(m => `<span class="tag-interactive tag-missing" data-add-kw="${escapeAttr(m)}" title="Click to add to your skills">+ ${escapeHTML(m)}</span>`).join('')
-      : '<span style="font-size: 12px; color: var(--success); font-weight: 600;">All detected qualifications are present.</span>';
+      const missingBox = document.getElementById('job-missing-tags');
+      if (missingBox) {
+        missingBox.innerHTML = match.missing.length > 0
+          ? match.missing.map(m => {
+            const label = formatSkillKeyword(m);
+            return `<button type="button" class="tag-interactive tag-missing" data-add-kw="${escapeAttr(m)}" title="Add ${escapeAttr(label)} to skills">+ ${escapeHTML(label)}</button>`;
+          }).join('')
+          : '<span style="font-size: 12px; color: var(--success); font-weight: 600;">All detected qualifications are present.</span>';
 
-    missingBox.querySelectorAll('[data-add-kw]').forEach(pill => {
-      pill.addEventListener('click', () => {
-        const kw = pill.getAttribute('data-add-kw');
-        currentCV.skills.technical = currentCV.skills.technical || [];
-        if (!currentCV.skills.technical.map(s => s.toLowerCase()).includes(kw.toLowerCase())) {
-          currentCV.skills.technical.push(kw.charAt(0).toUpperCase() + kw.slice(1));
-          saveCVDirect(currentCV);
-          renderSkillsChips();
-          refreshCanvas();
-          document.getElementById('btn-analyze-job').click();
+        const missingBtns = Array.from(missingBox.querySelectorAll('[data-add-kw]'));
+        missingBtns.forEach((pill, pillIdx) => {
+          pill.addEventListener('click', () => {
+            const kw = pill.getAttribute('data-add-kw') || '';
+            const formatted = formatSkillKeyword(kw);
+            currentCV.skills.technical = currentCV.skills.technical || [];
+            if (!currentCV.skills.technical.map(s => s.toLowerCase()).includes(formatted.toLowerCase())) {
+              currentCV.skills.technical.push(formatted);
+              persistCV();
+              renderSkillsChips();
+              refreshCanvas();
+            }
+            runJobMatchAnalysis({ silent: true, focusMissingIdx: pillIdx });
+          });
+        });
+
+        if (focusMissingIdx !== null) {
+          if (missingBtns.length > 0) {
+            missingBtns[Math.min(focusMissingIdx, missingBtns.length - 1)]?.focus();
+          } else {
+            document.getElementById('btn-analyze-job')?.focus();
+          }
         }
-      });
-    });
+      }
 
-    document.getElementById('job-match-recs').textContent = match.recommendations.join(' ');
+      const recsEl = document.getElementById('job-match-recs');
+      if (recsEl) {
+        const formattedRecs = match.recommendations.map(rec =>
+          match.missing.length > 0
+            ? `Consider incorporating these requested competencies where applicable: ${match.missing.slice(0, 5).map(formatSkillKeyword).join(', ')}.`
+            : rec
+        );
+        recsEl.textContent = formattedRecs.join(' ');
+      }
+    } finally {
+      isUpdatingJobMatch = false;
+    }
+  };
+
+  syncJobMatchIfOpen = () => {
+    if (isUpdatingJobMatch) return;
+    const resultsBox = document.getElementById('job-analysis-results');
+    if (resultsBox && resultsBox.style.display !== 'none') {
+      runJobMatchAnalysis({ silent: true });
+    }
+  };
+
+  document.getElementById('btn-analyze-job')?.addEventListener('click', () => {
+    runJobMatchAnalysis({ silent: false });
   });
 
   // Initial Mount
   currentZoom = computeFitZoom();
-  hydrateAll();
+  hydrateAll({ clearJobMatch: true });
   setActiveSection('identity');
   applyZoom(currentZoom);
 
@@ -3282,7 +4436,7 @@ if (document.readyState === 'loading') {
 }
 
 function escapeHTML(str) {
-  if (!str) return '';
+  if (str === undefined || str === null) return '';
   return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -3290,8 +4444,13 @@ function escapeHTML(str) {
 }
 
 function escapeAttr(str) {
-  if (!str) return '';
-  return String(str).replace(/"/g, '&quot;');
+  if (str === undefined || str === null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 })();
