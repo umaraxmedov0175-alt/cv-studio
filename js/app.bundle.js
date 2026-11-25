@@ -24,6 +24,42 @@ const TEMPLATE_IDS = {
   MODERN_EUROPEAN: 'modern-european',
   MINIMAL_SWISS: 'minimal-swiss'
 };
+const DEFAULT_SECTION_ORDER = [
+  'summary',
+  'experience',
+  'education',
+  'skills',
+  'languages'
+];
+const OPTIONAL_SECTION_IDS = ['projects', 'certifications'];
+
+const ALL_BODY_SECTIONS = [...DEFAULT_SECTION_ORDER, ...OPTIONAL_SECTION_IDS];
+
+/**
+ * Normalizes a persisted section ordering so known sections appear once
+ * and all core sections are guaranteed present.
+ */
+function normalizeSectionOrder(order) {
+  const input = Array.isArray(order) ? order : [];
+  const seen = new Set();
+  const result = [];
+
+  for (const id of input) {
+    if (ALL_BODY_SECTIONS.includes(id) && !seen.has(id)) {
+      seen.add(id);
+      result.push(id);
+    }
+  }
+
+  for (const coreId of DEFAULT_SECTION_ORDER) {
+    if (!seen.has(coreId)) {
+      seen.add(coreId);
+      result.push(coreId);
+    }
+  }
+
+  return result;
+}
 function createEmptyCV() {
   return {
     meta: {
@@ -33,8 +69,10 @@ function createEmptyCV() {
       targetCountry: 'DE',
       accentColor: '#1e3a8a',
       fontFamily: 'Plus Jakarta Sans',
+      spacing: 'normal',
       showPhoto: true,
-      includeSignatureBlock: true
+      includeSignatureBlock: true,
+      sectionOrder: [...DEFAULT_SECTION_ORDER]
     },
     personal: {
       firstName: '',
@@ -80,8 +118,10 @@ function createSampleEuropeanCV() {
       targetCountry: 'DE',
       accentColor: '#1e3a8a',
       fontFamily: 'Plus Jakarta Sans',
+      spacing: 'normal',
       showPhoto: true,
-      includeSignatureBlock: true
+      includeSignatureBlock: true,
+      sectionOrder: [...DEFAULT_SECTION_ORDER]
     },
     personal: {
       firstName: 'Alexander',
@@ -233,12 +273,21 @@ const STORAGE_KEY = 'european_cv_studio_v2';
 const AUTOSAVE_DELAY = 400; // ms debounce
 
 let debounceTimer = null;
+function hasStoredCV() {
+  try {
+    return Boolean(localStorage.getItem(STORAGE_KEY));
+  } catch (err) {
+    return false;
+  }
+}
 function loadStoredCV() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.personal) {
+        parsed.meta = parsed.meta || {};
+        parsed.meta.sectionOrder = normalizeSectionOrder(parsed.meta.sectionOrder);
         return parsed;
       }
     }
@@ -745,6 +794,152 @@ function calculateJobMatch(cv, jobText) {
   };
 }
 
+  // --- js/engines/completion-engine.js ---
+/**
+ * CV Completion & Strength Scoring Engine
+ * Computes weighted readiness percentage (0-100), strength tiers,
+ * per-section completeness states, and next-best-action prompts.
+ */
+
+const METRIC_REGEX = /\b\d+(\.\d+)?%|\d+\s*(years|months|k|m|€|\$|ms|s|x|\+)/i;
+
+/**
+ * Evaluates a CV document and returns weighted completion metrics.
+ * Weights: Identity (10), Summary (10), Experience (40), Education (15), Skills & Languages (25).
+ */
+function calculateCVCompletion(cv) {
+  const safeCV = cv || {};
+  const p = safeCV.personal || {};
+  const summaryText = (safeCV.summary || '').trim();
+  const experiences = Array.isArray(safeCV.experience) ? safeCV.experience : [];
+  const education = Array.isArray(safeCV.education) ? safeCV.education : [];
+  const techSkills = Array.isArray(safeCV.skills?.technical) ? safeCV.skills.technical.filter(Boolean) : [];
+  const languages = Array.isArray(safeCV.skills?.languages) ? safeCV.skills.languages.filter(l => l?.language?.trim()) : [];
+  const projects = Array.isArray(safeCV.projects) ? safeCV.projects : [];
+  const certifications = Array.isArray(safeCV.certifications) ? safeCV.certifications : [];
+
+  // 1. Identity (10 pts)
+  let identityPts = 0;
+  if (p.firstName?.trim() && p.lastName?.trim()) identityPts += 4;
+  if (p.email?.trim() && p.email.includes('@')) identityPts += 3;
+  if (p.phone?.trim() || p.city?.trim()) identityPts += 2;
+  if (p.title?.trim()) identityPts += 1;
+
+  // 2. Summary (10 pts)
+  let summaryPts = 0;
+  if (summaryText.length >= 30) {
+    summaryPts = 10;
+  } else if (summaryText.length > 0) {
+    summaryPts = 5;
+  }
+
+  // 3. Experience (40 pts)
+  let expPts = 0;
+  let hasExpMetrics = false;
+  let totalBullets = 0;
+  if (experiences.length > 0) {
+    expPts += 15;
+    totalBullets = experiences.reduce((acc, item) => acc + ((item.bullets || []).filter(Boolean).length), 0);
+    if (experiences.length >= 2 || totalBullets >= 3) {
+      expPts += 15;
+    } else if (totalBullets >= 1) {
+      expPts += 7;
+    }
+    const bulletText = experiences.flatMap(item => item.bullets || []).join(' ');
+    if (METRIC_REGEX.test(bulletText)) {
+      expPts += 10;
+      hasExpMetrics = true;
+    }
+  }
+
+  // 4. Education (15 pts)
+  let eduPts = 0;
+  if (education.length > 0) {
+    const completeEdu = education.some(e => e.degree?.trim() && e.institution?.trim());
+    eduPts = completeEdu ? 15 : 8;
+  }
+
+  // 5. Skills & Languages (25 pts combined: 15 tech + 10 lang)
+  let techPts = 0;
+  if (techSkills.length >= 5) techPts = 15;
+  else if (techSkills.length >= 1) techPts = 8;
+
+  let langPts = 0;
+  if (languages.length >= 2) langPts = 10;
+  else if (languages.length === 1) langPts = 6;
+
+  const percentage = Math.min(100, Math.max(0, identityPts + summaryPts + expPts + eduPts + techPts + langPts));
+
+  let tier = 'Draft Mode';
+  if (percentage >= 100) tier = 'All-Star';
+  else if (percentage >= 71) tier = 'Recruiter Magnet';
+  else if (percentage >= 31) tier = 'Interview Ready';
+
+  const sectionStatus = {
+    identity: identityPts >= 9 ? 'complete' : identityPts > 0 ? 'partial' : 'empty',
+    summary: summaryPts >= 10 ? 'complete' : summaryPts > 0 ? 'partial' : 'empty',
+    experience: expPts >= 35 ? 'complete' : experiences.length > 0 ? 'partial' : 'empty',
+    education: eduPts >= 15 ? 'complete' : education.length > 0 ? 'partial' : 'empty',
+    skills: techPts >= 15 ? 'complete' : techSkills.length > 0 ? 'partial' : 'empty',
+    languages: langPts >= 10 ? 'complete' : languages.length > 0 ? 'partial' : 'empty',
+    projects: projects.length > 0 ? 'complete' : 'empty',
+    certifications: certifications.length > 0 ? 'complete' : 'empty'
+  };
+
+  const nextAction = pickNextAction({
+    identityPts,
+    experiences,
+    hasExpMetrics,
+    totalBullets,
+    techSkills,
+    eduPts,
+    summaryPts,
+    languages,
+    percentage
+  });
+
+  return {
+    percentage,
+    tier,
+    sectionStatus,
+    nextAction
+  };
+}
+
+function pickNextAction({ identityPts, experiences, hasExpMetrics, totalBullets, techSkills, eduPts, summaryPts, languages, percentage }) {
+  if (identityPts < 7) {
+    return { sectionId: 'identity', prompt: 'Add your name, target title, and email (+10%)' };
+  }
+  if (experiences.length === 0) {
+    return { sectionId: 'experience', prompt: 'Add 1 work experience to reach Interview Ready (+40%)' };
+  }
+  if (techSkills.length < 3) {
+    return { sectionId: 'skills', prompt: 'Add core technical skills to lift your ATS match (+15%)' };
+  }
+  if (!hasExpMetrics) {
+    return { sectionId: 'experience', prompt: 'Add a measurable number or % to an achievement (+10%)' };
+  }
+  if (eduPts < 15) {
+    return { sectionId: 'education', prompt: 'Add your university degree or qualification (+15%)' };
+  }
+  if (summaryPts < 10) {
+    return { sectionId: 'summary', prompt: 'Write a crisp 2–3 sentence professional summary (+10%)' };
+  }
+  if (languages.length < 1) {
+    return { sectionId: 'languages', prompt: 'Add spoken languages with CEFR levels (+10%)' };
+  }
+  if (experiences.length < 2 && totalBullets < 3) {
+    return { sectionId: 'experience', prompt: 'Add a second achievement bullet to strengthen your history' };
+  }
+  if (percentage < 100) {
+    return {
+      sectionId: techSkills.length < 5 ? 'skills' : 'languages',
+      prompt: 'Reach 5+ skills and 2+ CEFR languages for All-Star status'
+    };
+  }
+  return { sectionId: 'export', prompt: 'All-Star CV ready — Download A4 PDF or run Job Matcher' };
+}
+
   // --- js/engines/pdf-exporter.js ---
 /**
  * High-Fidelity Vector PDF Export Engine
@@ -776,7 +971,7 @@ function exportCVToPDF(cv) {
 /**
  * Direct-Manipulation WYSIWYG Preview Renderer
  * Renders European CV templates as live, directly-editable typography on A4 paper.
- * Default language: English (with DIN 5008, Swiss grid, and French formatting).
+ * Supports custom section ordering, localization (en/de/fr), and regional compliance.
  */
 function renderCVPreview(cv, containerElement) {
   if (!containerElement || !cv) return;
@@ -791,18 +986,16 @@ function renderCVPreview(cv, containerElement) {
   containerElement.className = `a4-sheet template-${templateId} country-${countryCode.toLowerCase()} ${spacingClass}`.trim();
   containerElement.style.setProperty('--cv-accent', cv.meta?.accentColor || '#1e3a8a');
 
-  switch (templateId) {
-    case TEMPLATE_IDS.MODERN_EUROPEAN:
-      containerElement.innerHTML = buildParisianEditorialHTML(adaptedCV);
-      break;
-    case TEMPLATE_IDS.MINIMAL_SWISS:
-      containerElement.innerHTML = buildZurichModernistHTML(adaptedCV);
-      break;
-    case TEMPLATE_IDS.GERMAN_DIN:
-    default:
-      containerElement.innerHTML = buildFrankfurtDINHTML(adaptedCV);
-      break;
-  }
+  const L = getLocalizedLabels(adaptedCV);
+  const headerHTML = buildTemplateHeaderHTML(adaptedCV, templateId, L);
+  const sectionOrder = normalizeSectionOrder(adaptedCV.meta?.sectionOrder);
+  const sectionsHTML = sectionOrder
+    .map(sectionId => buildSectionHTML(sectionId, adaptedCV, L, templateId))
+    .filter(Boolean)
+    .join('');
+
+  const signatureHTML = buildSignatureHTML(adaptedCV, templateId);
+  containerElement.innerHTML = `${headerHTML}${sectionsHTML}${signatureHTML}`;
 }
 
 function getLocalizedLabels(cv) {
@@ -816,6 +1009,8 @@ function getLocalizedLabels(cv) {
       education: 'Ausbildung & Studium',
       skills: 'Kenntnisse & Qualifikationen',
       languages: 'Sprachkenntnisse (GER / CEFR)',
+      projects: 'Ausgewählte Projekte',
+      certifications: 'Zertifizierungen',
       addExp: '+ Station hinzufügen',
       addEdu: '+ Abschluss hinzufügen',
       email: 'E-Mail:',
@@ -834,6 +1029,8 @@ function getLocalizedLabels(cv) {
       education: 'Formation & Diplômes',
       skills: 'Compétences & Technologies',
       languages: 'Langues (CECRL)',
+      projects: 'Projets',
+      certifications: 'Certifications',
       addExp: '+ Ajouter une expérience',
       addEdu: '+ Ajouter une formation',
       email: 'E-mail :',
@@ -846,12 +1043,13 @@ function getLocalizedLabels(cv) {
     };
   }
 
-  // English default (accessible across all European markets)
   return {
     experience: isUK ? 'Employment History' : 'Professional Experience',
     education: 'Education & Qualifications',
     skills: 'Key Competencies & Technologies',
     languages: 'Languages (CEFR)',
+    projects: 'Selected Projects',
+    certifications: 'Certifications',
     addExp: '+ Add Position',
     addEdu: '+ Add Degree',
     email: 'Email:',
@@ -873,35 +1071,46 @@ function buildPhotoPlaceholderSVG() {
   `;
 }
 
-function buildLanguagesSectionHTML(cv, L) {
-  const langs = cv.skills?.languages || [];
-  if (!langs.length) return '';
-  return `
-    <section class="cv-section">
-      <h2 class="section-heading">${L.languages}</h2>
-      <div class="lang-grid">
-        ${langs.map(l => `
-          <div class="lang-item">
-            <span class="lang-name">${escapePreviewHTML(l.language || '')}</span>
-            <span class="lang-level">${escapePreviewHTML(l.level || '')}</span>
-          </div>
-        `).join('')}
-      </div>
-    </section>
-  `;
-}
-
-/**
- * 1. Frankfurt Executive (DIN 5008 Chronological Asymmetric)
- */
-function buildFrankfurtDINHTML(cv) {
+function buildTemplateHeaderHTML(cv, templateId, L) {
   const p = cv.personal || {};
   const rules = cv.rules || {};
   const countryCode = cv.meta?.targetCountry || 'DE';
   const isUK = countryCode === 'UK';
-  const L = getLocalizedLabels(cv);
+  const fullName = `${escapePreviewHTML(p.firstName || '')} ${escapePreviewHTML(p.lastName || '')}`.trim() || 'Your Name';
+  const roleTitle = escapePreviewHTML(p.title || '') || 'Target Job Title';
 
-  // Contact Info Line
+  if (templateId === TEMPLATE_IDS.MINIMAL_SWISS) {
+    return `
+      <header class="swiss-header">
+        <h1 class="applicant-name" contenteditable="true" data-bind="personal.fullName">${fullName}</h1>
+        <div class="applicant-title" contenteditable="true" data-bind="personal.title">${roleTitle}</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 14pt; font-size: 8.5pt; color: #64748b; margin-top: 6pt;">
+          ${p.email ? `<span contenteditable="true" data-bind="personal.email">${escapePreviewHTML(p.email)}</span>` : ''}
+          ${p.phone ? `<span contenteditable="true" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span>` : ''}
+          ${p.city ? `<span contenteditable="true" data-bind="personal.city">${escapePreviewHTML(p.city)}</span>` : ''}
+          ${p.linkedin ? `<span contenteditable="true" data-bind="personal.linkedin">${escapePreviewHTML(p.linkedin)}</span>` : ''}
+        </div>
+      </header>
+    `;
+  }
+
+  if (templateId === TEMPLATE_IDS.MODERN_EUROPEAN) {
+    const items = [
+      p.city ? `<span contenteditable="true" data-bind="personal.city">${escapePreviewHTML(p.city)}</span>` : '',
+      p.email ? `<span contenteditable="true" data-bind="personal.email">${escapePreviewHTML(p.email)}</span>` : '',
+      p.phone ? `<span contenteditable="true" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span>` : ''
+    ].filter(Boolean).join(' · ');
+
+    return `
+      <header style="text-align: center; border-bottom: 0.5pt solid #111827; padding-bottom: 12pt; margin-bottom: 14pt;">
+        <h1 class="applicant-name" contenteditable="true" data-bind="personal.fullName">${fullName}</h1>
+        <div class="applicant-title" contenteditable="true" data-bind="personal.title">${roleTitle}</div>
+        <div style="font-size: 8.3pt; color: #6b7280; letter-spacing: 0.02em; margin-top: 4pt;">${items}</div>
+      </header>
+    `;
+  }
+
+  // Frankfurt DIN 5008 default header
   const contactParts = [];
   if (p.email) contactParts.push(`<span class="contact-meta-item"><strong>${L.email}</strong> <span contenteditable="true" data-bind="personal.email">${escapePreviewHTML(p.email)}</span></span>`);
   if (p.phone) contactParts.push(`<span class="contact-meta-item"><strong>${L.phone}</strong> <span contenteditable="true" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span></span>`);
@@ -917,7 +1126,6 @@ function buildFrankfurtDINHTML(cv) {
     contactParts.push(`<span class="contact-meta-item"><strong>LinkedIn:</strong> <span contenteditable="true" data-bind="personal.linkedin">${escapePreviewHTML(p.linkedin)}</span></span>`);
   }
 
-  // Photo
   let photoHTML = '';
   if (!isUK && rules.allowPhoto && cv.meta?.showPhoto) {
     photoHTML = `
@@ -930,19 +1138,70 @@ function buildFrankfurtDINHTML(cv) {
     `;
   }
 
-  // Experience
+  return `
+    <header class="cv-header">
+      <div style="flex: 1;">
+        <h1 class="applicant-name" contenteditable="true" data-bind="personal.fullName">${fullName}</h1>
+        <div class="applicant-title" contenteditable="true" data-bind="personal.title">${roleTitle}</div>
+        <div class="contact-meta-row">${contactParts.join('')}</div>
+      </div>
+      ${photoHTML}
+    </header>
+  `;
+}
+
+function buildSectionHTML(sectionId, cv, L, templateId) {
+  switch (sectionId) {
+    case 'summary':
+      return buildSummarySectionHTML(cv, templateId);
+    case 'experience':
+      return buildExperienceSectionHTML(cv, L, templateId);
+    case 'education':
+      return buildEducationSectionHTML(cv, L, templateId);
+    case 'skills':
+      return buildSkillsSectionHTML(cv, L);
+    case 'languages':
+      return buildLanguagesSectionHTML(cv, L);
+    case 'projects':
+      return buildProjectsSectionHTML(cv, L);
+    case 'certifications':
+      return buildCertificationsSectionHTML(cv, L);
+    default:
+      return '';
+  }
+}
+
+function buildSummarySectionHTML(cv, templateId) {
+  const summaryText = cv.summary || '';
+  if (!summaryText.trim()) return '';
+  const isItalic = templateId === TEMPLATE_IDS.MODERN_EUROPEAN ? 'font-style: italic;' : '';
+  const color = templateId === TEMPLATE_IDS.MINIMAL_SWISS ? '#334155' : '#374151';
+  const fontSize = templateId === TEMPLATE_IDS.MINIMAL_SWISS ? '9pt' : '9.2pt';
+  return `
+    <section class="cv-section" data-section-id="summary">
+      <p style="font-size: ${fontSize}; color: ${color}; line-height: 1.5; margin-bottom: 10pt; ${isItalic}" contenteditable="true" data-bind="summary">${escapePreviewHTML(summaryText)}</p>
+    </section>
+  `;
+}
+
+function buildExperienceSectionHTML(cv, L, templateId) {
+  const isSwiss = templateId === TEMPLATE_IDS.MINIMAL_SWISS;
+  const isParis = templateId === TEMPLATE_IDS.MODERN_EUROPEAN;
   const expHTML = (cv.experience || []).map((exp, idx) => `
     <div class="entry-row item-block" data-exp-idx="${idx}">
       <div class="entry-dates" contenteditable="true" data-exp-field="dateRange" data-idx="${idx}">${escapePreviewHTML(exp.startDate || '')} – ${escapePreviewHTML(exp.endDate || (exp.current ? L.present : ''))}</div>
       <div>
-        <div class="entry-role" contenteditable="true" data-exp-field="position" data-idx="${idx}">${escapePreviewHTML(exp.position || '')}</div>
-        <div class="entry-institution"><span contenteditable="true" data-exp-field="company" data-idx="${idx}">${escapePreviewHTML(exp.company || '')}</span>${exp.city ? ` · <span contenteditable="true" data-exp-field="city" data-idx="${idx}">${escapePreviewHTML(exp.city)}</span>` : ''}</div>
-        <ul class="bullet-list">
+        ${isSwiss
+          ? `<div class="entry-role"><span contenteditable="true" data-exp-field="position" data-idx="${idx}">${escapePreviewHTML(exp.position || '')}</span> · <span contenteditable="true" data-exp-field="company" data-idx="${idx}">${escapePreviewHTML(exp.company || '')}</span></div>`
+          : `<div class="entry-role" contenteditable="true" data-exp-field="position" data-idx="${idx}">${escapePreviewHTML(exp.position || '')}</div>
+             <div class="entry-institution"><span contenteditable="true" data-exp-field="company" data-idx="${idx}">${escapePreviewHTML(exp.company || '')}</span>${exp.city ? ` · <span contenteditable="true" data-exp-field="city" data-idx="${idx}">${escapePreviewHTML(exp.city)}</span>` : ''}</div>`
+        }
+        <ul class="bullet-list" ${isSwiss ? 'style="padding-left: 12pt; margin-top: 3pt; font-size: 8.5pt; color: #334155;"' : isParis ? 'style="padding-left: 12pt; font-size: 8.8pt; color: #374151;"' : ''}>
           ${(exp.bullets || []).map((bullet, bIdx) => `
             <li contenteditable="true" data-exp-bullet="${idx}:${bIdx}">${escapePreviewHTML(bullet)}</li>
           `).join('')}
         </ul>
-        ${(exp.technologies || []).length ? `
+        ${(!isSwiss && !isParis && (exp.technologies || []).length) ? `
           <div class="skills-matrix">
             ${exp.technologies.map(t => `<span class="skill-pill">${escapePreviewHTML(t)}</span>`).join('')}
           </div>
@@ -955,14 +1214,29 @@ function buildFrankfurtDINHTML(cv) {
     </div>
   `).join('');
 
-  // Education
+  return `
+    <section class="cv-section" data-section-id="experience">
+      <h2 class="section-heading">${L.experience}</h2>
+      ${expHTML || '<p style="font-size: 8.5pt; color: #9ca3af; font-style: italic;">No positions added yet.</p>'}
+      <div class="no-print"><span class="add-item-trigger" id="btn-trigger-add-exp">${L.addExp}</span></div>
+    </section>
+  `;
+}
+
+function buildEducationSectionHTML(cv, L, templateId) {
+  const isSwiss = templateId === TEMPLATE_IDS.MINIMAL_SWISS;
+  const isParis = templateId === TEMPLATE_IDS.MODERN_EUROPEAN;
   const eduHTML = (cv.education || []).map((edu, idx) => `
     <div class="entry-row item-block" data-edu-idx="${idx}">
       <div class="entry-dates" contenteditable="true" data-edu-field="dateRange" data-idx="${idx}">${escapePreviewHTML(edu.startDate || '')} – ${escapePreviewHTML(edu.endDate || '')}</div>
       <div>
-        <div class="entry-role" contenteditable="true" data-edu-field="degree" data-idx="${idx}">${escapePreviewHTML(edu.degree || '')}</div>
-        <div class="entry-institution"><span contenteditable="true" data-edu-field="institution" data-idx="${idx}">${escapePreviewHTML(edu.institution || '')}</span>${edu.city ? ` · <span contenteditable="true" data-edu-field="city" data-idx="${idx}">${escapePreviewHTML(edu.city)}</span>` : ''}</div>
-        ${edu.grade ? `<div style="font-size: 8.2pt; color: #6b7280;">${L.grade} <strong contenteditable="true" data-edu-field="grade" data-idx="${idx}">${escapePreviewHTML(edu.grade)}</strong></div>` : ''}
+        ${isSwiss
+          ? `<div class="entry-role"><span contenteditable="true" data-edu-field="degree" data-idx="${idx}">${escapePreviewHTML(edu.degree || '')}</span> · <span contenteditable="true" data-edu-field="institution" data-idx="${idx}">${escapePreviewHTML(edu.institution || '')}</span></div>
+             ${edu.grade ? `<div style="font-size: 8.2pt; color: #64748b;">${L.grade} <span contenteditable="true" data-edu-field="grade" data-idx="${idx}">${escapePreviewHTML(edu.grade)}</span></div>` : ''}`
+          : `<div class="entry-role" contenteditable="true" data-edu-field="degree" data-idx="${idx}">${escapePreviewHTML(edu.degree || '')}</div>
+             <div class="entry-institution"><span contenteditable="true" data-edu-field="institution" data-idx="${idx}">${escapePreviewHTML(edu.institution || '')}</span>${isParis && edu.grade ? ` · ${L.grade} <span contenteditable="true" data-edu-field="grade" data-idx="${idx}">${escapePreviewHTML(edu.grade)}</span>` : (!isParis && edu.city ? ` · <span contenteditable="true" data-edu-field="city" data-idx="${idx}">${escapePreviewHTML(edu.city)}</span>` : '')}</div>
+             ${(!isParis && edu.grade) ? `<div style="font-size: 8.2pt; color: #6b7280;">${L.grade} <strong contenteditable="true" data-edu-field="grade" data-idx="${idx}">${escapePreviewHTML(edu.grade)}</strong></div>` : ''}`
+        }
       </div>
       <div class="item-actions no-print">
         <button class="item-action-btn delete" title="Delete entry" data-delete-edu="${idx}">×</button>
@@ -970,199 +1244,103 @@ function buildFrankfurtDINHTML(cv) {
     </div>
   `).join('');
 
-  // Signature Block (Formal European closing: Place, Date + Signature)
-  let signatureHTML = '';
-  if (!isUK && rules.allowSignatureBlock && cv.meta?.includeSignatureBlock) {
-    const place = cv.signature?.place || p.city || 'Berlin';
-    const date = cv.signature?.date || new Date().toLocaleDateString('en-GB');
-    const name = cv.signature?.signeeName || `${p.firstName || ''} ${p.lastName || ''}`.trim();
-    signatureHTML = `
-      <div class="din-signature-block">
-        <div>
-          <span contenteditable="true" data-bind="signature.place">${escapePreviewHTML(place)}</span>, 
-          <span contenteditable="true" data-bind="signature.date">${escapePreviewHTML(date)}</span>
-        </div>
-        <div class="din-signature-line" contenteditable="true" data-bind="signature.signeeName">${escapePreviewHTML(name)}</div>
-      </div>
-    `;
-  }
-
   return `
-    <header class="cv-header">
-      <div style="flex: 1;">
-        <h1 class="applicant-name" contenteditable="true" data-bind="personal.fullName">${escapePreviewHTML(p.firstName || '')} ${escapePreviewHTML(p.lastName || '')}</h1>
-        <div class="applicant-title" contenteditable="true" data-bind="personal.title">${escapePreviewHTML(p.title || '')}</div>
-        <div class="contact-meta-row">${contactParts.join('')}</div>
-      </div>
-      ${photoHTML}
-    </header>
-
-    <section class="cv-section">
-      <p style="font-size: 9.2pt; color: #374151; line-height: 1.5; margin-bottom: 10pt;" contenteditable="true" data-bind="summary">${escapePreviewHTML(cv.summary || '')}</p>
-    </section>
-
-    <section class="cv-section">
-      <h2 class="section-heading">${L.experience}</h2>
-      ${expHTML}
-      <div class="no-print"><span class="add-item-trigger" id="btn-trigger-add-exp">${L.addExp}</span></div>
-    </section>
-
-    <section class="cv-section">
+    <section class="cv-section" data-section-id="education">
       <h2 class="section-heading">${L.education}</h2>
-      ${eduHTML}
+      ${eduHTML || '<p style="font-size: 8.5pt; color: #9ca3af; font-style: italic;">No degrees added yet.</p>'}
       <div class="no-print"><span class="add-item-trigger" id="btn-trigger-add-edu">${L.addEdu}</span></div>
     </section>
-
-    <section class="cv-section">
-      <h2 class="section-heading">${L.skills}</h2>
-      <div class="skills-matrix">
-        ${(cv.skills?.technical || []).map(t => `<span class="skill-pill">${escapePreviewHTML(t)}</span>`).join('')}
-      </div>
-    </section>
-
-    ${buildLanguagesSectionHTML(cv, L)}
-
-    ${signatureHTML}
   `;
 }
 
-/**
- * 2. Zurich Modernist (Swiss Grid / Josef Müller-Brockmann)
- */
-function buildZurichModernistHTML(cv) {
-  const p = cv.personal || {};
-  const L = getLocalizedLabels(cv);
+function buildSkillsSectionHTML(cv, L) {
+  const skills = cv.skills?.technical || [];
   return `
-    <header class="swiss-header">
-      <h1 class="applicant-name" contenteditable="true" data-bind="personal.fullName">${escapePreviewHTML(p.firstName || '')} ${escapePreviewHTML(p.lastName || '')}</h1>
-      <div class="applicant-title" contenteditable="true" data-bind="personal.title">${escapePreviewHTML(p.title || '')}</div>
-      <div style="display: flex; flex-wrap: wrap; gap: 14pt; font-size: 8.5pt; color: #64748b; margin-top: 6pt;">
-        <span contenteditable="true" data-bind="personal.email">${escapePreviewHTML(p.email || '')}</span>
-        <span contenteditable="true" data-bind="personal.phone">${escapePreviewHTML(p.phone || '')}</span>
-        <span contenteditable="true" data-bind="personal.city">${escapePreviewHTML(p.city || '')}</span>
-        ${p.linkedin ? `<span contenteditable="true" data-bind="personal.linkedin">${escapePreviewHTML(p.linkedin)}</span>` : ''}
-      </div>
-    </header>
-
-    <section class="cv-section">
-      <p style="font-size: 9pt; color: #334155; line-height: 1.5; margin-bottom: 10pt;" contenteditable="true" data-bind="summary">${escapePreviewHTML(cv.summary || '')}</p>
-    </section>
-
-    <section class="cv-section">
-      <h2 class="section-heading">${L.experience}</h2>
-      ${(cv.experience || []).map((exp, idx) => `
-        <div class="entry-row item-block">
-          <div class="entry-dates" contenteditable="true" data-exp-field="dateRange" data-idx="${idx}">${escapePreviewHTML(exp.startDate || '')} – ${escapePreviewHTML(exp.endDate || (exp.current ? L.present : ''))}</div>
-          <div>
-            <div class="entry-role"><span contenteditable="true" data-exp-field="position" data-idx="${idx}">${escapePreviewHTML(exp.position || '')}</span> · <span contenteditable="true" data-exp-field="company" data-idx="${idx}">${escapePreviewHTML(exp.company || '')}</span></div>
-            <ul class="bullet-list" style="padding-left: 12pt; margin-top: 3pt; font-size: 8.5pt; color: #334155;">
-              ${(exp.bullets || []).map((b, bIdx) => `<li contenteditable="true" data-exp-bullet="${idx}:${bIdx}">${escapePreviewHTML(b)}</li>`).join('')}
-            </ul>
-          </div>
-          <div class="item-actions no-print">
-            <button class="item-action-btn" title="Add bullet" data-add-bullet="${idx}">+</button>
-            <button class="item-action-btn delete" title="Delete entry" data-delete-exp="${idx}">×</button>
-          </div>
-        </div>
-      `).join('')}
-      <div class="no-print"><span class="add-item-trigger" id="btn-trigger-add-exp">${L.addExp}</span></div>
-    </section>
-
-    <section class="cv-section">
-      <h2 class="section-heading">${L.education}</h2>
-      ${(cv.education || []).map((edu, idx) => `
-        <div class="entry-row item-block">
-          <div class="entry-dates" contenteditable="true" data-edu-field="dateRange" data-idx="${idx}">${escapePreviewHTML(edu.startDate || '')} – ${escapePreviewHTML(edu.endDate || '')}</div>
-          <div>
-            <div class="entry-role"><span contenteditable="true" data-edu-field="degree" data-idx="${idx}">${escapePreviewHTML(edu.degree || '')}</span> · <span contenteditable="true" data-edu-field="institution" data-idx="${idx}">${escapePreviewHTML(edu.institution || '')}</span></div>
-            ${edu.grade ? `<div style="font-size: 8.2pt; color: #64748b;">${L.grade} <span contenteditable="true" data-edu-field="grade" data-idx="${idx}">${escapePreviewHTML(edu.grade)}</span></div>` : ''}
-          </div>
-          <div class="item-actions no-print">
-            <button class="item-action-btn delete" title="Delete entry" data-delete-edu="${idx}">×</button>
-          </div>
-        </div>
-      `).join('')}
-      <div class="no-print"><span class="add-item-trigger" id="btn-trigger-add-edu">${L.addEdu}</span></div>
-    </section>
-
-    <section class="cv-section">
+    <section class="cv-section" data-section-id="skills">
       <h2 class="section-heading">${L.skills}</h2>
       <div class="skills-matrix">
-        ${(cv.skills?.technical || []).map(t => `<span class="skill-pill">${escapePreviewHTML(t)}</span>`).join('')}
+        ${skills.length
+          ? skills.map(t => `<span class="skill-pill">${escapePreviewHTML(t)}</span>`).join('')
+          : '<span style="font-size: 8.5pt; color: #9ca3af; font-style: italic;">Add technical competencies in the editor.</span>'}
       </div>
     </section>
-
-    ${buildLanguagesSectionHTML(cv, L)}
   `;
 }
 
-/**
- * 3. Parisian Editorial (Executive Newsreader Serif)
- */
-function buildParisianEditorialHTML(cv) {
-  const p = cv.personal || {};
-  const L = getLocalizedLabels(cv);
+function buildLanguagesSectionHTML(cv, L) {
+  const langs = cv.skills?.languages || [];
+  if (!langs.length) return '';
   return `
-    <header style="text-align: center; border-bottom: 0.5pt solid #111827; padding-bottom: 12pt; margin-bottom: 14pt;">
-      <h1 class="applicant-name" contenteditable="true" data-bind="personal.fullName">${escapePreviewHTML(p.firstName || '')} ${escapePreviewHTML(p.lastName || '')}</h1>
-      <div class="applicant-title" contenteditable="true" data-bind="personal.title">${escapePreviewHTML(p.title || '')}</div>
-      <div style="font-size: 8.3pt; color: #6b7280; letter-spacing: 0.02em; margin-top: 4pt;">
-        <span contenteditable="true" data-bind="personal.city">${escapePreviewHTML(p.city || '')}</span> ·
-        <span contenteditable="true" data-bind="personal.email">${escapePreviewHTML(p.email || '')}</span> ·
-        <span contenteditable="true" data-bind="personal.phone">${escapePreviewHTML(p.phone || '')}</span>
-      </div>
-    </header>
-
-    <section class="cv-section">
-      <p style="font-size: 9.2pt; color: #374151; line-height: 1.5; margin-bottom: 10pt; font-style: italic;" contenteditable="true" data-bind="summary">${escapePreviewHTML(cv.summary || '')}</p>
-    </section>
-
-    <section class="cv-section">
-      <h2 class="section-heading">${L.experience}</h2>
-      ${(cv.experience || []).map((exp, idx) => `
-        <div class="entry-row item-block">
-          <div class="entry-dates" contenteditable="true" data-exp-field="dateRange" data-idx="${idx}">${escapePreviewHTML(exp.startDate || '')} – ${escapePreviewHTML(exp.endDate || (exp.current ? L.present : ''))}</div>
-          <div>
-            <div class="entry-role" contenteditable="true" data-exp-field="position" data-idx="${idx}">${escapePreviewHTML(exp.position || '')}</div>
-            <div class="entry-institution"><span contenteditable="true" data-exp-field="company" data-idx="${idx}">${escapePreviewHTML(exp.company || '')}</span>${exp.city ? ` · <span contenteditable="true" data-exp-field="city" data-idx="${idx}">${escapePreviewHTML(exp.city)}</span>` : ''}</div>
-            <ul class="bullet-list" style="padding-left: 12pt; font-size: 8.8pt; color: #374151;">
-              ${(exp.bullets || []).map((b, bIdx) => `<li contenteditable="true" data-exp-bullet="${idx}:${bIdx}">${escapePreviewHTML(b)}</li>`).join('')}
-            </ul>
+    <section class="cv-section" data-section-id="languages">
+      <h2 class="section-heading">${L.languages}</h2>
+      <div class="lang-grid">
+        ${langs.map(l => `
+          <div class="lang-item">
+            <span class="lang-name">${escapePreviewHTML(l.language || '')}</span>
+            <span class="lang-level">${escapePreviewHTML(l.level || '')}</span>
           </div>
-          <div class="item-actions no-print">
-            <button class="item-action-btn" title="Add bullet" data-add-bullet="${idx}">+</button>
-            <button class="item-action-btn delete" title="Delete entry" data-delete-exp="${idx}">×</button>
+        `).join('')}
+      </div>
+    </section>
+  `;
+}
+
+function buildProjectsSectionHTML(cv, L) {
+  const projects = cv.projects || [];
+  if (!projects.length) return '';
+  return `
+    <section class="cv-section" data-section-id="projects">
+      <h2 class="section-heading">${L.projects}</h2>
+      ${projects.map(proj => `
+        <div class="entry-row item-block">
+          <div class="entry-dates">${escapePreviewHTML(proj.technologies || 'Project')}</div>
+          <div>
+            <div class="entry-role">${escapePreviewHTML(proj.name || '')}</div>
+            ${proj.description ? `<div class="entry-institution">${escapePreviewHTML(proj.description)}</div>` : ''}
           </div>
         </div>
       `).join('')}
-      <div class="no-print"><span class="add-item-trigger" id="btn-trigger-add-exp">${L.addExp}</span></div>
     </section>
+  `;
+}
 
-    <section class="cv-section">
-      <h2 class="section-heading">${L.education}</h2>
-      ${(cv.education || []).map((edu, idx) => `
+function buildCertificationsSectionHTML(cv, L) {
+  const certs = cv.certifications || [];
+  if (!certs.length) return '';
+  return `
+    <section class="cv-section" data-section-id="certifications">
+      <h2 class="section-heading">${L.certifications}</h2>
+      ${certs.map(cert => `
         <div class="entry-row item-block">
-          <div class="entry-dates" contenteditable="true" data-edu-field="dateRange" data-idx="${idx}">${escapePreviewHTML(edu.startDate || '')} – ${escapePreviewHTML(edu.endDate || '')}</div>
+          <div class="entry-dates">${escapePreviewHTML(cert.year || '')}</div>
           <div>
-            <div class="entry-role" contenteditable="true" data-edu-field="degree" data-idx="${idx}">${escapePreviewHTML(edu.degree || '')}</div>
-            <div class="entry-institution"><span contenteditable="true" data-edu-field="institution" data-idx="${idx}">${escapePreviewHTML(edu.institution || '')}</span>${edu.grade ? ` · ${L.grade} <span contenteditable="true" data-edu-field="grade" data-idx="${idx}">${escapePreviewHTML(edu.grade)}</span>` : ''}</div>
-          </div>
-          <div class="item-actions no-print">
-            <button class="item-action-btn delete" title="Delete entry" data-delete-edu="${idx}">×</button>
+            <div class="entry-role">${escapePreviewHTML(cert.name || '')}</div>
+            ${cert.issuer ? `<div class="entry-institution">${escapePreviewHTML(cert.issuer)}</div>` : ''}
           </div>
         </div>
       `).join('')}
-      <div class="no-print"><span class="add-item-trigger" id="btn-trigger-add-edu">${L.addEdu}</span></div>
     </section>
+  `;
+}
 
-    <section class="cv-section">
-      <h2 class="section-heading">${L.skills}</h2>
-      <div class="skills-matrix">
-        ${(cv.skills?.technical || []).map(t => `<span class="skill-pill">${escapePreviewHTML(t)}</span>`).join('')}
+function buildSignatureHTML(cv, templateId) {
+  if (templateId !== TEMPLATE_IDS.GERMAN_DIN) return '';
+  const p = cv.personal || {};
+  const rules = cv.rules || {};
+  const isUK = (cv.meta?.targetCountry || 'DE') === 'UK';
+  if (isUK || !rules.allowSignatureBlock || !cv.meta?.includeSignatureBlock) return '';
+
+  const place = cv.signature?.place || p.city || 'Berlin';
+  const date = cv.signature?.date || new Date().toLocaleDateString('en-GB');
+  const name = cv.signature?.signeeName || `${p.firstName || ''} ${p.lastName || ''}`.trim();
+  return `
+    <div class="din-signature-block">
+      <div>
+        <span contenteditable="true" data-bind="signature.place">${escapePreviewHTML(place)}</span>,
+        <span contenteditable="true" data-bind="signature.date">${escapePreviewHTML(date)}</span>
       </div>
-    </section>
-
-    ${buildLanguagesSectionHTML(cv, L)}
+      <div class="din-signature-line" contenteditable="true" data-bind="signature.signeeName">${escapePreviewHTML(name)}</div>
+    </div>
   `;
 }
 
@@ -1178,8 +1356,9 @@ function escapePreviewHTML(str) {
 
   // --- js/app.js ---
 /**
- * European CV Studio - Application Orchestrator
- * Three-Pane Modular Architecture with Live Page-Budget Gauge, ATS Diagnostics & Bullet Polisher
+ * European CV Studio — Application Orchestrator
+ * 2-Pane Editorial Studio with Guided Stepper, Collapsible Accordions,
+ * Visual Template Gallery, Section Reordering, Strength Meter, and Theme Switcher.
  */
 
 
@@ -1188,19 +1367,39 @@ function escapePreviewHTML(str) {
 
 
 
+
+const THEME_STORAGE_KEY = 'european_cv_studio_theme';
+
+const SECTION_LABELS = {
+  identity: 'Identity',
+  summary: 'Summary',
+  experience: 'Experience',
+  education: 'Education',
+  skills: 'Skills',
+  languages: 'Languages',
+  projects: 'Projects',
+  certifications: 'Certifications'
+};
+
+const TEMPLATE_NAMES = {
+  [TEMPLATE_IDS.GERMAN_DIN]: 'Frankfurt',
+  [TEMPLATE_IDS.MINIMAL_SWISS]: 'Zurich',
+  [TEMPLATE_IDS.MODERN_EUROPEAN]: 'Paris'
+};
+
 let currentCV = null;
 let currentZoom = 0.85;
+let activeSectionId = 'identity';
+let draggedSectionId = null;
 
 function initStudio() {
+  const isFirstVisit = !hasStoredCV();
   currentCV = loadStoredCV();
-  currentCV.meta = currentCV.meta || {};
-  currentCV.personal = currentCV.personal || {};
-  currentCV.skills = currentCV.skills || { technical: [], languages: [] };
+  ensureCVShape(currentCV);
 
   const previewSheet = document.getElementById('preview-sheet');
   const countrySelect = document.getElementById('country-select');
   const languageSelect = document.getElementById('language-select');
-  const templateSelect = document.getElementById('template-select');
   const spacingSelect = document.getElementById('spacing-select');
   const togglePhoto = document.getElementById('toggle-photo');
   const toggleSignature = document.getElementById('toggle-signature');
@@ -1210,16 +1409,90 @@ function initStudio() {
   const btnAutoFit = document.getElementById('btn-auto-fit');
   const drawer = document.getElementById('job-drawer');
   const drawerBackdrop = document.getElementById('drawer-backdrop');
+  const launchOverlay = document.getElementById('launch-overlay');
   const toastEl = document.getElementById('toast-notice');
+  const studioLayout = document.getElementById('studio-layout');
 
+  let toastTimer = null;
   const showToast = (message) => {
     if (!toastEl) return;
     toastEl.textContent = message;
     toastEl.classList.add('show');
-    setTimeout(() => toastEl.classList.remove('show'), 2800);
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2600);
   };
 
-  // Populate static inputs from loaded CV
+  /* ------------------------------------------------------------------
+     Theme Management (Light default + Dark Toggle)
+     ------------------------------------------------------------------ */
+  const applyTheme = (theme) => {
+    const resolved = theme === 'dark' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', resolved);
+    const moon = document.getElementById('icon-theme-moon');
+    const sun = document.getElementById('icon-theme-sun');
+    if (moon) moon.style.display = resolved === 'dark' ? 'none' : 'block';
+    if (sun) sun.style.display = resolved === 'dark' ? 'block' : 'none';
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, resolved);
+    } catch (_) { /* ignore storage restrictions */ }
+  };
+
+  let savedTheme = 'light';
+  try {
+    savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'light';
+  } catch (_) { /* ignore */ }
+  applyTheme(savedTheme);
+
+  document.getElementById('btn-theme-toggle')?.addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme');
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+  });
+
+  /* ------------------------------------------------------------------
+     Popovers & Global Escape / Outside-Click Close
+     ------------------------------------------------------------------ */
+  const popoverConfigs = [
+    { btnId: 'btn-template-popover', menuId: 'popover-template' },
+    { btnId: 'btn-color-popover', menuId: 'popover-color' },
+    { btnId: 'btn-regional-popover', menuId: 'popover-regional' },
+    { btnId: 'btn-quick-add-toggle', menuId: 'quick-add-menu' }
+  ];
+
+  const closeAllPopovers = () => {
+    popoverConfigs.forEach(({ btnId, menuId }) => {
+      document.getElementById(menuId)?.classList.remove('open');
+      document.getElementById(btnId)?.setAttribute('aria-expanded', 'false');
+    });
+  };
+
+  popoverConfigs.forEach(({ btnId, menuId }) => {
+    const btn = document.getElementById(btnId);
+    const menu = document.getElementById(menuId);
+    btn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const willOpen = !menu?.classList.contains('open');
+      closeAllPopovers();
+      if (willOpen && menu) {
+        menu.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+      }
+    });
+    menu?.addEventListener('click', (e) => e.stopPropagation());
+  });
+
+  document.addEventListener('click', closeAllPopovers);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeAllPopovers();
+      closeDrawer();
+      closeLaunchModal();
+    }
+  });
+
+  /* ------------------------------------------------------------------
+     Static Inputs, Toolbar State, Photo Preview
+     ------------------------------------------------------------------ */
   const syncStaticInputsFromCV = () => {
     const map = {
       'p-first-name': currentCV.personal.firstName || '',
@@ -1236,15 +1509,32 @@ function initStudio() {
     };
     Object.entries(map).forEach(([id, val]) => {
       const el = document.getElementById(id);
-      if (el) el.value = val;
+      if (el && el.value !== val) el.value = val;
     });
+
+    const charHint = document.getElementById('summary-char-hint');
+    if (charHint) {
+      const len = (currentCV.summary || '').trim().length;
+      charHint.textContent = len ? `${len} chars` : 'Recommended: 120–260 chars';
+    }
+
+    syncPhotoThumb();
   };
 
-  const syncRailState = () => {
+  const syncPhotoThumb = () => {
+    const thumb = document.getElementById('photo-mini-preview');
+    if (!thumb) return;
+    if (currentCV.personal?.photoUrl) {
+      thumb.innerHTML = `<img src="${escapeAttr(currentCV.personal.photoUrl)}" alt="Portrait thumbnail">`;
+    } else {
+      thumb.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"></circle><path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6"></path></svg>`;
+    }
+  };
+
+  const syncToolbarState = () => {
     const country = currentCV.meta.targetCountry || 'DE';
     if (countrySelect) countrySelect.value = country;
     if (languageSelect) languageSelect.value = currentCV.meta.language || 'en';
-    if (templateSelect) templateSelect.value = currentCV.meta.template || TEMPLATE_IDS.GERMAN_DIN;
     if (spacingSelect) spacingSelect.value = currentCV.meta.spacing || 'normal';
     if (togglePhoto) togglePhoto.checked = currentCV.meta.showPhoto !== false;
     if (toggleSignature) toggleSignature.checked = currentCV.meta.includeSignatureBlock !== false;
@@ -1253,78 +1543,265 @@ function initStudio() {
     if (complianceBox) complianceBox.textContent = std.complianceNote;
 
     const isUK = country === 'UK';
-    const birthGrp = document.getElementById('group-birth');
-    const natGrp = document.getElementById('group-nationality');
+    const regIdentity = document.getElementById('regional-identity-fields');
     const photoUploadGrp = document.getElementById('group-photo-upload');
     const formalSection = document.getElementById('formal-toggles-section');
-    if (birthGrp) birthGrp.style.display = isUK ? 'none' : 'flex';
-    if (natGrp) natGrp.style.display = isUK ? 'none' : 'flex';
+    if (regIdentity) regIdentity.style.display = isUK ? 'none' : 'grid';
     if (photoUploadGrp) photoUploadGrp.style.display = isUK ? 'none' : 'flex';
     if (formalSection) formalSection.style.display = isUK ? 'none' : 'block';
 
+    const tplId = currentCV.meta.template || TEMPLATE_IDS.GERMAN_DIN;
+    const tplLabel = document.getElementById('active-template-label');
+    if (tplLabel) tplLabel.textContent = TEMPLATE_NAMES[tplId] || 'Frankfurt';
+    document.querySelectorAll('#template-gallery .template-card-option').forEach(card => {
+      card.classList.toggle('active', card.getAttribute('data-template-id') === tplId);
+    });
+
     const activeColor = currentCV.meta.accentColor || '#1e3a8a';
-    document.querySelectorAll('.color-dot').forEach(dot => {
+    const activeDot = document.getElementById('active-color-dot');
+    if (activeDot) activeDot.style.background = activeColor;
+    document.querySelectorAll('#popover-color .color-dot').forEach(dot => {
       dot.classList.toggle('active', dot.getAttribute('data-color') === activeColor);
     });
   };
 
-  // Update Live ATS Score Pill & Drawer Diagnostics
+  /* ------------------------------------------------------------------
+     Stepper, Accordion Expand/Collapse, Summary Previews & Strength Meter
+     ------------------------------------------------------------------ */
+  const getOrderedAllSections = () => {
+    currentCV.meta.sectionOrder = normalizeSectionOrder(currentCV.meta.sectionOrder);
+    return ['identity', ...currentCV.meta.sectionOrder];
+  };
+
+  const setActiveSection = (sectionId, { focusInput = false } = {}) => {
+    const ordered = getOrderedAllSections();
+    if (!ordered.includes(sectionId)) return;
+
+    activeSectionId = sectionId;
+    document.querySelectorAll('.accordion-card').forEach(card => {
+      const id = card.getAttribute('data-section-id');
+      const isOpen = id === sectionId;
+      card.classList.toggle('is-open', isOpen);
+      const header = card.querySelector('.accordion-header');
+      header?.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    renderStepper();
+
+    const activeCard = document.querySelector(`.accordion-card[data-section-id="${sectionId}"]`);
+    if (activeCard) {
+      activeCard.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      if (focusInput) {
+        const firstInput = activeCard.querySelector('input:not([type="file"]), textarea');
+        firstInput?.focus();
+      }
+    }
+  };
+
+  const toggleSection = (sectionId) => {
+    const targetCard = document.querySelector(`.accordion-card[data-section-id="${sectionId}"]`);
+    const alreadyOpen = targetCard?.classList.contains('is-open');
+    if (alreadyOpen) {
+      targetCard.classList.remove('is-open');
+      targetCard.querySelector('.accordion-header')?.setAttribute('aria-expanded', 'false');
+      activeSectionId = null;
+      renderStepper();
+    } else {
+      setActiveSection(sectionId);
+    }
+  };
+
+  const syncAccordionOrderDOM = () => {
+    const container = document.getElementById('reorderable-sections');
+    if (!container) return;
+    const order = normalizeSectionOrder(currentCV.meta.sectionOrder);
+    currentCV.meta.sectionOrder = order;
+
+    const allCards = Array.from(container.querySelectorAll('.accordion-card'));
+    const cardMap = Object.fromEntries(allCards.map(el => [el.getAttribute('data-section-id'), el]));
+
+    // Show active ordered sections in sequence, keep inactive optional sections hidden at bottom
+    order.forEach(id => {
+      const card = cardMap[id];
+      if (card) {
+        card.style.display = 'block';
+        container.appendChild(card);
+      }
+    });
+
+    allCards.forEach(card => {
+      const id = card.getAttribute('data-section-id');
+      if (!order.includes(id)) {
+        card.style.display = 'none';
+        container.appendChild(card);
+      }
+    });
+
+    renderStepper();
+  };
+
+  const renderStepper = () => {
+    const bar = document.getElementById('stepper-bar');
+    if (!bar) return;
+    const completion = calculateCVCompletion(currentCV);
+    const ordered = getOrderedAllSections();
+
+    bar.innerHTML = ordered.map((id, idx) => {
+      const status = completion.sectionStatus[id];
+      const isDone = status === 'complete';
+      const isActive = activeSectionId === id;
+      return `
+        <button type="button" class="step-pill ${isActive ? 'active' : ''} ${isDone ? 'done' : ''}" data-step-target="${id}" role="tab" aria-selected="${isActive}">
+          <span class="step-num">${isDone ? '✓' : idx + 1}</span>
+          <span>${SECTION_LABELS[id] || id}</span>
+        </button>
+      `;
+    }).join('');
+
+    bar.querySelectorAll('[data-step-target]').forEach(pill => {
+      pill.addEventListener('click', () => {
+        setActiveSection(pill.getAttribute('data-step-target'), { focusInput: false });
+      });
+    });
+  };
+
+  const updateAccordionSummariesAndStrength = () => {
+    const completion = calculateCVCompletion(currentCV);
+    const p = currentCV.personal || {};
+
+    // Update collapsed 1-line previews
+    const summaryMap = {
+      identity: [
+        [p.firstName, p.lastName].filter(Boolean).join(' '),
+        p.title,
+        p.city
+      ].filter(Boolean).join(' · ') || 'Name, target role & contact details',
+      summary: currentCV.summary?.trim()
+        ? currentCV.summary.trim().slice(0, 72) + (currentCV.summary.trim().length > 72 ? '…' : '')
+        : 'Add a 2–3 sentence executive bio',
+      experience: currentCV.experience?.length
+        ? `${currentCV.experience.length} ${currentCV.experience.length === 1 ? 'position' : 'positions'} · ${currentCV.experience[0]?.company || ''}`
+        : 'Empty — add your most recent role',
+      education: currentCV.education?.length
+        ? `${currentCV.education.length} ${currentCV.education.length === 1 ? 'degree' : 'degrees'} · ${currentCV.education[0]?.degree || ''}`
+        : 'Empty — add degree or qualification',
+      skills: currentCV.skills?.technical?.length
+        ? `${currentCV.skills.technical.length} skills · ${currentCV.skills.technical.slice(0, 3).join(', ')}`
+        : 'Empty — add key competencies',
+      languages: currentCV.skills?.languages?.length
+        ? currentCV.skills.languages.map(l => `${l.language || ''}`).filter(Boolean).join(', ')
+        : 'Add spoken languages (CEFR)',
+      projects: currentCV.projects?.length
+        ? `${currentCV.projects.length} ${currentCV.projects.length === 1 ? 'project' : 'projects'}`
+        : 'Add notable projects',
+      certifications: currentCV.certifications?.length
+        ? `${currentCV.certifications.length} ${currentCV.certifications.length === 1 ? 'certification' : 'certifications'}`
+        : 'Add industry certifications'
+    };
+
+    Object.entries(summaryMap).forEach(([id, text]) => {
+      const sumEl = document.querySelector(`[data-summary-for="${id}"]`);
+      if (sumEl) sumEl.textContent = text;
+
+      const dotEl = document.querySelector(`[data-status-dot="${id}"]`);
+      if (dotEl) {
+        const st = completion.sectionStatus[id] || 'empty';
+        dotEl.className = `section-status-dot ${st === 'empty' ? '' : st}`.trim();
+        dotEl.textContent = st === 'complete' ? '✓' : '•';
+      }
+    });
+
+    // Update sticky bottom Strength Meter
+    const pctEl = document.getElementById('strength-pct');
+    const fillEl = document.getElementById('strength-fill');
+    const tierEl = document.getElementById('strength-tier');
+    const nextBtn = document.getElementById('strength-next-btn');
+
+    if (pctEl) pctEl.textContent = `${completion.percentage}%`;
+    if (fillEl) fillEl.style.width = `${completion.percentage}%`;
+    if (tierEl) tierEl.textContent = completion.tier;
+    if (nextBtn) {
+      nextBtn.textContent = completion.nextAction.prompt;
+      nextBtn.setAttribute('data-jump-section', completion.nextAction.sectionId);
+    }
+
+    renderStepper();
+  };
+
+  document.getElementById('strength-next-btn')?.addEventListener('click', (e) => {
+    const target = e.currentTarget.getAttribute('data-jump-section');
+    if (target === 'export') {
+      exportCVToPDF(currentCV);
+    } else if (target) {
+      if (target !== 'identity' && !currentCV.meta.sectionOrder.includes(target)) {
+        currentCV.meta.sectionOrder.push(target);
+        syncAccordionOrderDOM();
+      }
+      setActiveSection(target, { focusInput: true });
+      if (window.innerWidth < 768) switchMobileView('editor');
+    }
+  });
+
+  /* ------------------------------------------------------------------
+     ATS Health & Live Page Budget
+     ------------------------------------------------------------------ */
   const updateATSReport = () => {
     const ats = analyzeCVForATS(currentCV);
     const pillLabel = document.getElementById('ats-score-label');
     const pill = document.getElementById('btn-ats-pill');
     if (pillLabel) pillLabel.textContent = `ATS: ${ats.score}/100 (${ats.grade})`;
     if (pill) {
-      const strong = ats.score >= 85;
-      pill.style.color = strong ? '#34d399' : '#fbbf24';
-      pill.style.borderColor = strong ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.35)';
-      pill.style.background = strong ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)';
+      pill.classList.remove('state-warn', 'state-low');
+      if (ats.score < 40) pill.classList.add('state-low');
+      else if (ats.score < 70) pill.classList.add('state-warn');
     }
 
     const badge = document.getElementById('drawer-ats-badge');
     const checksEl = document.getElementById('drawer-ats-checks');
     const tipsEl = document.getElementById('drawer-ats-tips');
-    if (badge) badge.textContent = `${ats.score}/100 (${ats.grade}) · ${ats.status}`;
+    if (badge) {
+      badge.textContent = `${ats.score}/100 (${ats.grade}) · ${ats.status}`;
+      badge.className = `ats-pill ${ats.score < 40 ? 'state-low' : ats.score < 70 ? 'state-warn' : ''}`.trim();
+    }
     if (checksEl) {
       checksEl.innerHTML = ats.checks.map(c => `
         <div class="ats-check-row">
-          <span style="color: ${c.passed ? '#34d399' : '#fbbf24'};">${c.passed ? '✓' : '!'} ${escapeHTML(c.category)}</span>
-          <span style="color: #a1a7b5;">${c.points}/${c.maxPoints} pts</span>
+          <span style="color: ${c.passed ? 'var(--success)' : 'var(--warning)'};">${c.passed ? '✓' : '!'} ${escapeHTML(c.category)}</span>
+          <span style="color: var(--text-secondary);">${c.points}/${c.maxPoints} pts</span>
         </div>
       `).join('');
     }
     if (tipsEl) {
       tipsEl.innerHTML = ats.suggestions.length
         ? ats.suggestions.map(s => `<div>• ${escapeHTML(s)}</div>`).join('')
-        : '<span style="color: #34d399;">All core European ATS criteria met.</span>';
+        : '<span style="color: var(--success); font-weight: 600;">All core European ATS criteria met.</span>';
     }
   };
 
-  // Live Page Budget Calculator
   const calculatePageBudget = () => {
     requestAnimationFrame(() => {
       if (!previewSheet) return;
-      const singlePageMax = 1123; // 297mm at 96 DPI (~1122.5px rounded)
+      const singlePageMax = 1123;
       const actualScrollHeight = previewSheet.scrollHeight;
 
       let contentHeight = actualScrollHeight;
       const lastChild = previewSheet.lastElementChild;
-      if (actualScrollHeight <= singlePageMax + 2 && lastChild) {
+      if (actualScrollHeight <= singlePageMax + 2 && lastChild && previewSheet.offsetWidth > 0) {
         const sheetRect = previewSheet.getBoundingClientRect();
         const lastRect = lastChild.getBoundingClientRect();
-        const scale = currentZoom || 1;
-        contentHeight = Math.round(((lastRect.bottom - sheetRect.top) / scale) + 48);
+        const actualScale = (sheetRect.width / previewSheet.offsetWidth) || currentZoom || 1;
+        contentHeight = Math.round(((lastRect.bottom - sheetRect.top) / actualScale) + 48);
       }
 
       if (actualScrollHeight <= singlePageMax + 2) {
-        const pct = Math.min(99, Math.max(15, Math.round((contentHeight / singlePageMax) * 100)));
+        const pct = Math.min(99, Math.max(12, Math.round((contentHeight / singlePageMax) * 100)));
         if (budgetFill) {
           budgetFill.style.width = `${pct}%`;
-          budgetFill.style.backgroundColor = '#10b981';
+          budgetFill.style.backgroundColor = 'var(--success)';
         }
         if (budgetLabel) {
-          budgetLabel.textContent = `Page 1: ${pct}% full (Ideal 1-Page Fit)`;
-          budgetLabel.style.color = '#34d399';
+          budgetLabel.textContent = `Page 1: ${pct}% full`;
+          budgetLabel.style.color = 'var(--success)';
         }
         if (btnAutoFit) btnAutoFit.style.display = 'none';
       } else {
@@ -1332,68 +1809,90 @@ function initStudio() {
         const page2Pct = Math.min(100, Math.max(1, Math.round((page2Px / singlePageMax) * 100)));
         if (budgetFill) {
           budgetFill.style.width = '100%';
-          budgetFill.style.backgroundColor = '#f59e0b';
+          budgetFill.style.backgroundColor = 'var(--warning)';
         }
         if (budgetLabel) {
-          budgetLabel.textContent = `Page 2: +${page2Pct}% spillover`;
-          budgetLabel.style.color = '#fbbf24';
+          budgetLabel.textContent = `Page 2: +${page2Pct}% overflow`;
+          budgetLabel.style.color = 'var(--warning)';
         }
         if (btnAutoFit) btnAutoFit.style.display = 'inline-flex';
       }
     });
   };
 
-  // Central Live Render
   const refreshCanvas = () => {
     renderCVPreview(currentCV, previewSheet);
     calculatePageBudget();
     updateATSReport();
+    updateAccordionSummariesAndStrength();
   };
 
-  // Render Modular CMS Experience Cards
+  /* ------------------------------------------------------------------
+     Modular Section Editors (With Empty Coaching States)
+     ------------------------------------------------------------------ */
+  const renderEmptyCoaching = ({ title, tip, buttonLabel, buttonId }) => `
+    <div class="empty-coaching">
+      <div class="empty-coaching-title">${escapeHTML(title)}</div>
+      <div class="empty-coaching-tip">${escapeHTML(tip)}</div>
+      <div>
+        <button type="button" class="btn btn-primary" id="${buttonId}">${escapeHTML(buttonLabel)}</button>
+      </div>
+    </div>
+  `;
+
   const renderExperienceCards = () => {
     const container = document.getElementById('experience-card-list');
     if (!container) return;
 
-    container.innerHTML = (currentCV.experience || []).map((exp, idx) => `
-      <div class="cms-subcard">
-        <div class="cms-subcard-head">
-          <span class="cms-subcard-title">${escapeHTML(exp.position || 'Position')} · ${escapeHTML(exp.company || 'Company')}</span>
+    const list = currentCV.experience || [];
+    if (list.length === 0) {
+      container.innerHTML = renderEmptyCoaching({
+        title: 'Add your most recent role',
+        tip: 'Tip: Start bullet points with action verbs ("Architected", "Reduced") and include one number or percentage.',
+        buttonLabel: '+ Add first position',
+        buttonId: 'btn-empty-add-job'
+      });
+      document.getElementById('btn-empty-add-job')?.addEventListener('click', addNewExperience);
+      return;
+    }
+
+    container.innerHTML = list.map((exp, idx) => `
+      <div class="subcard">
+        <div class="subcard-head">
+          <span class="subcard-title">${escapeHTML(exp.position || 'Position')} · ${escapeHTML(exp.company || 'Company')}</span>
           <button class="btn-remove-inline" data-del-exp="${idx}" type="button">Remove</button>
         </div>
-        <div style="padding: 11px; display: flex; flex-direction: column; gap: 8px;">
+        <div class="subcard-body">
           <div class="field-grid-2">
             <div class="field-group">
-              <label class="field-label">Role Title</label>
+              <label class="field-label">Role title</label>
               <input type="text" class="field-input" data-exp-f="position" data-idx="${idx}" value="${escapeAttr(exp.position || '')}">
             </div>
             <div class="field-group">
-              <label class="field-label">Company Name</label>
+              <label class="field-label">Company</label>
               <input type="text" class="field-input" data-exp-f="company" data-idx="${idx}" value="${escapeAttr(exp.company || '')}">
             </div>
           </div>
           <div class="field-grid-2">
             <div class="field-group">
-              <label class="field-label">Date Range</label>
+              <label class="field-label">Date range</label>
               <input type="text" class="field-input" data-exp-f="dateRange" data-idx="${idx}" value="${escapeAttr((exp.startDate || '') + ' – ' + (exp.endDate || ''))}">
             </div>
             <div class="field-group">
-              <label class="field-label">City / Country</label>
+              <label class="field-label">City / country</label>
               <input type="text" class="field-input" data-exp-f="city" data-idx="${idx}" value="${escapeAttr(exp.city || '')}">
             </div>
           </div>
           <div class="field-group">
-            <label class="field-label">Achievements &amp; Impact (1 per line)</label>
+            <label class="field-label">Achievements &amp; impact (1 per line)</label>
             <textarea class="field-input" data-exp-f="bullets" data-idx="${idx}" rows="3">${escapeHTML((exp.bullets || []).join('\n'))}</textarea>
           </div>
-
-          <!-- Bullet Polisher Helper -->
           <div class="bullet-polisher-bar">
-            <span>Action Verb Enhancers (click to append):</span>
+            <span>Quick impact starters (click to append bullet):</span>
             <div class="bullet-action-chips">
-              <button class="chip-btn" type="button" data-insert-verb="Architected" data-idx="${idx}">+ Architected...</button>
-              <button class="chip-btn" type="button" data-insert-verb="Reduced latency by 40%" data-idx="${idx}">+ Reduced latency...</button>
-              <button class="chip-btn" type="button" data-insert-verb="Spearheaded" data-idx="${idx}">+ Spearheaded...</button>
+              <button class="chip-btn" type="button" data-insert-verb="Architected" data-idx="${idx}">+ Architected…</button>
+              <button class="chip-btn" type="button" data-insert-verb="Reduced latency by 40% across" data-idx="${idx}">+ Reduced latency 40%…</button>
+              <button class="chip-btn" type="button" data-insert-verb="Spearheaded" data-idx="${idx}">+ Spearheaded…</button>
             </div>
           </div>
         </div>
@@ -1417,7 +1916,7 @@ function initStudio() {
           item[f] = inp.value;
         }
 
-        const headerTitle = inp.closest('.cms-subcard')?.querySelector('.cms-subcard-title');
+        const headerTitle = inp.closest('.subcard')?.querySelector('.subcard-title');
         if (headerTitle) {
           headerTitle.textContent = `${item.position || 'Position'} · ${item.company || 'Company'}`;
         }
@@ -1443,7 +1942,7 @@ function initStudio() {
         const item = currentCV.experience[idx];
         if (item) {
           item.bullets = item.bullets || [];
-          item.bullets.push(`${verb} mission-critical services delivering measurable business impact.`);
+          item.bullets.push(`${verb} core platform systems delivering 25% faster release cycles.`);
           saveCVDirect(currentCV);
           renderExperienceCards();
           refreshCanvas();
@@ -1452,21 +1951,32 @@ function initStudio() {
     });
   };
 
-  // Render Education Cards
   const renderEducationCards = () => {
     const container = document.getElementById('education-card-list');
     if (!container) return;
 
-    container.innerHTML = (currentCV.education || []).map((edu, idx) => `
-      <div class="cms-subcard">
-        <div class="cms-subcard-head">
-          <span class="cms-subcard-title">${escapeHTML(edu.degree || 'Degree')}</span>
+    const list = currentCV.education || [];
+    if (list.length === 0) {
+      container.innerHTML = renderEmptyCoaching({
+        title: 'List your highest degree or training',
+        tip: 'In DACH & France, include exact start/end dates and final honors or GPA when recent.',
+        buttonLabel: '+ Add degree',
+        buttonId: 'btn-empty-add-edu'
+      });
+      document.getElementById('btn-empty-add-edu')?.addEventListener('click', addNewEducation);
+      return;
+    }
+
+    container.innerHTML = list.map((edu, idx) => `
+      <div class="subcard">
+        <div class="subcard-head">
+          <span class="subcard-title">${escapeHTML(edu.degree || 'Degree')}</span>
           <button class="btn-remove-inline" data-del-edu="${idx}" type="button">Remove</button>
         </div>
-        <div style="padding: 11px; display: flex; flex-direction: column; gap: 8px;">
+        <div class="subcard-body">
           <div class="field-grid-2">
             <div class="field-group">
-              <label class="field-label">Degree / Field</label>
+              <label class="field-label">Degree / field</label>
               <input type="text" class="field-input" data-edu-f="degree" data-idx="${idx}" value="${escapeAttr(edu.degree || '')}">
             </div>
             <div class="field-group">
@@ -1480,7 +1990,7 @@ function initStudio() {
               <input type="text" class="field-input" data-edu-f="dateRange" data-idx="${idx}" value="${escapeAttr((edu.startDate || '') + ' – ' + (edu.endDate || ''))}">
             </div>
             <div class="field-group">
-              <label class="field-label">Honors / Grade</label>
+              <label class="field-label">Honors / grade</label>
               <input type="text" class="field-input" data-edu-f="grade" data-idx="${idx}" placeholder="e.g. 1.3 / First Class" value="${escapeAttr(edu.grade || '')}">
             </div>
           </div>
@@ -1503,7 +2013,7 @@ function initStudio() {
           item[f] = inp.value;
         }
 
-        const headerTitle = inp.closest('.cms-subcard')?.querySelector('.cms-subcard-title');
+        const headerTitle = inp.closest('.subcard')?.querySelector('.subcard-title');
         if (headerTitle) headerTitle.textContent = item.degree || 'Degree';
 
         saveCVDirect(currentCV);
@@ -1522,12 +2032,54 @@ function initStudio() {
     });
   };
 
-  // Render Languages (CEFR) Cards
+  const renderSkillsChips = () => {
+    const chipContainer = document.getElementById('skills-chip-list');
+    const commaInput = document.getElementById('f-skills-tech');
+    const skills = currentCV.skills?.technical || [];
+    if (commaInput && document.activeElement !== commaInput) {
+      commaInput.value = skills.join(', ');
+    }
+    if (!chipContainer) return;
+
+    if (skills.length === 0) {
+      chipContainer.innerHTML = '<span style="font-size:12px; color:var(--text-secondary);">Type a skill above and press Enter (e.g. TypeScript, React, SQL) to improve your ATS score.</span>';
+      return;
+    }
+
+    chipContainer.innerHTML = skills.map((skill, idx) => `
+      <span class="skill-chip-editable">
+        <span>${escapeHTML(skill)}</span>
+        <button type="button" class="skill-chip-remove" data-del-skill="${idx}" aria-label="Remove ${escapeAttr(skill)}">×</button>
+      </span>
+    `).join('');
+
+    chipContainer.querySelectorAll('[data-del-skill]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.getAttribute('data-del-skill'), 10);
+        currentCV.skills.technical.splice(idx, 1);
+        saveCVDirect(currentCV);
+        renderSkillsChips();
+        refreshCanvas();
+      });
+    });
+  };
+
   const renderLanguageCards = () => {
     const container = document.getElementById('language-card-list');
     if (!container) return;
 
     const langs = currentCV.skills?.languages || [];
+    if (langs.length === 0) {
+      container.innerHTML = renderEmptyCoaching({
+        title: 'Add spoken languages with CEFR proficiency',
+        tip: 'European recruiters look for explicit levels such as "English — C1" or "German — B2".',
+        buttonLabel: '+ Add first language',
+        buttonId: 'btn-empty-add-lang'
+      });
+      document.getElementById('btn-empty-add-lang')?.addEventListener('click', addNewLanguage);
+      return;
+    }
+
     container.innerHTML = langs.map((lang, idx) => `
       <div class="lang-cms-row">
         <input type="text" class="field-input" placeholder="Language" data-lang-f="language" data-idx="${idx}" value="${escapeAttr(lang.language || '')}">
@@ -1564,16 +2116,154 @@ function initStudio() {
     });
   };
 
-  // Bind Static Personal & Summary Fields
-  const bindStaticField = (id, setter) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener('input', (e) => {
-        setter(e.target.value);
+  const renderProjectsCards = () => {
+    const container = document.getElementById('projects-card-list');
+    if (!container) return;
+    const list = currentCV.projects || [];
+    if (list.length === 0) {
+      container.innerHTML = renderEmptyCoaching({
+        title: 'Highlight a signature project',
+        tip: 'Open-source repositories, side products, or capstone builds add depth for engineering roles.',
+        buttonLabel: '+ Add project',
+        buttonId: 'btn-empty-add-proj'
+      });
+      document.getElementById('btn-empty-add-proj')?.addEventListener('click', addNewProject);
+      return;
+    }
+
+    container.innerHTML = list.map((proj, idx) => `
+      <div class="subcard">
+        <div class="subcard-head">
+          <span class="subcard-title">${escapeHTML(proj.name || 'Project')}</span>
+          <button class="btn-remove-inline" data-del-proj="${idx}" type="button">Remove</button>
+        </div>
+        <div class="subcard-body">
+          <div class="field-grid-2">
+            <div class="field-group">
+              <label class="field-label">Project name</label>
+              <input type="text" class="field-input" data-proj-f="name" data-idx="${idx}" value="${escapeAttr(proj.name || '')}">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Technologies</label>
+              <input type="text" class="field-input" data-proj-f="technologies" data-idx="${idx}" value="${escapeAttr(proj.technologies || '')}">
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Summary</label>
+            <input type="text" class="field-input" data-proj-f="description" data-idx="${idx}" value="${escapeAttr(proj.description || '')}">
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('[data-proj-f]').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const idx = parseInt(inp.getAttribute('data-idx'), 10);
+        const f = inp.getAttribute('data-proj-f');
+        if (currentCV.projects[idx]) {
+          currentCV.projects[idx][f] = inp.value;
+          const title = inp.closest('.subcard')?.querySelector('.subcard-title');
+          if (title) title.textContent = currentCV.projects[idx].name || 'Project';
+          saveCVDirect(currentCV);
+          refreshCanvas();
+        }
+      });
+    });
+
+    container.querySelectorAll('[data-del-proj]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.getAttribute('data-del-proj'), 10);
+        currentCV.projects.splice(idx, 1);
         saveCVDirect(currentCV);
+        renderProjectsCards();
         refreshCanvas();
       });
+    });
+  };
+
+  const renderCertificationsCards = () => {
+    const container = document.getElementById('certifications-card-list');
+    if (!container) return;
+    const list = currentCV.certifications || [];
+    if (list.length === 0) {
+      container.innerHTML = renderEmptyCoaching({
+        title: 'Add certifications or licenses',
+        tip: 'Include issuer and completion year (e.g. AWS Solutions Architect · 2024).',
+        buttonLabel: '+ Add certification',
+        buttonId: 'btn-empty-add-cert'
+      });
+      document.getElementById('btn-empty-add-cert')?.addEventListener('click', addNewCert);
+      return;
     }
+
+    container.innerHTML = list.map((cert, idx) => `
+      <div class="subcard">
+        <div class="subcard-head">
+          <span class="subcard-title">${escapeHTML(cert.name || 'Certification')}</span>
+          <button class="btn-remove-inline" data-del-cert="${idx}" type="button">Remove</button>
+        </div>
+        <div class="subcard-body">
+          <div class="field-group">
+            <label class="field-label">Credential name</label>
+            <input type="text" class="field-input" data-cert-f="name" data-idx="${idx}" value="${escapeAttr(cert.name || '')}">
+          </div>
+          <div class="field-grid-2">
+            <div class="field-group">
+              <label class="field-label">Issuer</label>
+              <input type="text" class="field-input" data-cert-f="issuer" data-idx="${idx}" value="${escapeAttr(cert.issuer || '')}">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Year</label>
+              <input type="text" class="field-input" data-cert-f="year" data-idx="${idx}" value="${escapeAttr(cert.year || '')}">
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('[data-cert-f]').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const idx = parseInt(inp.getAttribute('data-idx'), 10);
+        const f = inp.getAttribute('data-cert-f');
+        if (currentCV.certifications[idx]) {
+          currentCV.certifications[idx][f] = inp.value;
+          const title = inp.closest('.subcard')?.querySelector('.subcard-title');
+          if (title) title.textContent = currentCV.certifications[idx].name || 'Certification';
+          saveCVDirect(currentCV);
+          refreshCanvas();
+        }
+      });
+    });
+
+    container.querySelectorAll('[data-del-cert]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.getAttribute('data-del-cert'), 10);
+        currentCV.certifications.splice(idx, 1);
+        saveCVDirect(currentCV);
+        renderCertificationsCards();
+        refreshCanvas();
+      });
+    });
+  };
+
+  /* ------------------------------------------------------------------
+     Bind Static Fields, Skill Quick-Add & Section Mutators
+     ------------------------------------------------------------------ */
+  const bindStaticField = (id, setter) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', (e) => {
+      setter(e.target.value);
+      saveCVDirect(currentCV);
+      if (id === 'f-summary') {
+        const charHint = document.getElementById('summary-char-hint');
+        if (charHint) {
+          const len = e.target.value.trim().length;
+          charHint.textContent = len ? `${len} chars` : 'Recommended: 120–260 chars';
+        }
+      }
+      refreshCanvas();
+    });
   };
 
   bindStaticField('p-first-name', val => { currentCV.personal.firstName = val; });
@@ -1586,11 +2276,41 @@ function initStudio() {
   bindStaticField('p-nationality', val => { currentCV.personal.nationality = val; });
   bindStaticField('p-linkedin', val => { currentCV.personal.linkedin = val; });
   bindStaticField('f-summary', val => { currentCV.summary = val; });
-  bindStaticField('f-skills-tech', val => {
-    currentCV.skills.technical = val.split(',').map(s => s.trim()).filter(Boolean);
+
+  document.getElementById('f-skills-tech')?.addEventListener('input', (e) => {
+    currentCV.skills.technical = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+    saveCVDirect(currentCV);
+    renderSkillsChips();
+    refreshCanvas();
   });
 
-  // Photo Upload & Clear
+  const addSkillFromQuickInput = () => {
+    const input = document.getElementById('skill-quick-input');
+    const raw = (input?.value || '').trim();
+    if (!raw) return;
+    const additions = raw.split(',').map(s => s.trim()).filter(Boolean);
+    const existingLower = new Set((currentCV.skills.technical || []).map(s => s.toLowerCase()));
+    additions.forEach(skill => {
+      if (!existingLower.has(skill.toLowerCase())) {
+        currentCV.skills.technical.push(skill);
+        existingLower.add(skill.toLowerCase());
+      }
+    });
+    if (input) input.value = '';
+    saveCVDirect(currentCV);
+    renderSkillsChips();
+    refreshCanvas();
+  };
+
+  document.getElementById('btn-add-skill-chip')?.addEventListener('click', addSkillFromQuickInput);
+  document.getElementById('skill-quick-input')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addSkillFromQuickInput();
+    }
+  });
+
+  // Photo upload & clear
   const photoInput = document.getElementById('p-photo-file');
   document.getElementById('btn-upload-photo')?.addEventListener('click', () => photoInput?.click());
   photoInput?.addEventListener('change', (e) => {
@@ -1602,6 +2322,7 @@ function initStudio() {
       currentCV.meta.showPhoto = true;
       if (togglePhoto) togglePhoto.checked = true;
       saveCVDirect(currentCV);
+      syncPhotoThumb();
       refreshCanvas();
       showToast('Portrait photo updated.');
     };
@@ -1611,11 +2332,11 @@ function initStudio() {
     currentCV.personal.photoUrl = '';
     if (photoInput) photoInput.value = '';
     saveCVDirect(currentCV);
+    syncPhotoThumb();
     refreshCanvas();
-    showToast('Portrait photo removed.');
+    showToast('Portrait photo cleared.');
   });
 
-  // Add Position / Degree / Language Handlers
   const addNewExperience = () => {
     currentCV.experience = currentCV.experience || [];
     currentCV.experience.unshift({
@@ -1629,6 +2350,7 @@ function initStudio() {
     });
     saveCVDirect(currentCV);
     renderExperienceCards();
+    setActiveSection('experience');
     refreshCanvas();
   };
 
@@ -1643,20 +2365,215 @@ function initStudio() {
     });
     saveCVDirect(currentCV);
     renderEducationCards();
+    setActiveSection('education');
+    refreshCanvas();
+  };
+
+  const addNewLanguage = () => {
+    currentCV.skills.languages = currentCV.skills.languages || [];
+    currentCV.skills.languages.push({ language: 'German', level: CEFR_LEVELS[2].label });
+    saveCVDirect(currentCV);
+    renderLanguageCards();
+    setActiveSection('languages');
+    refreshCanvas();
+  };
+
+  const addNewProject = () => {
+    currentCV.projects = currentCV.projects || [];
+    currentCV.projects.push({
+      name: 'Open Source Tooling',
+      description: 'Designed modular TypeScript CLI used by internal engineering teams.',
+      technologies: 'TypeScript, Node.js'
+    });
+    saveCVDirect(currentCV);
+    renderProjectsCards();
+    refreshCanvas();
+  };
+
+  const addNewCert = () => {
+    currentCV.certifications = currentCV.certifications || [];
+    currentCV.certifications.push({
+      name: 'AWS Solutions Architect',
+      issuer: 'Amazon Web Services',
+      year: '2024'
+    });
+    saveCVDirect(currentCV);
+    renderCertificationsCards();
     refreshCanvas();
   };
 
   document.getElementById('btn-add-job')?.addEventListener('click', addNewExperience);
   document.getElementById('btn-add-edu')?.addEventListener('click', addNewEducation);
-  document.getElementById('btn-add-lang')?.addEventListener('click', () => {
-    currentCV.skills.languages = currentCV.skills.languages || [];
-    currentCV.skills.languages.push({ language: 'Spanish', level: CEFR_LEVELS[3].label });
-    saveCVDirect(currentCV);
-    renderLanguageCards();
-    refreshCanvas();
+  document.getElementById('btn-add-lang')?.addEventListener('click', addNewLanguage);
+  document.getElementById('btn-add-project')?.addEventListener('click', addNewProject);
+  document.getElementById('btn-add-cert')?.addEventListener('click', addNewCert);
+
+  /* ------------------------------------------------------------------
+     Accordion Header Clicks, Stepper Next/Back, & Optional Sections
+     ------------------------------------------------------------------ */
+  document.querySelectorAll('[data-toggle-section]').forEach(header => {
+    header.addEventListener('click', (e) => {
+      if (e.target.closest('button') || e.target.closest('.drag-handle')) return;
+      toggleSection(header.getAttribute('data-toggle-section'));
+    });
+    header.addEventListener('keydown', (e) => {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target === header) {
+        e.preventDefault();
+        toggleSection(header.getAttribute('data-toggle-section'));
+      }
+    });
   });
 
-  // Direct Canvas Contenteditable Editing & Hover Actions (No focus reset on keystroke)
+  document.querySelectorAll('[data-goto-next]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const fromId = btn.getAttribute('data-goto-next');
+      const ordered = getOrderedAllSections();
+      const idx = ordered.indexOf(fromId);
+      if (idx >= 0 && idx < ordered.length - 1) {
+        setActiveSection(ordered[idx + 1], { focusInput: true });
+      } else {
+        exportCVToPDF(currentCV);
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-goto-prev]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const fromId = btn.getAttribute('data-goto-prev');
+      const ordered = getOrderedAllSections();
+      const idx = ordered.indexOf(fromId);
+      if (idx > 0) {
+        setActiveSection(ordered[idx - 1], { focusInput: false });
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-remove-section]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const secId = btn.getAttribute('data-remove-section');
+      currentCV.meta.sectionOrder = currentCV.meta.sectionOrder.filter(id => id !== secId);
+      saveCVDirect(currentCV);
+      syncAccordionOrderDOM();
+      setActiveSection('experience');
+      refreshCanvas();
+      showToast(`Removed ${SECTION_LABELS[secId] || secId} from CV layout.`);
+    });
+  });
+
+  document.querySelectorAll('[data-quick-action]').forEach(item => {
+    item.addEventListener('click', () => {
+      const action = item.getAttribute('data-quick-action');
+      closeAllPopovers();
+      if (action === 'experience') addNewExperience();
+      else if (action === 'education') addNewEducation();
+      else if (action === 'language') addNewLanguage();
+      else if (action === 'section-projects') {
+        if (!currentCV.meta.sectionOrder.includes('projects')) {
+          currentCV.meta.sectionOrder.push('projects');
+        }
+        if (!(currentCV.projects || []).length) addNewProject();
+        syncAccordionOrderDOM();
+        saveCVDirect(currentCV);
+        setActiveSection('projects');
+        refreshCanvas();
+      } else if (action === 'section-certifications') {
+        if (!currentCV.meta.sectionOrder.includes('certifications')) {
+          currentCV.meta.sectionOrder.push('certifications');
+        }
+        if (!(currentCV.certifications || []).length) addNewCert();
+        syncAccordionOrderDOM();
+        saveCVDirect(currentCV);
+        setActiveSection('certifications');
+        refreshCanvas();
+      }
+    });
+  });
+
+  /* ------------------------------------------------------------------
+     Drag-and-Drop & Accessible Keyboard Section Reordering
+     ------------------------------------------------------------------ */
+  const moveSectionByOffset = (sectionId, delta) => {
+    const order = [...normalizeSectionOrder(currentCV.meta.sectionOrder)];
+    const idx = order.indexOf(sectionId);
+    const targetIdx = idx + delta;
+    if (idx < 0 || targetIdx < 0 || targetIdx >= order.length) return;
+    [order[idx], order[targetIdx]] = [order[targetIdx], order[idx]];
+    currentCV.meta.sectionOrder = order;
+    saveCVDirect(currentCV);
+    syncAccordionOrderDOM();
+    refreshCanvas();
+    showToast(`Moved ${SECTION_LABELS[sectionId]} ${delta < 0 ? 'up' : 'down'}.`);
+  };
+
+  document.querySelectorAll('[data-move-up]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      moveSectionByOffset(btn.getAttribute('data-move-up'), -1);
+    });
+  });
+  document.querySelectorAll('[data-move-down]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      moveSectionByOffset(btn.getAttribute('data-move-down'), 1);
+    });
+  });
+
+  document.querySelectorAll('#reorderable-sections .accordion-card').forEach(card => {
+    card.addEventListener('dragstart', (e) => {
+      if (e.target.closest('input, textarea, select')) {
+        e.preventDefault();
+        return;
+      }
+      draggedSectionId = card.getAttribute('data-section-id');
+      card.classList.add('dragging');
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', draggedSectionId);
+      }
+    });
+
+    card.addEventListener('dragend', () => {
+      draggedSectionId = null;
+      document.querySelectorAll('.accordion-card').forEach(el => {
+        el.classList.remove('dragging', 'drag-over');
+      });
+    });
+
+    card.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const targetId = card.getAttribute('data-section-id');
+      if (draggedSectionId && draggedSectionId !== targetId) {
+        card.classList.add('drag-over');
+      }
+    });
+
+    card.addEventListener('dragleave', () => {
+      card.classList.remove('drag-over');
+    });
+
+    card.addEventListener('drop', (e) => {
+      e.preventDefault();
+      card.classList.remove('drag-over');
+      const targetId = card.getAttribute('data-section-id');
+      if (!draggedSectionId || !targetId || draggedSectionId === targetId) return;
+
+      const order = [...normalizeSectionOrder(currentCV.meta.sectionOrder)];
+      const fromIdx = order.indexOf(draggedSectionId);
+      const toIdx = order.indexOf(targetId);
+      if (fromIdx < 0 || toIdx < 0) return;
+
+      const [moved] = order.splice(fromIdx, 1);
+      order.splice(toIdx, 0, moved);
+      currentCV.meta.sectionOrder = order;
+      saveCVDirect(currentCV);
+      syncAccordionOrderDOM();
+      refreshCanvas();
+    });
+  });
+
+  /* ------------------------------------------------------------------
+     Direct WYSIWYG Canvas Editing
+     ------------------------------------------------------------------ */
   previewSheet?.addEventListener('input', (e) => {
     const target = e.target;
     if (!target || target.getAttribute('contenteditable') !== 'true') return;
@@ -1669,14 +2586,12 @@ function initStudio() {
         currentCV.personal.firstName = parts[0] || '';
         currentCV.personal.lastName = parts.slice(1).join(' ') || '';
       } else if (bind.startsWith('personal.')) {
-        const prop = bind.split('.')[1];
-        currentCV.personal[prop] = text;
+        currentCV.personal[bind.split('.')[1]] = text;
       } else if (bind === 'summary') {
         currentCV.summary = text;
       } else if (bind.startsWith('signature.')) {
-        const prop = bind.split('.')[1];
         currentCV.signature = currentCV.signature || {};
-        currentCV.signature[prop] = text;
+        currentCV.signature[bind.split('.')[1]] = text;
       }
       syncStaticInputsFromCV();
     }
@@ -1727,6 +2642,7 @@ function initStudio() {
     saveCVDirect(currentCV);
     calculatePageBudget();
     updateATSReport();
+    updateAccordionSummariesAndStrength();
   });
 
   previewSheet?.addEventListener('click', (e) => {
@@ -1764,19 +2680,16 @@ function initStudio() {
       return;
     }
 
-    if (e.target.closest('#btn-trigger-add-exp')) {
-      addNewExperience();
-      return;
-    }
-    if (e.target.closest('#btn-trigger-add-edu')) {
-      addNewEducation();
-    }
+    if (e.target.closest('#btn-trigger-add-exp')) addNewExperience();
+    else if (e.target.closest('#btn-trigger-add-edu')) addNewEducation();
   });
 
-  // Rail Settings Controls
+  /* ------------------------------------------------------------------
+     Toolbar Controls & Gallery Wiring
+     ------------------------------------------------------------------ */
   countrySelect?.addEventListener('change', (e) => {
     currentCV.meta.targetCountry = e.target.value;
-    syncRailState();
+    syncToolbarState();
     saveCVDirect(currentCV);
     refreshCanvas();
   });
@@ -1785,19 +2698,33 @@ function initStudio() {
     currentCV.meta.language = e.target.value;
     saveCVDirect(currentCV);
     refreshCanvas();
-    showToast(`CV headings set to ${e.target.options[e.target.selectedIndex].text}.`);
-  });
-
-  templateSelect?.addEventListener('change', (e) => {
-    currentCV.meta.template = e.target.value;
-    saveCVDirect(currentCV);
-    refreshCanvas();
+    showToast(`CV headings updated (${e.target.options[e.target.selectedIndex].text}).`);
   });
 
   spacingSelect?.addEventListener('change', (e) => {
     currentCV.meta.spacing = e.target.value;
     saveCVDirect(currentCV);
     refreshCanvas();
+  });
+
+  document.querySelectorAll('#template-gallery .template-card-option').forEach(card => {
+    card.addEventListener('click', () => {
+      currentCV.meta.template = card.getAttribute('data-template-id');
+      saveCVDirect(currentCV);
+      syncToolbarState();
+      closeAllPopovers();
+      refreshCanvas();
+    });
+  });
+
+  document.querySelectorAll('#popover-color .color-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+      currentCV.meta.accentColor = dot.getAttribute('data-color');
+      saveCVDirect(currentCV);
+      syncToolbarState();
+      closeAllPopovers();
+      refreshCanvas();
+    });
   });
 
   togglePhoto?.addEventListener('change', (e) => {
@@ -1817,28 +2744,19 @@ function initStudio() {
     if (spacingSelect) spacingSelect.value = 'compact';
     saveCVDirect(currentCV);
     refreshCanvas();
-    showToast('Auto-fitted margins onto 1 physical A4 page.');
+    showToast('Margins tightened to fit cleanly onto 1 A4 page.');
   });
 
-  // Color Swatches
-  document.querySelectorAll('.color-dot').forEach(dot => {
-    dot.addEventListener('click', () => {
-      document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
-      dot.classList.add('active');
-      currentCV.meta.accentColor = dot.getAttribute('data-color');
-      saveCVDirect(currentCV);
-      refreshCanvas();
-    });
-  });
-
-  // Zoom Controls (Auto-fits canvas width gracefully across desktop & sidebar panes)
+  /* ------------------------------------------------------------------
+     Zoom & Mobile View Switcher
+     ------------------------------------------------------------------ */
   const computeFitZoom = () => {
     const canvasPane = document.querySelector('.pane-canvas');
     if (!canvasPane) return 0.85;
-    const availW = canvasPane.clientWidth - 48;
-    const a4WidthPx = 794; // 210mm at 96 DPI
+    const availW = canvasPane.clientWidth - 40;
+    const a4WidthPx = 794;
     if (availW <= 0) return 0.85;
-    return Math.min(0.88, Math.max(0.45, Math.floor((availW / a4WidthPx) * 100) / 100));
+    return Math.min(0.88, Math.max(0.36, Math.floor((availW / a4WidthPx) * 100) / 100));
   };
 
   const applyZoom = (scale) => {
@@ -1846,15 +2764,13 @@ function initStudio() {
   };
 
   document.getElementById('zoom-in')?.addEventListener('click', () => {
-    currentZoom = Math.min(1.3, +(currentZoom + 0.1).toFixed(2));
+    currentZoom = Math.min(1.25, +(currentZoom + 0.1).toFixed(2));
     applyZoom(currentZoom);
   });
-
   document.getElementById('zoom-out')?.addEventListener('click', () => {
-    currentZoom = Math.max(0.4, +(currentZoom - 0.1).toFixed(2));
+    currentZoom = Math.max(0.35, +(currentZoom - 0.1).toFixed(2));
     applyZoom(currentZoom);
   });
-
   document.getElementById('zoom-fit')?.addEventListener('click', () => {
     currentZoom = computeFitZoom();
     applyZoom(currentZoom);
@@ -1867,27 +2783,104 @@ function initStudio() {
     calculatePageBudget();
   });
 
-  // Sample Loader
-  document.getElementById('btn-load-sample')?.addEventListener('click', () => {
-    if (confirm('Reset to default European English sample CV? Your current changes will be replaced.')) {
-      currentCV = createSampleEuropeanCV();
+  const switchMobileView = (view) => {
+    if (!studioLayout) return;
+    studioLayout.setAttribute('data-mobile-view', view);
+    document.getElementById('tab-mobile-editor')?.classList.toggle('active', view === 'editor');
+    document.getElementById('tab-mobile-preview')?.classList.toggle('active', view === 'preview');
+    if (view === 'preview') {
+      requestAnimationFrame(() => {
+        currentZoom = computeFitZoom();
+        applyZoom(currentZoom);
+        calculatePageBudget();
+      });
+    }
+  };
+
+  document.getElementById('tab-mobile-editor')?.addEventListener('click', () => switchMobileView('editor'));
+  document.getElementById('tab-mobile-preview')?.addEventListener('click', () => switchMobileView('preview'));
+
+  /* ------------------------------------------------------------------
+     Launch Modal ("How would you like to start?") + JSON Import/Export
+     ------------------------------------------------------------------ */
+  const openLaunchModal = () => launchOverlay?.classList.add('open');
+  const closeLaunchModal = () => launchOverlay?.classList.remove('open');
+
+  document.getElementById('btn-open-launch')?.addEventListener('click', openLaunchModal);
+  document.getElementById('btn-close-launch')?.addEventListener('click', () => {
+    saveCVDirect(currentCV);
+    closeLaunchModal();
+  });
+  launchOverlay?.addEventListener('click', (e) => {
+    if (e.target === launchOverlay) {
       saveCVDirect(currentCV);
-      syncStaticInputsFromCV();
-      syncRailState();
-      renderExperienceCards();
-      renderEducationCards();
-      renderLanguageCards();
-      refreshCanvas();
-      showToast('Sample CV restored.');
+      closeLaunchModal();
     }
   });
 
-  // PDF Export
+  const hydrateAll = () => {
+    ensureCVShape(currentCV);
+    syncStaticInputsFromCV();
+    syncToolbarState();
+    syncAccordionOrderDOM();
+    renderExperienceCards();
+    renderEducationCards();
+    renderSkillsChips();
+    renderLanguageCards();
+    renderProjectsCards();
+    renderCertificationsCards();
+    refreshCanvas();
+  };
+
+  document.getElementById('btn-start-guided')?.addEventListener('click', () => {
+    currentCV = createEmptyCV();
+    saveCVDirect(currentCV);
+    hydrateAll();
+    closeLaunchModal();
+    setActiveSection('identity', { focusInput: true });
+    showToast('Guided mode ready — start with your name and target role.');
+  });
+
+  document.getElementById('btn-start-sample')?.addEventListener('click', () => {
+    currentCV = createSampleEuropeanCV();
+    saveCVDirect(currentCV);
+    hydrateAll();
+    closeLaunchModal();
+    setActiveSection('experience');
+    showToast('Sample European CV loaded.');
+  });
+
+  const importFileInput = document.getElementById('import-json-file');
+  document.getElementById('btn-start-import')?.addEventListener('click', () => importFileInput?.click());
+  importFileInput?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const imported = await importCVFromJSON(file);
+      currentCV = imported;
+      saveCVDirect(currentCV);
+      hydrateAll();
+      closeLaunchModal();
+      showToast('CV imported cleanly from JSON.');
+    } catch (err) {
+      showToast(err.message || 'Could not import JSON file.');
+    } finally {
+      importFileInput.value = '';
+    }
+  });
+
+  document.getElementById('btn-export-json')?.addEventListener('click', () => {
+    exportCVAsJSON(currentCV);
+    showToast('JSON backup downloaded.');
+  });
+
   document.getElementById('btn-export-pdf')?.addEventListener('click', () => {
     exportCVToPDF(currentCV);
   });
 
-  // ATS & Job Matcher Drawer
+  /* ------------------------------------------------------------------
+     ATS & Job Matcher Drawer
+     ------------------------------------------------------------------ */
   const openDrawer = () => {
     updateATSReport();
     drawer?.classList.add('open');
@@ -1898,8 +2891,11 @@ function initStudio() {
     drawerBackdrop?.classList.remove('active');
   };
 
-  document.getElementById('btn-open-matcher')?.addEventListener('click', openDrawer);
   document.getElementById('btn-ats-pill')?.addEventListener('click', openDrawer);
+  document.getElementById('btn-open-matcher')?.addEventListener('click', () => {
+    openDrawer();
+    document.getElementById('job-description-input')?.focus();
+  });
   document.getElementById('btn-close-drawer')?.addEventListener('click', closeDrawer);
   drawerBackdrop?.addEventListener('click', closeDrawer);
 
@@ -1912,21 +2908,19 @@ function initStudio() {
 
     const match = calculateJobMatch(currentCV, text);
     document.getElementById('job-analysis-results').style.display = 'block';
-    document.getElementById('job-match-badge').textContent = `${match.matchPercentage}% Match`;
+    const badge = document.getElementById('job-match-badge');
+    badge.textContent = `${match.matchPercentage}% Match`;
+    badge.className = `ats-pill ${match.matchPercentage < 40 ? 'state-low' : match.matchPercentage < 70 ? 'state-warn' : ''}`.trim();
 
     const matchedBox = document.getElementById('job-matched-tags');
     matchedBox.innerHTML = match.matched.length > 0
       ? match.matched.map(m => `<span class="tag-interactive tag-matched">✓ ${escapeHTML(m)}</span>`).join('')
-      : '<span style="font-size: 11px; color: #a1a7b5;">No direct keyword matches yet.</span>';
+      : '<span style="font-size: 12px; color: var(--text-secondary);">No direct keyword matches yet.</span>';
 
     const missingBox = document.getElementById('job-missing-tags');
     missingBox.innerHTML = match.missing.length > 0
-      ? match.missing.map(m => `
-          <span class="tag-interactive tag-missing" data-add-kw="${escapeAttr(m)}" title="Click to add to your skills">
-            + ${escapeHTML(m)}
-          </span>
-        `).join('')
-      : '<span style="font-size: 11px; color: #34d399; font-weight: 600;">All detected qualifications are present.</span>';
+      ? match.missing.map(m => `<span class="tag-interactive tag-missing" data-add-kw="${escapeAttr(m)}" title="Click to add to your skills">+ ${escapeHTML(m)}</span>`).join('')
+      : '<span style="font-size: 12px; color: var(--success); font-weight: 600;">All detected qualifications are present.</span>';
 
     missingBox.querySelectorAll('[data-add-kw]').forEach(pill => {
       pill.addEventListener('click', () => {
@@ -1934,9 +2928,8 @@ function initStudio() {
         currentCV.skills.technical = currentCV.skills.technical || [];
         if (!currentCV.skills.technical.map(s => s.toLowerCase()).includes(kw.toLowerCase())) {
           currentCV.skills.technical.push(kw.charAt(0).toUpperCase() + kw.slice(1));
-          const techInput = document.getElementById('f-skills-tech');
-          if (techInput) techInput.value = currentCV.skills.technical.join(', ');
           saveCVDirect(currentCV);
+          renderSkillsChips();
           refreshCanvas();
           document.getElementById('btn-analyze-job').click();
         }
@@ -1948,13 +2941,26 @@ function initStudio() {
 
   // Initial Mount
   currentZoom = computeFitZoom();
-  syncStaticInputsFromCV();
-  syncRailState();
-  renderExperienceCards();
-  renderEducationCards();
-  renderLanguageCards();
+  hydrateAll();
+  setActiveSection('identity');
   applyZoom(currentZoom);
-  refreshCanvas();
+
+  if (isFirstVisit) {
+    openLaunchModal();
+  }
+}
+
+function ensureCVShape(cv) {
+  cv.meta = cv.meta || {};
+  cv.meta.sectionOrder = normalizeSectionOrder(cv.meta.sectionOrder);
+  cv.personal = cv.personal || {};
+  cv.experience = Array.isArray(cv.experience) ? cv.experience : [];
+  cv.education = Array.isArray(cv.education) ? cv.education : [];
+  cv.skills = cv.skills || { technical: [], languages: [] };
+  cv.skills.technical = Array.isArray(cv.skills.technical) ? cv.skills.technical : [];
+  cv.skills.languages = Array.isArray(cv.skills.languages) ? cv.skills.languages : [];
+  cv.projects = Array.isArray(cv.projects) ? cv.projects : [];
+  cv.certifications = Array.isArray(cv.certifications) ? cv.certifications : [];
 }
 
 if (document.readyState === 'loading') {

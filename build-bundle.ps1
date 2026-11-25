@@ -14,6 +14,7 @@ $files = @(
   'js/engines/country-rules.js',
   'js/engines/ats-scorer.js',
   'js/engines/job-matcher.js',
+  'js/engines/completion-engine.js',
   'js/engines/pdf-exporter.js',
   'js/components/preview-renderer.js',
   'js/app.js'
@@ -30,7 +31,7 @@ $sb = [System.Text.StringBuilder]::new()
 foreach ($rel in $files) {
   $full = Join-Path $root $rel
   $raw = Get-Content -Path $full -Raw -Encoding UTF8
-  $cleaned = [regex]::Replace($raw, '(?m)^\s*import\s+.*?;?\s*$', '')
+  $cleaned = [regex]::Replace($raw, '(?ms)^\s*import\s+(?:[\s\S]*?from\s+)?[''"][^''"]+[''"];?\s*$', '')
   $cleaned = [regex]::Replace($cleaned, '(?m)^\s*export\s+(?=(const|let|var|function)\s)', '')
   [void]$sb.AppendLine("  // --- $rel ---")
   [void]$sb.AppendLine($cleaned)
