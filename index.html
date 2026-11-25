@@ -12,17 +12,18 @@
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
+  <div class="studio-top-stripe no-print" aria-hidden="true"></div>
 
   <!-- 1. Top Header Bar -->
   <header class="app-header no-print">
     <div class="brand-group">
       <span class="folio-mark" aria-hidden="true">
-        <svg width="18" height="22" viewBox="0 0 18 22" fill="none">
-          <rect x="0.75" y="0.75" width="16.5" height="20.5" rx="2.5" stroke="currentColor" stroke-width="1.5"/>
-          <rect x="3.5" y="4" width="2.2" height="14" rx="1" fill="var(--accent)"/>
+        <svg width="15" height="18" viewBox="0 0 18 22" fill="none">
+          <rect x="0.75" y="0.75" width="16.5" height="20.5" rx="3" stroke="currentColor" stroke-width="1.6"/>
+          <rect x="3.5" y="4" width="2.4" height="14" rx="1.2" fill="var(--accent)"/>
           <line x1="8" y1="6.5" x2="14" y2="6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          <line x1="8" y1="10.2" x2="14" y2="10.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
-          <line x1="8" y1="13.8" x2="12.2" y2="13.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
+          <line x1="8" y1="10.2" x2="14" y2="10.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/>
+          <line x1="8" y1="13.8" x2="12.2" y2="13.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/>
         </svg>
       </span>
       <span class="brand-name">European CV <span class="brand-name-sub">Studio</span></span>
@@ -31,15 +32,15 @@
     <div class="header-actions">
       <button class="ats-gauge-btn" id="btn-ats-pill" type="button" title="Inspect ATS Score &amp; Match against a Job Description">
         <svg class="ats-ring-svg" width="18" height="18" viewBox="0 0 20 20" aria-hidden="true">
-          <circle class="ats-ring-track" cx="10" cy="10" r="7.5" fill="none" stroke-width="2.2"/>
-          <circle class="ats-ring-arc" id="ats-ring-arc" cx="10" cy="10" r="7.5" fill="none" stroke-width="2.2" stroke-dasharray="47.12" stroke-dashoffset="47.12" stroke-linecap="round" transform="rotate(-90 10 10)"/>
+          <circle class="ats-ring-track" cx="10" cy="10" r="7.5" fill="none" stroke-width="2.3"/>
+          <circle class="ats-ring-arc" id="ats-ring-arc" cx="10" cy="10" r="7.5" fill="none" stroke-width="2.3" stroke-dasharray="47.12" stroke-dashoffset="47.12" stroke-linecap="round" transform="rotate(-90 10 10)"/>
         </svg>
         <span class="ats-score-num" id="ats-score-num">--</span>
         <span class="ats-score-meta" id="ats-score-label">ATS</span>
       </button>
 
       <button class="btn btn-outline" id="btn-open-matcher" type="button">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
           <circle cx="12" cy="12" r="9"></circle>
           <circle cx="12" cy="12" r="5"></circle>
           <circle cx="12" cy="12" r="1.5"></circle>
@@ -48,7 +49,7 @@
       </button>
 
       <button class="btn btn-ghost" id="btn-open-launch" type="button" title="Start new CV, guided wizard, or import JSON">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 5v14M5 12h14"></path>
         </svg>
         <span class="btn-label-desktop">New / Import</span>
@@ -72,7 +73,7 @@
       </button>
 
       <button class="btn btn-primary" id="btn-export-pdf" type="button">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -82,253 +83,264 @@
     </div>
   </header>
 
-  <!-- 2. Studio Inspector Bar (Ghost Controls + Hairline Dividers) -->
+  <!-- 2. Studio Inspector Bar (Floating Pill Clusters on Mineral Stone) -->
   <nav class="settings-toolbar no-print" aria-label="CV formatting and market settings">
     <div class="toolbar-controls">
       <!-- Cluster 1: Market & Locale -->
-      <div class="toolbar-item">
-        <button class="toolbar-trigger" id="btn-country-popover" type="button" aria-expanded="false" aria-haspopup="listbox" title="Target European Market">
-          <span class="iso-tag" id="active-country-code">DE</span>
-          <span id="active-country-label">Germany (DIN 5008)</span>
-          <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-        </button>
-        <div class="toolbar-popover studio-menu-popover" id="popover-country" style="width: 280px;">
-          <div class="popover-title">Target European market</div>
-          <div class="studio-menu-list" role="listbox" aria-label="Target European Market">
-            <button type="button" class="studio-menu-item active" role="option" aria-selected="true" data-country-val="DE">
-              <span class="iso-tag">DE</span>
-              <span class="studio-menu-copy">
-                <span class="studio-menu-name">Germany / DACH (DIN 5008)</span>
-                <span class="studio-menu-desc">Photo, birth date &amp; signature supported</span>
-              </span>
-              <span class="studio-menu-check" aria-hidden="true">✓</span>
-            </button>
-            <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-country-val="UK">
-              <span class="iso-tag">UK</span>
-              <span class="studio-menu-copy">
-                <span class="studio-menu-name">UK &amp; Ireland</span>
-                <span class="studio-menu-desc">Equality Act anti-bias format (no photo)</span>
-              </span>
-              <span class="studio-menu-check" aria-hidden="true">✓</span>
-            </button>
-            <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-country-val="FR">
-              <span class="iso-tag">FR</span>
-              <span class="studio-menu-copy">
-                <span class="studio-menu-name">France (1-Page Executive)</span>
-                <span class="studio-menu-desc">Compact 1-page progression &amp; skills</span>
-              </span>
-              <span class="studio-menu-check" aria-hidden="true">✓</span>
-            </button>
-            <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-country-val="NL">
-              <span class="iso-tag">NL</span>
-              <span class="studio-menu-copy">
-                <span class="studio-menu-name">Netherlands / Benelux</span>
-                <span class="studio-menu-desc">Direct, measurable skills &amp; impact</span>
-              </span>
-              <span class="studio-menu-check" aria-hidden="true">✓</span>
-            </button>
+      <div class="toolbar-cluster">
+        <div class="toolbar-item">
+          <button class="toolbar-trigger" id="btn-country-popover" type="button" aria-expanded="false" aria-haspopup="listbox" title="Target European Market">
+            <span class="iso-tag" id="active-country-code">DE</span>
+            <span id="active-country-label">Germany (DIN 5008)</span>
+            <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="toolbar-popover studio-menu-popover" id="popover-country" style="width: 280px;">
+            <div class="popover-title">Target European market</div>
+            <div class="studio-menu-list" role="listbox" aria-label="Target European Market">
+              <button type="button" class="studio-menu-item active" role="option" aria-selected="true" data-country-val="DE">
+                <span class="iso-tag">DE</span>
+                <span class="studio-menu-copy">
+                  <span class="studio-menu-name">Germany / DACH (DIN 5008)</span>
+                  <span class="studio-menu-desc">Photo, birth date &amp; signature supported</span>
+                </span>
+                <span class="studio-menu-check" aria-hidden="true">✓</span>
+              </button>
+              <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-country-val="UK">
+                <span class="iso-tag">UK</span>
+                <span class="studio-menu-copy">
+                  <span class="studio-menu-name">UK &amp; Ireland</span>
+                  <span class="studio-menu-desc">Equality Act anti-bias format (no photo)</span>
+                </span>
+                <span class="studio-menu-check" aria-hidden="true">✓</span>
+              </button>
+              <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-country-val="FR">
+                <span class="iso-tag">FR</span>
+                <span class="studio-menu-copy">
+                  <span class="studio-menu-name">France (1-Page Executive)</span>
+                  <span class="studio-menu-desc">Compact 1-page progression &amp; skills</span>
+                </span>
+                <span class="studio-menu-check" aria-hidden="true">✓</span>
+              </button>
+              <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-country-val="NL">
+                <span class="iso-tag">NL</span>
+                <span class="studio-menu-copy">
+                  <span class="studio-menu-name">Netherlands / Benelux</span>
+                  <span class="studio-menu-desc">Direct, measurable skills &amp; impact</span>
+                </span>
+                <span class="studio-menu-check" aria-hidden="true">✓</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <span class="toolbar-cluster-sep" aria-hidden="true"></span>
+
+        <div class="toolbar-item">
+          <button class="toolbar-trigger" id="btn-language-popover" type="button" aria-expanded="false" aria-haspopup="listbox" title="CV Headings Language">
+            <span id="active-language-label">English</span>
+            <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="toolbar-popover studio-menu-popover" id="popover-language" style="min-width: 210px;">
+            <div class="popover-title">CV headings language</div>
+            <div class="studio-menu-list" role="listbox" aria-label="CV Headings Language">
+              <button type="button" class="studio-menu-item active" role="option" aria-selected="true" data-lang-val="en">
+                <span class="studio-menu-copy">
+                  <span class="studio-menu-name">English</span>
+                  <span class="studio-menu-desc">International &amp; UK headings</span>
+                </span>
+                <span class="studio-menu-check" aria-hidden="true">✓</span>
+              </button>
+              <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-lang-val="de">
+                <span class="studio-menu-copy">
+                  <span class="studio-menu-name">Deutsch</span>
+                  <span class="studio-menu-desc">DACH / Lebenslauf headings</span>
+                </span>
+                <span class="studio-menu-check" aria-hidden="true">✓</span>
+              </button>
+              <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-lang-val="fr">
+                <span class="studio-menu-copy">
+                  <span class="studio-menu-name">Français</span>
+                  <span class="studio-menu-desc">France &amp; Benelux headings</span>
+                </span>
+                <span class="studio-menu-check" aria-hidden="true">✓</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <span class="toolbar-cluster-sep" aria-hidden="true"></span>
+
+        <!-- Regional & DIN Options Popover -->
+        <div class="toolbar-item">
+          <button class="toolbar-trigger" id="btn-regional-popover" type="button" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line>
+              <line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line>
+              <line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line>
+              <line x1="17" y1="16" x2="23" y2="16"></line>
+            </svg>
+            <span>Compliance</span>
+            <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="toolbar-popover" id="popover-regional" style="width: 300px;">
+            <div class="popover-title">European formatting &amp; compliance</div>
+            <div id="formal-toggles-section">
+              <label class="toggle-row" id="row-toggle-photo">
+                <span>Include Candidate Photo</span>
+                <input type="checkbox" id="toggle-photo" checked>
+              </label>
+              <label class="toggle-row" id="row-toggle-signature">
+                <span>Closing Signature Block</span>
+                <input type="checkbox" id="toggle-signature" checked>
+              </label>
+            </div>
+            <div id="compliance-note-box" class="compliance-note-box">
+              DIN 5008 Standard: Candidate photo, birth date, and formal closing signature block are customary in Germany &amp; Austria.
+            </div>
           </div>
         </div>
       </div>
-
-      <div class="toolbar-item">
-        <button class="toolbar-trigger" id="btn-language-popover" type="button" aria-expanded="false" aria-haspopup="listbox" title="CV Headings Language">
-          <span id="active-language-label">English</span>
-          <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-        </button>
-        <div class="toolbar-popover studio-menu-popover" id="popover-language" style="min-width: 210px;">
-          <div class="popover-title">CV headings language</div>
-          <div class="studio-menu-list" role="listbox" aria-label="CV Headings Language">
-            <button type="button" class="studio-menu-item active" role="option" aria-selected="true" data-lang-val="en">
-              <span class="studio-menu-copy">
-                <span class="studio-menu-name">English</span>
-                <span class="studio-menu-desc">International &amp; UK headings</span>
-              </span>
-              <span class="studio-menu-check" aria-hidden="true">✓</span>
-            </button>
-            <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-lang-val="de">
-              <span class="studio-menu-copy">
-                <span class="studio-menu-name">Deutsch</span>
-                <span class="studio-menu-desc">DACH / Lebenslauf headings</span>
-              </span>
-              <span class="studio-menu-check" aria-hidden="true">✓</span>
-            </button>
-            <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-lang-val="fr">
-              <span class="studio-menu-copy">
-                <span class="studio-menu-name">Français</span>
-                <span class="studio-menu-desc">France &amp; Benelux headings</span>
-              </span>
-              <span class="studio-menu-check" aria-hidden="true">✓</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Regional & DIN Options Popover -->
-      <div class="toolbar-item">
-        <button class="toolbar-trigger" id="btn-regional-popover" type="button" aria-expanded="false">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line>
-            <line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line>
-            <line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line>
-            <line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line>
-            <line x1="17" y1="16" x2="23" y2="16"></line>
-          </svg>
-          <span>Compliance</span>
-          <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-        </button>
-        <div class="toolbar-popover" id="popover-regional" style="width: 300px;">
-          <div class="popover-title">European formatting &amp; compliance</div>
-          <div id="formal-toggles-section">
-            <label class="toggle-row" id="row-toggle-photo">
-              <span>Include Candidate Photo</span>
-              <input type="checkbox" id="toggle-photo" checked>
-            </label>
-            <label class="toggle-row" id="row-toggle-signature">
-              <span>Closing Signature Block</span>
-              <input type="checkbox" id="toggle-signature" checked>
-            </label>
-          </div>
-          <div id="compliance-note-box" class="compliance-note-box">
-            DIN 5008 Standard: Candidate photo, birth date, and formal closing signature block are customary in Germany &amp; Austria.
-          </div>
-        </div>
-      </div>
-
-      <span class="toolbar-divider" aria-hidden="true"></span>
 
       <!-- Cluster 2: Typography, Accent & Rhythm -->
-      <div class="toolbar-item">
-        <button class="toolbar-trigger" id="btn-template-popover" type="button" aria-expanded="false">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
-            <path d="M3 9h18M9 21V9"></path>
-          </svg>
-          <span id="active-template-label">Frankfurt</span>
-          <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-        </button>
-        <div class="toolbar-popover" id="popover-template">
-          <div class="popover-title">Choose a CV layout</div>
-          <div class="template-gallery-grid" id="template-gallery">
-            <button type="button" class="template-card-option active" data-template-id="german-din-5008">
-              <div class="template-thumb" aria-hidden="true">
-                <div class="thumb-header-row">
-                  <div style="flex:1; display:flex; flex-direction:column; gap:3px;">
-                    <div class="thumb-line dark" style="width:70%; height:5px;"></div>
-                    <div class="thumb-line accent" style="width:50%;"></div>
+      <div class="toolbar-cluster">
+        <div class="toolbar-item">
+          <button class="toolbar-trigger" id="btn-template-popover" type="button" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+              <path d="M3 9h18M9 21V9"></path>
+            </svg>
+            <span id="active-template-label">Frankfurt</span>
+            <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="toolbar-popover" id="popover-template">
+            <div class="popover-title">Choose a CV layout</div>
+            <div class="template-gallery-grid" id="template-gallery">
+              <button type="button" class="template-card-option active" data-template-id="german-din-5008">
+                <div class="template-thumb" aria-hidden="true">
+                  <div class="thumb-header-row">
+                    <div style="flex:1; display:flex; flex-direction:column; gap:3px;">
+                      <div class="thumb-line dark" style="width:70%; height:5px;"></div>
+                      <div class="thumb-line accent" style="width:50%;"></div>
+                    </div>
+                    <div class="thumb-photo"></div>
                   </div>
-                  <div class="thumb-photo"></div>
-                </div>
-                <div class="thumb-grid-row">
-                  <div class="thumb-line" style="width:18px;"></div>
-                  <div style="display:flex; flex-direction:column; gap:3px;">
-                    <div class="thumb-line dark" style="width:85%;"></div>
-                    <div class="thumb-line" style="width:100%;"></div>
+                  <div class="thumb-grid-row">
+                    <div class="thumb-line" style="width:18px;"></div>
+                    <div style="display:flex; flex-direction:column; gap:3px;">
+                      <div class="thumb-line dark" style="width:85%;"></div>
+                      <div class="thumb-line" style="width:100%;"></div>
+                    </div>
+                  </div>
+                  <div class="thumb-grid-row">
+                    <div class="thumb-line" style="width:18px;"></div>
+                    <div style="display:flex; flex-direction:column; gap:3px;">
+                      <div class="thumb-line dark" style="width:65%;"></div>
+                      <div class="thumb-line" style="width:90%;"></div>
+                    </div>
                   </div>
                 </div>
-                <div class="thumb-grid-row">
-                  <div class="thumb-line" style="width:18px;"></div>
-                  <div style="display:flex; flex-direction:column; gap:3px;">
-                    <div class="thumb-line dark" style="width:65%;"></div>
-                    <div class="thumb-line" style="width:90%;"></div>
-                  </div>
-                </div>
-              </div>
-              <div class="template-card-name">Frankfurt</div>
-              <div class="template-card-desc">DIN 5008 asymmetric date grid</div>
-            </button>
+                <div class="template-card-name">Frankfurt</div>
+                <div class="template-card-desc">DIN 5008 asymmetric date grid</div>
+              </button>
 
-            <button type="button" class="template-card-option" data-template-id="minimal-swiss">
-              <div class="template-thumb" aria-hidden="true">
-                <div style="border-bottom: 3px solid #0f172a; padding-bottom: 5px; display:flex; flex-direction:column; gap:3px;">
-                  <div class="thumb-line dark" style="width:80%; height:6px;"></div>
-                  <div class="thumb-line accent" style="width:45%;"></div>
-                </div>
-                <div style="border-top: 1px solid #0f172a; padding-top:4px; display:flex; flex-direction:column; gap:3px;">
-                  <div class="thumb-line dark" style="width:55%;"></div>
-                  <div class="thumb-line" style="width:95%;"></div>
-                  <div class="thumb-line" style="width:80%;"></div>
-                </div>
-                <div style="border-top: 1px solid #0f172a; padding-top:4px; display:flex; flex-direction:column; gap:3px;">
-                  <div class="thumb-line dark" style="width:45%;"></div>
-                  <div class="thumb-line" style="width:85%;"></div>
-                </div>
-              </div>
-              <div class="template-card-name">Zurich</div>
-              <div class="template-card-desc">Swiss typographic grid</div>
-            </button>
-
-            <button type="button" class="template-card-option" data-template-id="modern-european">
-              <div class="template-thumb" aria-hidden="true">
-                <div style="align-items:center; border-bottom: 1px solid #0f172a; padding-bottom: 5px; display:flex; flex-direction:column; gap:3px;">
-                  <div class="thumb-line dark" style="width:65%; height:5px;"></div>
-                  <div class="thumb-line accent" style="width:45%;"></div>
-                </div>
-                <div class="thumb-line" style="width:88%; margin: 2px auto;"></div>
-                <div class="thumb-grid-row">
-                  <div class="thumb-line" style="width:18px;"></div>
-                  <div style="display:flex; flex-direction:column; gap:3px;">
-                    <div class="thumb-line dark" style="width:75%;"></div>
+              <button type="button" class="template-card-option" data-template-id="minimal-swiss">
+                <div class="template-thumb" aria-hidden="true">
+                  <div style="border-bottom: 3px solid #0f172a; padding-bottom: 5px; display:flex; flex-direction:column; gap:3px;">
+                    <div class="thumb-line dark" style="width:80%; height:6px;"></div>
+                    <div class="thumb-line accent" style="width:45%;"></div>
+                  </div>
+                  <div style="border-top: 1px solid #0f172a; padding-top:4px; display:flex; flex-direction:column; gap:3px;">
+                    <div class="thumb-line dark" style="width:55%;"></div>
                     <div class="thumb-line" style="width:95%;"></div>
+                    <div class="thumb-line" style="width:80%;"></div>
+                  </div>
+                  <div style="border-top: 1px solid #0f172a; padding-top:4px; display:flex; flex-direction:column; gap:3px;">
+                    <div class="thumb-line dark" style="width:45%;"></div>
+                    <div class="thumb-line" style="width:85%;"></div>
                   </div>
                 </div>
-              </div>
-              <div class="template-card-name">Paris</div>
-              <div class="template-card-desc">Newsreader editorial serif</div>
-            </button>
+                <div class="template-card-name">Zurich</div>
+                <div class="template-card-desc">Swiss typographic grid</div>
+              </button>
+
+              <button type="button" class="template-card-option" data-template-id="modern-european">
+                <div class="template-thumb" aria-hidden="true">
+                  <div style="align-items:center; border-bottom: 1px solid #0f172a; padding-bottom: 5px; display:flex; flex-direction:column; gap:3px;">
+                    <div class="thumb-line dark" style="width:65%; height:5px;"></div>
+                    <div class="thumb-line accent" style="width:45%;"></div>
+                  </div>
+                  <div class="thumb-line" style="width:88%; margin: 2px auto;"></div>
+                  <div class="thumb-grid-row">
+                    <div class="thumb-line" style="width:18px;"></div>
+                    <div style="display:flex; flex-direction:column; gap:3px;">
+                      <div class="thumb-line dark" style="width:75%;"></div>
+                      <div class="thumb-line" style="width:95%;"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="template-card-name">Paris</div>
+                <div class="template-card-desc">Newsreader editorial serif</div>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Accent Color Popover -->
-      <div class="toolbar-item">
-        <button class="toolbar-trigger" id="btn-color-popover" type="button" aria-expanded="false">
-          <span class="swatch-indicator" id="active-color-dot" style="background: #1e3a8a;"></span>
-          <span id="active-color-name">Prussian Navy</span>
-          <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-        </button>
-        <div class="toolbar-popover" id="popover-color" style="min-width: 220px;">
-          <div class="popover-title">Accent color</div>
-          <div class="color-swatches-grid">
-            <button type="button" class="color-dot active" data-color="#1e3a8a" data-color-name="Prussian Navy" style="background: #1e3a8a;" title="Prussian Navy" aria-label="Prussian Navy"></button>
-            <button type="button" class="color-dot" data-color="#065f46" data-color-name="Racing Green" style="background: #065f46;" title="British Racing Green" aria-label="British Racing Green"></button>
-            <button type="button" class="color-dot" data-color="#0f172a" data-color-name="Obsidian Slate" style="background: #0f172a;" title="Obsidian Slate" aria-label="Obsidian Slate"></button>
-            <button type="button" class="color-dot" data-color="#701a75" data-color-name="Bordeaux Wine" style="background: #701a75;" title="Bordeaux Wine" aria-label="Bordeaux Wine"></button>
-            <button type="button" class="color-dot" data-color="#334155" data-color-name="Charcoal" style="background: #334155;" title="Architectural Charcoal" aria-label="Architectural Charcoal"></button>
+        <span class="toolbar-cluster-sep" aria-hidden="true"></span>
+
+        <!-- Accent Color & Studio Theme Popover -->
+        <div class="toolbar-item">
+          <button class="toolbar-trigger" id="btn-color-popover" type="button" aria-expanded="false">
+            <span class="swatch-indicator" id="active-color-dot" style="background: #2b3fe8;"></span>
+            <span id="active-color-name">Ultramarine</span>
+            <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="toolbar-popover" id="popover-color" style="min-width: 240px;">
+            <div class="popover-title">Ink palette &amp; studio tone</div>
+            <div class="color-swatches-grid">
+              <button type="button" class="color-dot active" data-color="#2b3fe8" data-color-name="Ultramarine" data-ink-key="ultramarine" style="background: #2b3fe8;" title="Ultramarine Cobalt" aria-label="Ultramarine Cobalt"></button>
+              <button type="button" class="color-dot" data-color="#1e3a8a" data-color-name="Prussian Navy" data-ink-key="prussian" style="background: #1e3a8a;" title="Prussian Navy" aria-label="Prussian Navy"></button>
+              <button type="button" class="color-dot" data-color="#065f46" data-color-name="Botanical Emerald" data-ink-key="emerald" style="background: #065f46;" title="Botanical Emerald" aria-label="Botanical Emerald"></button>
+              <button type="button" class="color-dot" data-color="#701a75" data-color-name="Bordeaux Plum" data-ink-key="bordeaux" style="background: #701a75;" title="Bordeaux Plum" aria-label="Bordeaux Plum"></button>
+              <button type="button" class="color-dot" data-color="#b4432a" data-color-name="Burnt Sienna" data-ink-key="sienna" style="background: #b4432a;" title="Burnt Sienna" aria-label="Burnt Sienna"></button>
+              <button type="button" class="color-dot" data-color="#0f172a" data-color-name="Obsidian Slate" data-ink-key="obsidian" style="background: #0f172a;" title="Obsidian Slate" aria-label="Obsidian Slate"></button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Spacing Density Popover -->
-      <div class="toolbar-item">
-        <button class="toolbar-trigger" id="btn-spacing-popover" type="button" aria-expanded="false" aria-haspopup="listbox" title="Vertical Density">
-          <span id="active-spacing-label">Standard</span>
-          <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-        </button>
-        <div class="toolbar-popover studio-menu-popover" id="popover-spacing" style="min-width: 215px;">
-          <div class="popover-title">Vertical density</div>
-          <div class="studio-menu-list" role="listbox" aria-label="Vertical Density">
-            <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-spacing-val="compact">
-              <span class="studio-menu-copy">
-                <span class="studio-menu-name">Compact</span>
-                <span class="studio-menu-desc">Tighter margins for 1-page CVs</span>
-              </span>
-              <span class="studio-menu-check" aria-hidden="true">✓</span>
-            </button>
-            <button type="button" class="studio-menu-item active" role="option" aria-selected="true" data-spacing-val="normal">
-              <span class="studio-menu-copy">
-                <span class="studio-menu-name">Standard</span>
-                <span class="studio-menu-desc">Balanced A4 editorial spacing</span>
-              </span>
-              <span class="studio-menu-check" aria-hidden="true">✓</span>
-            </button>
-            <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-spacing-val="spacious">
-              <span class="studio-menu-copy">
-                <span class="studio-menu-name">Spacious</span>
-                <span class="studio-menu-desc">Open executive breathing room</span>
-              </span>
-              <span class="studio-menu-check" aria-hidden="true">✓</span>
-            </button>
+        <span class="toolbar-cluster-sep" aria-hidden="true"></span>
+
+        <!-- Spacing Density Popover -->
+        <div class="toolbar-item">
+          <button class="toolbar-trigger" id="btn-spacing-popover" type="button" aria-expanded="false" aria-haspopup="listbox" title="Vertical Density">
+            <span id="active-spacing-label">Standard</span>
+            <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="toolbar-popover studio-menu-popover" id="popover-spacing" style="min-width: 215px;">
+            <div class="popover-title">Vertical density</div>
+            <div class="studio-menu-list" role="listbox" aria-label="Vertical Density">
+              <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-spacing-val="compact">
+                <span class="studio-menu-copy">
+                  <span class="studio-menu-name">Compact</span>
+                  <span class="studio-menu-desc">Tighter margins for 1-page CVs</span>
+                </span>
+                <span class="studio-menu-check" aria-hidden="true">✓</span>
+              </button>
+              <button type="button" class="studio-menu-item active" role="option" aria-selected="true" data-spacing-val="normal">
+                <span class="studio-menu-copy">
+                  <span class="studio-menu-name">Standard</span>
+                  <span class="studio-menu-desc">Balanced A4 editorial spacing</span>
+                </span>
+                <span class="studio-menu-check" aria-hidden="true">✓</span>
+              </button>
+              <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-spacing-val="spacious">
+                <span class="studio-menu-copy">
+                  <span class="studio-menu-name">Spacious</span>
+                  <span class="studio-menu-desc">Open executive breathing room</span>
+                </span>
+                <span class="studio-menu-check" aria-hidden="true">✓</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -346,13 +358,18 @@
 
     <!-- Left Pane: Stepper + Collapsible Accordion Sections -->
     <section class="pane-editor no-print" aria-label="CV Editor">
-      <div class="stepper-bar" id="stepper-bar" role="tablist" aria-label="CV sections"></div>
+      <div class="stepper-wrap">
+        <div class="stepper-bar" id="stepper-bar" role="tablist" aria-label="CV sections"></div>
+      </div>
 
       <div class="editor-scroll" id="editor-scroll">
         <!-- Pinned Section 1: Identity & Contact -->
         <div class="accordion-card is-open" data-section-id="identity" id="accordion-identity">
           <div class="accordion-header" data-toggle-section="identity" tabindex="0" role="button" aria-expanded="true">
-            <span class="section-status-dot" data-status-dot="identity" aria-hidden="true">•</span>
+            <span class="section-jewel" data-jewel="identity">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-3.5 3.6-6 8-6s8 2.5 8 6"></path></svg>
+              <span class="section-status-dot" data-status-dot="identity" aria-hidden="true">•</span>
+            </span>
             <div class="accordion-heading-group">
               <div class="accordion-title-row">
                 <span class="accordion-title">Personal details</span>
@@ -417,8 +434,8 @@
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"></circle><path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6"></path></svg>
                 </div>
                 <input type="file" id="p-photo-file" accept="image/*" style="display: none;">
-                <button class="btn btn-outline" id="btn-upload-photo" type="button" style="font-size: 12px; padding: 5px 10px;">Upload photo</button>
-                <button class="btn btn-ghost" id="btn-clear-photo" type="button" style="font-size: 12px; padding: 5px 10px; color: var(--danger);">Clear</button>
+                <button class="btn btn-outline btn-compact" id="btn-upload-photo" type="button">Upload photo</button>
+                <button class="btn btn-ghost btn-compact" id="btn-clear-photo" type="button" style="color: var(--danger);">Clear</button>
               </div>
             </div>
             <div class="step-nav-footer">
@@ -437,7 +454,10 @@
               <span class="drag-handle" title="Drag to reorder section" aria-label="Drag Summary">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
               </span>
-              <span class="section-status-dot" data-status-dot="summary" aria-hidden="true">•</span>
+              <span class="section-jewel" data-jewel="summary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="18" y2="12"></line><line x1="4" y1="18" x2="14" y2="18"></line></svg>
+                <span class="section-status-dot" data-status-dot="summary" aria-hidden="true">•</span>
+              </span>
               <div class="accordion-heading-group">
                 <div class="accordion-title-row">
                   <span class="accordion-title">Professional summary</span>
@@ -471,7 +491,10 @@
               <span class="drag-handle" title="Drag to reorder section" aria-label="Drag Work Experience">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
               </span>
-              <span class="section-status-dot" data-status-dot="experience" aria-hidden="true">•</span>
+              <span class="section-jewel" data-jewel="experience">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="3"></rect><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"></path></svg>
+                <span class="section-status-dot" data-status-dot="experience" aria-hidden="true">•</span>
+              </span>
               <div class="accordion-heading-group">
                 <div class="accordion-title-row">
                   <span class="accordion-title">Work experience</span>
@@ -485,9 +508,9 @@
               </div>
             </div>
             <div class="accordion-body">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap: 8px;">
                 <span style="font-size:12px; color:var(--text-secondary);">List roles in reverse chronological order.</span>
-                <button class="btn btn-outline" id="btn-add-job" type="button" style="font-size: 12px; padding: 5px 10px;">+ Add position</button>
+                <button class="btn btn-outline btn-compact" id="btn-add-job" type="button">+ Add position</button>
               </div>
               <div id="experience-card-list" style="display:flex; flex-direction:column; gap:10px;"></div>
               <div class="step-nav-footer">
@@ -503,7 +526,10 @@
               <span class="drag-handle" title="Drag to reorder section" aria-label="Drag Education">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
               </span>
-              <span class="section-status-dot" data-status-dot="education" aria-hidden="true">•</span>
+              <span class="section-jewel" data-jewel="education">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+                <span class="section-status-dot" data-status-dot="education" aria-hidden="true">•</span>
+              </span>
               <div class="accordion-heading-group">
                 <div class="accordion-title-row">
                   <span class="accordion-title">Education &amp; qualifications</span>
@@ -517,9 +543,9 @@
               </div>
             </div>
             <div class="accordion-body">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap: 8px;">
                 <span style="font-size:12px; color:var(--text-secondary);">Include honors or GPA if recent graduate.</span>
-                <button class="btn btn-outline" id="btn-add-edu" type="button" style="font-size: 12px; padding: 5px 10px;">+ Add degree</button>
+                <button class="btn btn-outline btn-compact" id="btn-add-edu" type="button">+ Add degree</button>
               </div>
               <div id="education-card-list" style="display:flex; flex-direction:column; gap:10px;"></div>
               <div class="step-nav-footer">
@@ -535,7 +561,10 @@
               <span class="drag-handle" title="Drag to reorder section" aria-label="Drag Skills">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
               </span>
-              <span class="section-status-dot" data-status-dot="skills" aria-hidden="true">•</span>
+              <span class="section-jewel" data-jewel="skills">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                <span class="section-status-dot" data-status-dot="skills" aria-hidden="true">•</span>
+              </span>
               <div class="accordion-heading-group">
                 <div class="accordion-title-row">
                   <span class="accordion-title">Skills &amp; technologies</span>
@@ -576,7 +605,10 @@
               <span class="drag-handle" title="Drag to reorder section" aria-label="Drag Languages">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
               </span>
-              <span class="section-status-dot" data-status-dot="languages" aria-hidden="true">•</span>
+              <span class="section-jewel" data-jewel="languages">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                <span class="section-status-dot" data-status-dot="languages" aria-hidden="true">•</span>
+              </span>
               <div class="accordion-heading-group">
                 <div class="accordion-title-row">
                   <span class="accordion-title">Languages (CEFR scale)</span>
@@ -590,11 +622,11 @@
               </div>
             </div>
             <div class="accordion-body">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-size:12px; color:var(--text-secondary);">European employers expect official CEFR levels (A1–C2).</span>
-                <button class="btn btn-outline" id="btn-add-lang" type="button" style="font-size: 12px; padding: 5px 10px;">+ Add language</button>
+              <div style="display:flex; justify-content:space-between; align-items:center; gap: 8px;">
+                <span style="font-size:12px; color:var(--text-secondary);">European employers look for CEFR tiers (A1–C2).</span>
+                <button class="btn btn-outline btn-compact" id="btn-add-lang" type="button">+ Add language</button>
               </div>
-              <div id="language-card-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+              <div id="language-card-list" style="display:flex; flex-direction:column; gap:10px;"></div>
               <div class="step-nav-footer">
                 <button type="button" class="btn btn-outline" data-goto-prev="languages">Back</button>
                 <button type="button" class="btn btn-primary" data-goto-next="languages">Finish &amp; Export</button>
@@ -608,7 +640,10 @@
               <span class="drag-handle" title="Drag to reorder section" aria-label="Drag Projects">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
               </span>
-              <span class="section-status-dot" data-status-dot="projects" aria-hidden="true">•</span>
+              <span class="section-jewel" data-jewel="projects">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                <span class="section-status-dot" data-status-dot="projects" aria-hidden="true">•</span>
+              </span>
               <div class="accordion-heading-group">
                 <div class="accordion-title-row">
                   <span class="accordion-title">Projects</span>
@@ -624,7 +659,7 @@
             <div class="accordion-body">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <button type="button" class="btn-remove-inline" data-remove-section="projects">Remove section</button>
-                <button class="btn btn-outline" id="btn-add-project" type="button" style="font-size: 12px; padding: 5px 10px;">+ Add project</button>
+                <button class="btn btn-outline btn-compact" id="btn-add-project" type="button">+ Add project</button>
               </div>
               <div id="projects-card-list" style="display:flex; flex-direction:column; gap:10px;"></div>
             </div>
@@ -636,7 +671,10 @@
               <span class="drag-handle" title="Drag to reorder section" aria-label="Drag Certifications">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
               </span>
-              <span class="section-status-dot" data-status-dot="certifications" aria-hidden="true">•</span>
+              <span class="section-jewel" data-jewel="certifications">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"></circle><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"></path></svg>
+                <span class="section-status-dot" data-status-dot="certifications" aria-hidden="true">•</span>
+              </span>
               <div class="accordion-heading-group">
                 <div class="accordion-title-row">
                   <span class="accordion-title">Certifications</span>
@@ -652,7 +690,7 @@
             <div class="accordion-body">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <button type="button" class="btn-remove-inline" data-remove-section="certifications">Remove section</button>
-                <button class="btn btn-outline" id="btn-add-cert" type="button" style="font-size: 12px; padding: 5px 10px;">+ Add certification</button>
+                <button class="btn btn-outline btn-compact" id="btn-add-cert" type="button">+ Add certification</button>
               </div>
               <div id="certifications-card-list" style="display:flex; flex-direction:column; gap:10px;"></div>
             </div>
@@ -662,7 +700,7 @@
 
         <!-- Quick-Add Section Button -->
         <div class="quick-add-wrap">
-          <button type="button" class="btn btn-outline" id="btn-quick-add-toggle" style="width: 100%; justify-content: center; border-style: dashed;">
+          <button type="button" class="btn btn-outline quick-add-btn" id="btn-quick-add-toggle">
             + Add section or entry
           </button>
           <div class="quick-add-menu" id="quick-add-menu">
@@ -680,20 +718,20 @@
     <section class="pane-canvas" aria-label="Live A4 CV Preview">
       <div class="canvas-top-bar no-print">
         <div class="page-budget-container" id="page-budget-box">
-          <span style="font-weight: 600; color: var(--text-secondary);">Page Fit:</span>
+          <span style="font-weight: 600; color: var(--text-secondary);">Page Fit</span>
           <div class="budget-bar-track">
             <div class="budget-bar-fill" id="budget-fill"></div>
           </div>
           <span id="budget-status-label" style="font-weight: 600; color: var(--success);">Calculating...</span>
-          <button id="btn-auto-fit" class="btn btn-primary" type="button" style="display: none; padding: 3px 9px; font-size: 11px;">Auto-fit 1 page</button>
+          <button id="btn-auto-fit" class="btn btn-primary btn-compact" type="button" style="display: none;">Auto-fit 1 page</button>
         </div>
 
         <span class="canvas-hint">Click any text on the page to edit directly</span>
 
-        <div class="zoom-controls">
-          <button class="btn btn-outline" id="zoom-out" type="button" style="padding: 3px 8px;" aria-label="Zoom out">−</button>
-          <button class="btn btn-outline" id="zoom-fit" type="button" style="padding: 3px 9px; font-size: 11.5px;">Fit</button>
-          <button class="btn btn-outline" id="zoom-in" type="button" style="padding: 3px 8px;" aria-label="Zoom in">+</button>
+        <div class="zoom-controls" role="group" aria-label="Canvas zoom">
+          <button class="zoom-pill-btn" id="zoom-out" type="button" aria-label="Zoom out">−</button>
+          <button class="zoom-pill-btn zoom-fit-btn" id="zoom-fit" type="button">Fit</button>
+          <button class="zoom-pill-btn" id="zoom-in" type="button" aria-label="Zoom in">+</button>
         </div>
       </div>
 
@@ -754,7 +792,7 @@
       <input type="file" id="import-json-file" accept=".json,application/json" style="display: none;">
       <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;">
         <span style="font-size: 12px; color: var(--text-secondary);">Need a portable backup of your current CV?</span>
-        <button class="btn btn-outline" id="btn-export-json" type="button" style="font-size: 12px; padding: 5px 10px;">Download JSON backup</button>
+        <button class="btn btn-outline btn-compact" id="btn-export-json" type="button">Download JSON backup</button>
       </div>
     </div>
   </div>

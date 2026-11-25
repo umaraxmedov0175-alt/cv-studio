@@ -58,11 +58,23 @@ const SPACING_LABELS = {
 };
 
 const COLOR_NAMES = {
+  '#2b3fe8': 'Ultramarine',
   '#1e3a8a': 'Prussian Navy',
-  '#065f46': 'Racing Green',
+  '#065f46': 'Botanical Emerald',
+  '#701a75': 'Bordeaux Plum',
+  '#b4432a': 'Burnt Sienna',
   '#0f172a': 'Obsidian Slate',
-  '#701a75': 'Bordeaux Wine',
-  '#334155': 'Charcoal'
+  '#334155': 'Obsidian Slate'
+};
+
+const STUDIO_INK_KEYS = {
+  '#2b3fe8': 'ultramarine',
+  '#1e3a8a': 'prussian',
+  '#065f46': 'emerald',
+  '#701a75': 'bordeaux',
+  '#b4432a': 'sienna',
+  '#0f172a': 'obsidian',
+  '#334155': 'obsidian'
 };
 
 let currentCV = null;
@@ -287,13 +299,16 @@ function initStudio() {
       card.classList.toggle('active', card.getAttribute('data-template-id') === tplId);
     });
 
-    const activeColor = currentCV.meta.accentColor || '#1e3a8a';
+    const activeColor = (currentCV.meta.accentColor || '#2b3fe8').toLowerCase();
+    const inkKey = STUDIO_INK_KEYS[activeColor] || 'ultramarine';
+    document.documentElement.setAttribute('data-studio-ink', inkKey);
+
     const activeDot = document.getElementById('active-color-dot');
     const activeColorName = document.getElementById('active-color-name');
     if (activeDot) activeDot.style.background = activeColor;
     if (activeColorName) activeColorName.textContent = COLOR_NAMES[activeColor] || 'Accent';
     document.querySelectorAll('#popover-color .color-dot').forEach(dot => {
-      dot.classList.toggle('active', dot.getAttribute('data-color') === activeColor);
+      dot.classList.toggle('active', (dot.getAttribute('data-color') || '').toLowerCase() === activeColor);
     });
   };
 
@@ -947,6 +962,24 @@ function initStudio() {
     });
   };
 
+  const CEFR_SHORT_BADGE = {
+    native: 'Native',
+    C2: 'C2 · Mastery',
+    C1: 'C1 · Fluent',
+    B2: 'B2 · Upper-Int.',
+    B1: 'B1 · Interm.',
+    A2: 'A2 · Elem.',
+    A1: 'A1 · Beginner'
+  };
+  const ORDERED_CEFR = [...CEFR_LEVELS].reverse();
+
+  const resolveCEFRMatch = (levelStr) => {
+    const val = String(levelStr || '').trim();
+    return CEFR_LEVELS.find(l => l.label === val)
+      || CEFR_LEVELS.find(l => val.toLowerCase().startsWith(l.code.toLowerCase()))
+      || CEFR_LEVELS[2];
+  };
+
   const renderLanguageCards = () => {
     const container = document.getElementById('language-card-list');
     if (!container) return;
@@ -963,28 +996,61 @@ function initStudio() {
       return;
     }
 
-    container.innerHTML = langs.map((lang, idx) => `
-      <div class="lang-cms-row">
-        <input type="text" class="field-input" placeholder="Language" data-lang-f="language" data-idx="${idx}" value="${escapeAttr(lang.language || '')}">
-        <select class="select-box" data-lang-f="level" data-idx="${idx}">
-          ${CEFR_LEVELS.map(lvl => `
-            <option value="${escapeAttr(lvl.label)}" ${lang.level === lvl.label ? 'selected' : ''}>${escapeHTML(lvl.label)}</option>
-          `).join('')}
-        </select>
-        <button class="btn-remove-inline" data-del-lang="${idx}" type="button" title="Remove language">×</button>
+    container.innerHTML = langs.map((lang, idx) => {
+      const matched = resolveCEFRMatch(lang.level);
+      const badgeLabel = CEFR_SHORT_BADGE[matched.code] || matched.code;
+      return `
+      <div class="lang-pill-card" data-lang-card="${idx}">
+        <div class="lang-card-top">
+          <input type="text" class="field-input lang-name-input" placeholder="Language (e.g. German)" data-lang-f="language" data-idx="${idx}" value="${escapeAttr(lang.language || '')}">
+          <span class="lang-level-badge" data-lang-badge="${idx}">${escapeHTML(badgeLabel)}</span>
+          <button class="btn-icon-remove" data-del-lang="${idx}" type="button" title="Remove language" aria-label="Remove language">×</button>
+        </div>
+        <div class="cefr-track" role="group" aria-label="CEFR proficiency level for ${escapeAttr(lang.language || 'language')}">
+          ${ORDERED_CEFR.map(lvl => {
+            const isSelected = matched.code === lvl.code;
+            const shortCode = lvl.code === 'native' ? 'Native' : lvl.code;
+            return `<button type="button" class="cefr-pill ${isSelected ? 'active' : ''}" data-set-cefr="${idx}" data-cefr-code="${escapeAttr(lvl.code)}" data-level-val="${escapeAttr(lvl.label)}" aria-pressed="${isSelected}">${shortCode}</button>`;
+          }).join('')}
+        </div>
+        <div class="cefr-desc-caption" data-lang-desc="${idx}">${escapeHTML(matched.label)}</div>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
-    container.querySelectorAll('[data-lang-f]').forEach(el => {
-      const evt = el.tagName === 'SELECT' ? 'change' : 'input';
-      el.addEventListener(evt, () => {
+    container.querySelectorAll('[data-lang-f="language"]').forEach(el => {
+      el.addEventListener('input', () => {
         const idx = parseInt(el.getAttribute('data-idx'), 10);
-        const f = el.getAttribute('data-lang-f');
         if (currentCV.skills.languages[idx]) {
-          currentCV.skills.languages[idx][f] = el.value;
+          currentCV.skills.languages[idx].language = el.value;
           saveCVDirect(currentCV);
           refreshCanvas();
         }
+      });
+    });
+
+    container.querySelectorAll('[data-set-cefr]').forEach(pill => {
+      pill.addEventListener('click', () => {
+        const idx = parseInt(pill.getAttribute('data-set-cefr'), 10);
+        const code = pill.getAttribute('data-cefr-code');
+        const nextLevel = pill.getAttribute('data-level-val');
+        const entry = currentCV.skills.languages[idx];
+        if (!entry) return;
+
+        entry.level = nextLevel;
+        const card = container.querySelector(`[data-lang-card="${idx}"]`);
+        card?.querySelectorAll('[data-set-cefr]').forEach(btn => {
+          const active = btn === pill;
+          btn.classList.toggle('active', active);
+          btn.setAttribute('aria-pressed', String(active));
+        });
+        const badgeEl = container.querySelector(`[data-lang-badge="${idx}"]`);
+        if (badgeEl) badgeEl.textContent = CEFR_SHORT_BADGE[code] || code;
+        const descEl = container.querySelector(`[data-lang-desc="${idx}"]`);
+        if (descEl) descEl.textContent = nextLevel;
+
+        saveCVDirect(currentCV);
+        refreshCanvas();
       });
     });
 
