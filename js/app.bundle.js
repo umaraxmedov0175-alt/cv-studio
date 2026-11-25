@@ -1387,6 +1387,33 @@ const TEMPLATE_NAMES = {
   [TEMPLATE_IDS.MODERN_EUROPEAN]: 'Paris'
 };
 
+const COUNTRY_SHORT_LABELS = {
+  DE: 'Germany (DIN 5008)',
+  UK: 'UK & Ireland',
+  FR: 'France (1-Page)',
+  NL: 'Netherlands'
+};
+
+const LANGUAGE_LABELS = {
+  en: 'English',
+  de: 'Deutsch',
+  fr: 'Français'
+};
+
+const SPACING_LABELS = {
+  compact: 'Compact',
+  normal: 'Standard',
+  spacious: 'Spacious'
+};
+
+const COLOR_NAMES = {
+  '#1e3a8a': 'Prussian Navy',
+  '#065f46': 'Racing Green',
+  '#0f172a': 'Obsidian Slate',
+  '#701a75': 'Bordeaux Wine',
+  '#334155': 'Charcoal'
+};
+
 let currentCV = null;
 let currentZoom = 0.85;
 let activeSectionId = 'identity';
@@ -1398,9 +1425,6 @@ function initStudio() {
   ensureCVShape(currentCV);
 
   const previewSheet = document.getElementById('preview-sheet');
-  const countrySelect = document.getElementById('country-select');
-  const languageSelect = document.getElementById('language-select');
-  const spacingSelect = document.getElementById('spacing-select');
   const togglePhoto = document.getElementById('toggle-photo');
   const toggleSignature = document.getElementById('toggle-signature');
   const complianceBox = document.getElementById('compliance-note-box');
@@ -1452,17 +1476,39 @@ function initStudio() {
      Popovers & Global Escape / Outside-Click Close
      ------------------------------------------------------------------ */
   const popoverConfigs = [
+    { btnId: 'btn-country-popover', menuId: 'popover-country' },
+    { btnId: 'btn-language-popover', menuId: 'popover-language' },
+    { btnId: 'btn-regional-popover', menuId: 'popover-regional' },
     { btnId: 'btn-template-popover', menuId: 'popover-template' },
     { btnId: 'btn-color-popover', menuId: 'popover-color' },
-    { btnId: 'btn-regional-popover', menuId: 'popover-regional' },
+    { btnId: 'btn-spacing-popover', menuId: 'popover-spacing' },
     { btnId: 'btn-quick-add-toggle', menuId: 'quick-add-menu' }
   ];
+
+  const closeBulletPopovers = () => {
+    document.querySelectorAll('.bullet-assistant-popover.open').forEach(p => {
+      p.classList.remove('open', 'pop-up');
+    });
+    document.querySelectorAll('[data-toggle-bullet-popover]').forEach(btn => {
+      btn.setAttribute('aria-expanded', 'false');
+    });
+  };
+
+  const clampPopoverToViewport = (menu) => {
+    if (!menu) return;
+    menu.classList.remove('align-right');
+    const rect = menu.getBoundingClientRect();
+    if (rect.right > window.innerWidth - 12) {
+      menu.classList.add('align-right');
+    }
+  };
 
   const closeAllPopovers = () => {
     popoverConfigs.forEach(({ btnId, menuId }) => {
       document.getElementById(menuId)?.classList.remove('open');
       document.getElementById(btnId)?.setAttribute('aria-expanded', 'false');
     });
+    closeBulletPopovers();
   };
 
   popoverConfigs.forEach(({ btnId, menuId }) => {
@@ -1475,6 +1521,7 @@ function initStudio() {
       if (willOpen && menu) {
         menu.classList.add('open');
         btn.setAttribute('aria-expanded', 'true');
+        clampPopoverToViewport(menu);
       }
     });
     menu?.addEventListener('click', (e) => e.stopPropagation());
@@ -1533,9 +1580,29 @@ function initStudio() {
 
   const syncToolbarState = () => {
     const country = currentCV.meta.targetCountry || 'DE';
-    if (countrySelect) countrySelect.value = country;
-    if (languageSelect) languageSelect.value = currentCV.meta.language || 'en';
-    if (spacingSelect) spacingSelect.value = currentCV.meta.spacing || 'normal';
+    const lang = currentCV.meta.language || 'en';
+    const spacing = currentCV.meta.spacing || 'normal';
+
+    const countryCodeEl = document.getElementById('active-country-code');
+    const countryLabelEl = document.getElementById('active-country-label');
+    if (countryCodeEl) countryCodeEl.textContent = country;
+    if (countryLabelEl) countryLabelEl.textContent = COUNTRY_SHORT_LABELS[country] || country;
+    document.querySelectorAll('#popover-country .studio-menu-item').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-country-val') === country);
+    });
+
+    const langLabelEl = document.getElementById('active-language-label');
+    if (langLabelEl) langLabelEl.textContent = LANGUAGE_LABELS[lang] || 'English';
+    document.querySelectorAll('#popover-language .studio-menu-item').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-lang-val') === lang);
+    });
+
+    const spacingLabelEl = document.getElementById('active-spacing-label');
+    if (spacingLabelEl) spacingLabelEl.textContent = SPACING_LABELS[spacing] || 'Standard';
+    document.querySelectorAll('#popover-spacing .studio-menu-item').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-spacing-val') === spacing);
+    });
+
     if (togglePhoto) togglePhoto.checked = currentCV.meta.showPhoto !== false;
     if (toggleSignature) toggleSignature.checked = currentCV.meta.includeSignatureBlock !== false;
 
@@ -1559,7 +1626,9 @@ function initStudio() {
 
     const activeColor = currentCV.meta.accentColor || '#1e3a8a';
     const activeDot = document.getElementById('active-color-dot');
+    const activeColorName = document.getElementById('active-color-name');
     if (activeDot) activeDot.style.background = activeColor;
+    if (activeColorName) activeColorName.textContent = COLOR_NAMES[activeColor] || 'Accent';
     document.querySelectorAll('#popover-color .color-dot').forEach(dot => {
       dot.classList.toggle('active', dot.getAttribute('data-color') === activeColor);
     });
@@ -1646,21 +1715,21 @@ function initStudio() {
     const completion = calculateCVCompletion(currentCV);
     const ordered = getOrderedAllSections();
 
-    bar.innerHTML = ordered.map((id, idx) => {
-      const status = completion.sectionStatus[id];
-      const isDone = status === 'complete';
+    bar.innerHTML = ordered.map((id) => {
+      const status = completion.sectionStatus[id] || 'empty';
+      const statusClass = status === 'complete' ? 'done' : status === 'partial' ? 'partial' : '';
       const isActive = activeSectionId === id;
       return `
-        <button type="button" class="step-pill ${isActive ? 'active' : ''} ${isDone ? 'done' : ''}" data-step-target="${id}" role="tab" aria-selected="${isActive}">
-          <span class="step-num">${isDone ? '✓' : idx + 1}</span>
+        <button type="button" class="step-tab ${isActive ? 'active' : ''} ${statusClass}" data-step-target="${id}" role="tab" aria-selected="${isActive}">
+          <span class="step-dot" aria-hidden="true"></span>
           <span>${SECTION_LABELS[id] || id}</span>
         </button>
       `;
     }).join('');
 
-    bar.querySelectorAll('[data-step-target]').forEach(pill => {
-      pill.addEventListener('click', () => {
-        setActiveSection(pill.getAttribute('data-step-target'), { focusInput: false });
+    bar.querySelectorAll('[data-step-target]').forEach(tab => {
+      tab.addEventListener('click', () => {
+        setActiveSection(tab.getAttribute('data-step-target'), { focusInput: false });
       });
     });
   };
@@ -1747,13 +1816,19 @@ function initStudio() {
      ------------------------------------------------------------------ */
   const updateATSReport = () => {
     const ats = analyzeCVForATS(currentCV);
+    const circumference = 47.12;
+    const score = Math.max(0, Math.min(100, ats.score || 0));
+    const arc = document.getElementById('ats-ring-arc');
+    const scoreNum = document.getElementById('ats-score-num');
     const pillLabel = document.getElementById('ats-score-label');
     const pill = document.getElementById('btn-ats-pill');
-    if (pillLabel) pillLabel.textContent = `ATS: ${ats.score}/100 (${ats.grade})`;
+    if (arc) arc.style.strokeDashoffset = (circumference * (1 - score / 100)).toFixed(2);
+    if (scoreNum) scoreNum.textContent = String(score);
+    if (pillLabel) pillLabel.textContent = `ATS · ${ats.grade}`;
     if (pill) {
       pill.classList.remove('state-warn', 'state-low');
-      if (ats.score < 40) pill.classList.add('state-low');
-      else if (ats.score < 70) pill.classList.add('state-warn');
+      if (score < 40) pill.classList.add('state-low');
+      else if (score < 70) pill.classList.add('state-warn');
     }
 
     const badge = document.getElementById('drawer-ats-badge');
@@ -1840,6 +1915,69 @@ function initStudio() {
     </div>
   `;
 
+  const BULLET_COACH_CONTENT = {
+    en: {
+      title: 'Impact writing guide',
+      verbsLabel: 'Action verbs',
+      formulasLabel: 'Quantified X-Y-Z templates',
+      verbs: ['Architected', 'Engineered', 'Automated', 'Reduced', 'Streamlined', 'Optimized', 'Spearheaded', 'Scaled'],
+      formulas: [
+        'Engineered [system/feature] with [tech], reducing [latency/cost] by [X%]',
+        'Automated [workflow], saving [X hrs/week] across [team/service]',
+        'Led [scope/initiative] to deliver [outcome] for [N+ users/clients]'
+      ]
+    },
+    de: {
+      title: 'Wirkungsorientiert formulieren',
+      verbsLabel: 'Starke Aktionsverben',
+      formulasLabel: 'Strukturierte Erfolgsformeln',
+      verbs: ['Entwickelt', 'Konzipiert', 'Optimiert', 'Reduziert', 'Automatisiert', 'Eingeführt', 'Geleitet', 'Gesteigert'],
+      formulas: [
+        'Entwickelt [System/Komponente] mit [Technologie] zur Senkung von [Kosten/Latenz] um [X %]',
+        'Automatisiert [Prozess], wodurch [X Std./Woche] im Team eingespart wurden',
+        'Geleitet [Projekt/Initiative] für [N+ Nutzer/Kunden] mit [messbarem Ergebnis]'
+      ]
+    },
+    fr: {
+      title: 'Guide d’impact',
+      verbsLabel: 'Verbes d’action forts',
+      formulasLabel: 'Modèles de résultats chiffrés',
+      verbs: ['Conçu', 'Développé', 'Automatisé', 'Optimisé', 'Réduit', 'Déployé', 'Piloté', 'Coordonné'],
+      formulas: [
+        'Conçu [système/fonctionnalité] avec [tech], réduisant [latence/coût] de [X %]',
+        'Automatisé [processus], économisant [X h/semaine] pour [équipe/service]',
+        'Piloté [projet] afin de livrer [résultat] auprès de [N+ utilisateurs]'
+      ]
+    }
+  };
+
+  const COACH_VERBS_REGEX = /\b(architected|engineered|built|developed|automated|reduced|streamlined|optimized|spearheaded|scaled|led|designed|implemented|managed|delivered|improved|constructed|entwickelt|konzipiert|optimiert|reduziert|automatisiert|eingeführt|geleitet|gesteigert|conçu|développé|automatisé|optimisé|réduit|déployé|piloté|coordonné)\b/i;
+  const COACH_METRICS_REGEX = /\b\d+(\.\d+)?%|\d+\s*(years|months|jahre|monate|ans|mois|k|m|€|\$|ms|s|x|\+|hrs|hours|std|users|clients)|\b\d{2,}\b/i;
+
+  const analyzeExperienceBullets = (bullets) => {
+    const clean = (bullets || []).map(b => String(b).trim()).filter(Boolean);
+    const count = clean.length;
+    if (count === 0) {
+      return { state: 'neutral', text: 'One achievement per line — lead with outcomes' };
+    }
+    const joined = clean.join(' ');
+    const hasMetrics = COACH_METRICS_REGEX.test(joined);
+    const hasVerb = COACH_VERBS_REGEX.test(joined);
+    const plural = count === 1 ? 'bullet' : 'bullets';
+
+    if (hasMetrics && hasVerb) {
+      return { state: 'strong', text: `${count} ${plural} · verb-led & quantified` };
+    }
+    if (!hasVerb) {
+      return { state: 'hint', text: `${count} ${plural} · lead with a strong action verb` };
+    }
+    return { state: 'hint', text: `${count} ${plural} · add a metric (%, €, time) for impact` };
+  };
+
+  const formatFormulaPreviewHTML = (formula) => {
+    return escapeHTML(formula).replace(/\[([^\]]+)\]/g, '<span class="coach-token">[$1]</span>');
+  };
+
   const renderExperienceCards = () => {
     const container = document.getElementById('experience-card-list');
     if (!container) return;
@@ -1856,7 +1994,12 @@ function initStudio() {
       return;
     }
 
-    container.innerHTML = list.map((exp, idx) => `
+    const lang = currentCV.meta?.language || 'en';
+    const coach = BULLET_COACH_CONTENT[lang] || BULLET_COACH_CONTENT.en;
+
+    container.innerHTML = list.map((exp, idx) => {
+      const diag = analyzeExperienceBullets(exp.bullets);
+      return `
       <div class="subcard">
         <div class="subcard-head">
           <span class="subcard-title">${escapeHTML(exp.position || 'Position')} · ${escapeHTML(exp.company || 'Company')}</span>
@@ -1887,17 +2030,51 @@ function initStudio() {
             <label class="field-label">Achievements &amp; impact (1 per line)</label>
             <textarea class="field-input" data-exp-f="bullets" data-idx="${idx}" rows="3">${escapeHTML((exp.bullets || []).join('\n'))}</textarea>
           </div>
-          <div class="bullet-polisher-bar">
-            <span>Quick impact starters (click to append bullet):</span>
-            <div class="bullet-action-chips">
-              <button class="chip-btn" type="button" data-insert-verb="Architected" data-idx="${idx}">+ Architected…</button>
-              <button class="chip-btn" type="button" data-insert-verb="Reduced latency by 40% across" data-idx="${idx}">+ Reduced latency 40%…</button>
-              <button class="chip-btn" type="button" data-insert-verb="Spearheaded" data-idx="${idx}">+ Spearheaded…</button>
+          <div class="bullet-coach-row">
+            <span class="bullet-diag" data-bullet-diag="${idx}">
+              <span class="diag-dot ${diag.state}" aria-hidden="true"></span>
+              <span class="diag-text">${escapeHTML(diag.text)}</span>
+            </span>
+            <div class="bullet-coach-trigger-wrap">
+              <button type="button" class="bullet-coach-trigger" data-toggle-bullet-popover="${idx}" aria-expanded="false">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                <span>Impact guide</span>
+                <svg class="chevron-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+              <div class="bullet-assistant-popover" id="bullet-popover-${idx}">
+                <div class="coach-pop-head">
+                  <span class="coach-pop-title">${escapeHTML(coach.title)}</span>
+                  <span class="coach-pop-esc">Esc</span>
+                </div>
+                <div>
+                  <div class="coach-section-label">${escapeHTML(coach.verbsLabel)}</div>
+                  <div class="coach-verb-grid">
+                    ${coach.verbs.map(v => `<button type="button" class="coach-verb-btn" data-coach-insert="${escapeAttr(v + ' ')}" data-idx="${idx}" data-is-formula="false">${escapeHTML(v)}</button>`).join('')}
+                  </div>
+                </div>
+                <div>
+                  <div class="coach-section-label">${escapeHTML(coach.formulasLabel)}</div>
+                  <div class="coach-formula-list">
+                    ${coach.formulas.map(f => `<button type="button" class="coach-formula-btn" data-coach-insert="${escapeAttr(f)}" data-idx="${idx}" data-is-formula="true">${formatFormulaPreviewHTML(f)}</button>`).join('')}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
+
+    const syncBulletDiagnosticUI = (idx) => {
+      const diag = analyzeExperienceBullets(currentCV.experience?.[idx]?.bullets);
+      const diagEl = container.querySelector(`[data-bullet-diag="${idx}"]`);
+      if (!diagEl) return;
+      const dot = diagEl.querySelector('.diag-dot');
+      const txt = diagEl.querySelector('.diag-text');
+      if (dot) dot.className = `diag-dot ${diag.state}`;
+      if (txt) txt.textContent = diag.text;
+    };
 
     container.querySelectorAll('[data-exp-f]').forEach(inp => {
       inp.addEventListener('input', () => {
@@ -1912,6 +2089,7 @@ function initStudio() {
           item.endDate = parts[1] || '';
         } else if (f === 'bullets') {
           item.bullets = inp.value.split('\n').filter(Boolean);
+          syncBulletDiagnosticUI(idx);
         } else {
           item[f] = inp.value;
         }
@@ -1935,18 +2113,59 @@ function initStudio() {
       });
     });
 
-    container.querySelectorAll('[data-insert-verb]').forEach(btn => {
+    container.querySelectorAll('[data-toggle-bullet-popover]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = btn.getAttribute('data-toggle-bullet-popover');
+        const pop = document.getElementById(`bullet-popover-${idx}`);
+        const willOpen = pop && !pop.classList.contains('open');
+        closeAllPopovers();
+        if (willOpen && pop) {
+          const btnRect = btn.getBoundingClientRect();
+          if (btnRect.bottom + 270 > window.innerHeight - 48) {
+            pop.classList.add('pop-up');
+          }
+          pop.classList.add('open');
+          btn.setAttribute('aria-expanded', 'true');
+        }
+      });
+    });
+
+    container.querySelectorAll('.bullet-assistant-popover').forEach(pop => {
+      pop.addEventListener('click', (e) => e.stopPropagation());
+    });
+
+    container.querySelectorAll('[data-coach-insert]').forEach(btn => {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.getAttribute('data-idx'), 10);
-        const verb = btn.getAttribute('data-insert-verb');
+        const snippet = btn.getAttribute('data-coach-insert') || '';
+        const isFormula = btn.getAttribute('data-is-formula') === 'true';
+        const textarea = container.querySelector(`textarea[data-exp-f="bullets"][data-idx="${idx}"]`);
         const item = currentCV.experience[idx];
-        if (item) {
-          item.bullets = item.bullets || [];
-          item.bullets.push(`${verb} core platform systems delivering 25% faster release cycles.`);
-          saveCVDirect(currentCV);
-          renderExperienceCards();
-          refreshCanvas();
+        if (!textarea || !item) return;
+
+        const existing = textarea.value.replace(/\s+$/, '');
+        const insertionStart = existing.length ? existing.length + 1 : 0;
+        const nextValue = existing.length ? `${existing}\n${snippet}` : snippet;
+
+        textarea.value = nextValue;
+        item.bullets = nextValue.split('\n').filter(Boolean);
+        syncBulletDiagnosticUI(idx);
+        saveCVDirect(currentCV);
+        refreshCanvas();
+        closeAllPopovers();
+
+        textarea.focus();
+        if (isFormula) {
+          const bracketMatch = snippet.match(/\[([^\]]+)\]/);
+          if (bracketMatch) {
+            const selStart = insertionStart + bracketMatch.index;
+            const selEnd = selStart + bracketMatch[0].length;
+            textarea.setSelectionRange(selStart, selEnd);
+            return;
+          }
         }
+        textarea.setSelectionRange(nextValue.length, nextValue.length);
       });
     });
   };
@@ -2687,24 +2906,37 @@ function initStudio() {
   /* ------------------------------------------------------------------
      Toolbar Controls & Gallery Wiring
      ------------------------------------------------------------------ */
-  countrySelect?.addEventListener('change', (e) => {
-    currentCV.meta.targetCountry = e.target.value;
-    syncToolbarState();
-    saveCVDirect(currentCV);
-    refreshCanvas();
+  document.querySelectorAll('#popover-country [data-country-val]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentCV.meta.targetCountry = btn.getAttribute('data-country-val');
+      saveCVDirect(currentCV);
+      syncToolbarState();
+      closeAllPopovers();
+      refreshCanvas();
+    });
   });
 
-  languageSelect?.addEventListener('change', (e) => {
-    currentCV.meta.language = e.target.value;
-    saveCVDirect(currentCV);
-    refreshCanvas();
-    showToast(`CV headings updated (${e.target.options[e.target.selectedIndex].text}).`);
+  document.querySelectorAll('#popover-language [data-lang-val]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lang = btn.getAttribute('data-lang-val');
+      currentCV.meta.language = lang;
+      saveCVDirect(currentCV);
+      syncToolbarState();
+      closeAllPopovers();
+      renderExperienceCards();
+      refreshCanvas();
+      showToast(`CV headings updated (${LANGUAGE_LABELS[lang] || lang}).`);
+    });
   });
 
-  spacingSelect?.addEventListener('change', (e) => {
-    currentCV.meta.spacing = e.target.value;
-    saveCVDirect(currentCV);
-    refreshCanvas();
+  document.querySelectorAll('#popover-spacing [data-spacing-val]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentCV.meta.spacing = btn.getAttribute('data-spacing-val');
+      saveCVDirect(currentCV);
+      syncToolbarState();
+      closeAllPopovers();
+      refreshCanvas();
+    });
   });
 
   document.querySelectorAll('#template-gallery .template-card-option').forEach(card => {
@@ -2741,7 +2973,7 @@ function initStudio() {
 
   btnAutoFit?.addEventListener('click', () => {
     currentCV.meta.spacing = 'compact';
-    if (spacingSelect) spacingSelect.value = 'compact';
+    syncToolbarState();
     saveCVDirect(currentCV);
     refreshCanvas();
     showToast('Margins tightened to fit cleanly onto 1 A4 page.');

@@ -16,47 +16,49 @@
   <!-- 1. Top Header Bar -->
   <header class="app-header no-print">
     <div class="brand-group">
-      <span class="brand-mark" aria-hidden="true">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-          <line x1="16" y1="13" x2="8" y2="13"></line>
-          <line x1="16" y1="17" x2="8" y2="17"></line>
+      <span class="folio-mark" aria-hidden="true">
+        <svg width="18" height="22" viewBox="0 0 18 22" fill="none">
+          <rect x="0.75" y="0.75" width="16.5" height="20.5" rx="2.5" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="3.5" y="4" width="2.2" height="14" rx="1" fill="var(--accent)"/>
+          <line x1="8" y1="6.5" x2="14" y2="6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="8" y1="10.2" x2="14" y2="10.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
+          <line x1="8" y1="13.8" x2="12.2" y2="13.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
         </svg>
       </span>
-      <span class="brand-name">European CV Studio</span>
+      <span class="brand-name">European CV <span class="brand-name-sub">Studio</span></span>
     </div>
 
     <div class="header-actions">
-      <button class="ats-pill" id="btn-ats-pill" type="button" title="Inspect ATS Score & Match against a Job Description">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      <button class="ats-gauge-btn" id="btn-ats-pill" type="button" title="Inspect ATS Score &amp; Match against a Job Description">
+        <svg class="ats-ring-svg" width="18" height="18" viewBox="0 0 20 20" aria-hidden="true">
+          <circle class="ats-ring-track" cx="10" cy="10" r="7.5" fill="none" stroke-width="2.2"/>
+          <circle class="ats-ring-arc" id="ats-ring-arc" cx="10" cy="10" r="7.5" fill="none" stroke-width="2.2" stroke-dasharray="47.12" stroke-dashoffset="47.12" stroke-linecap="round" transform="rotate(-90 10 10)"/>
         </svg>
-        <span id="ats-score-label">ATS: --/100</span>
+        <span class="ats-score-num" id="ats-score-num">--</span>
+        <span class="ats-score-meta" id="ats-score-label">ATS</span>
       </button>
 
       <button class="btn btn-outline" id="btn-open-matcher" type="button">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"></circle>
-          <circle cx="12" cy="12" r="6"></circle>
-          <circle cx="12" cy="12" r="2"></circle>
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="9"></circle>
+          <circle cx="12" cy="12" r="5"></circle>
+          <circle cx="12" cy="12" r="1.5"></circle>
         </svg>
-        <span class="btn-label-desktop">Job Matcher</span>
+        <span class="btn-label-desktop">Job Match</span>
       </button>
 
       <button class="btn btn-ghost" id="btn-open-launch" type="button" title="Start new CV, guided wizard, or import JSON">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
           <path d="M12 5v14M5 12h14"></path>
         </svg>
         <span class="btn-label-desktop">New / Import</span>
       </button>
 
-      <button class="btn btn-outline btn-icon-only" id="btn-theme-toggle" type="button" title="Switch light or dark workspace" aria-label="Toggle theme">
-        <svg id="icon-theme-moon" class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <button class="btn btn-ghost btn-icon-only" id="btn-theme-toggle" type="button" title="Switch light or dark workspace" aria-label="Toggle theme">
+        <svg id="icon-theme-moon" class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
         </svg>
-        <svg id="icon-theme-sun" class="btn-icon" style="display: none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg id="icon-theme-sun" class="btn-icon" style="display: none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
           <circle cx="12" cy="12" r="5"></circle>
           <line x1="12" y1="1" x2="12" y2="3"></line>
           <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -70,7 +72,7 @@
       </button>
 
       <button class="btn btn-primary" id="btn-export-pdf" type="button">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -80,53 +82,130 @@
     </div>
   </header>
 
-  <!-- 2. Compact Design & Regional Compliance Toolbar -->
+  <!-- 2. Studio Inspector Bar (Ghost Controls + Hairline Dividers) -->
   <nav class="settings-toolbar no-print" aria-label="CV formatting and market settings">
     <div class="toolbar-controls">
-      <!-- Market Selector -->
+      <!-- Cluster 1: Market & Locale -->
       <div class="toolbar-item">
-        <label class="toolbar-chip" title="Target European Market">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="2" y1="12" x2="22" y2="12"></line>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-          </svg>
-          <select id="country-select" class="toolbar-select" aria-label="Target European Market">
-            <option value="DE">Germany (DIN 5008)</option>
-            <option value="UK">UK &amp; Ireland</option>
-            <option value="FR">France (1-Page)</option>
-            <option value="NL">Netherlands</option>
-          </select>
-        </label>
+        <button class="toolbar-trigger" id="btn-country-popover" type="button" aria-expanded="false" aria-haspopup="listbox" title="Target European Market">
+          <span class="iso-tag" id="active-country-code">DE</span>
+          <span id="active-country-label">Germany (DIN 5008)</span>
+          <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="toolbar-popover studio-menu-popover" id="popover-country" style="width: 280px;">
+          <div class="popover-title">Target European market</div>
+          <div class="studio-menu-list" role="listbox" aria-label="Target European Market">
+            <button type="button" class="studio-menu-item active" data-country-val="DE">
+              <span class="iso-tag">DE</span>
+              <span class="studio-menu-copy">
+                <span class="studio-menu-name">Germany / DACH (DIN 5008)</span>
+                <span class="studio-menu-desc">Photo, birth date &amp; signature supported</span>
+              </span>
+              <span class="studio-menu-check" aria-hidden="true">✓</span>
+            </button>
+            <button type="button" class="studio-menu-item" data-country-val="UK">
+              <span class="iso-tag">UK</span>
+              <span class="studio-menu-copy">
+                <span class="studio-menu-name">UK &amp; Ireland</span>
+                <span class="studio-menu-desc">Equality Act anti-bias format (no photo)</span>
+              </span>
+              <span class="studio-menu-check" aria-hidden="true">✓</span>
+            </button>
+            <button type="button" class="studio-menu-item" data-country-val="FR">
+              <span class="iso-tag">FR</span>
+              <span class="studio-menu-copy">
+                <span class="studio-menu-name">France (1-Page Executive)</span>
+                <span class="studio-menu-desc">Compact 1-page progression &amp; skills</span>
+              </span>
+              <span class="studio-menu-check" aria-hidden="true">✓</span>
+            </button>
+            <button type="button" class="studio-menu-item" data-country-val="NL">
+              <span class="iso-tag">NL</span>
+              <span class="studio-menu-copy">
+                <span class="studio-menu-name">Netherlands / Benelux</span>
+                <span class="studio-menu-desc">Direct, measurable skills &amp; impact</span>
+              </span>
+              <span class="studio-menu-check" aria-hidden="true">✓</span>
+            </button>
+          </div>
+        </div>
       </div>
 
-      <!-- Language Headings Selector -->
       <div class="toolbar-item">
-        <label class="toolbar-chip" title="CV Headings Language">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="m5 8 6 6"></path>
-            <path d="m4 14 6-6 2-3"></path>
-            <path d="M2 5h12"></path>
-            <path d="M7 2h1"></path>
-            <path d="m22 22-5-10-5 10"></path>
-            <path d="M14 18h6"></path>
-          </svg>
-          <select id="language-select" class="toolbar-select" aria-label="CV Headings Language">
-            <option value="en">English</option>
-            <option value="de">Deutsch</option>
-            <option value="fr">Français</option>
-          </select>
-        </label>
+        <button class="toolbar-trigger" id="btn-language-popover" type="button" aria-expanded="false" aria-haspopup="listbox" title="CV Headings Language">
+          <span id="active-language-label">English</span>
+          <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="toolbar-popover studio-menu-popover" id="popover-language" style="min-width: 210px;">
+          <div class="popover-title">CV headings language</div>
+          <div class="studio-menu-list" role="listbox" aria-label="CV Headings Language">
+            <button type="button" class="studio-menu-item active" data-lang-val="en">
+              <span class="studio-menu-copy">
+                <span class="studio-menu-name">English</span>
+                <span class="studio-menu-desc">International &amp; UK headings</span>
+              </span>
+              <span class="studio-menu-check" aria-hidden="true">✓</span>
+            </button>
+            <button type="button" class="studio-menu-item" data-lang-val="de">
+              <span class="studio-menu-copy">
+                <span class="studio-menu-name">Deutsch</span>
+                <span class="studio-menu-desc">DACH / Lebenslauf headings</span>
+              </span>
+              <span class="studio-menu-check" aria-hidden="true">✓</span>
+            </button>
+            <button type="button" class="studio-menu-item" data-lang-val="fr">
+              <span class="studio-menu-copy">
+                <span class="studio-menu-name">Français</span>
+                <span class="studio-menu-desc">France &amp; Benelux headings</span>
+              </span>
+              <span class="studio-menu-check" aria-hidden="true">✓</span>
+            </button>
+          </div>
+        </div>
       </div>
 
-      <!-- Visual Template Gallery Popover -->
+      <!-- Regional & DIN Options Popover -->
       <div class="toolbar-item">
-        <button class="toolbar-chip" id="btn-template-popover" type="button" aria-expanded="false">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button class="toolbar-trigger" id="btn-regional-popover" type="button" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line>
+            <line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line>
+            <line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line>
+            <line x1="17" y1="16" x2="23" y2="16"></line>
+          </svg>
+          <span>Compliance</span>
+          <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="toolbar-popover" id="popover-regional" style="width: 300px;">
+          <div class="popover-title">European formatting &amp; compliance</div>
+          <div id="formal-toggles-section">
+            <label class="toggle-row" id="row-toggle-photo">
+              <span>Include Candidate Photo</span>
+              <input type="checkbox" id="toggle-photo" checked>
+            </label>
+            <label class="toggle-row" id="row-toggle-signature">
+              <span>Closing Signature Block</span>
+              <input type="checkbox" id="toggle-signature" checked>
+            </label>
+          </div>
+          <div id="compliance-note-box" class="compliance-note-box">
+            DIN 5008 Standard: Candidate photo, birth date, and formal closing signature block are customary in Germany &amp; Austria.
+          </div>
+        </div>
+      </div>
+
+      <span class="toolbar-divider" aria-hidden="true"></span>
+
+      <!-- Cluster 2: Typography, Accent & Rhythm -->
+      <div class="toolbar-item">
+        <button class="toolbar-trigger" id="btn-template-popover" type="button" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
             <rect x="3" y="3" width="18" height="18" rx="2"></rect>
             <path d="M3 9h18M9 21V9"></path>
           </svg>
           <span id="active-template-label">Frankfurt</span>
+          <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </button>
         <div class="toolbar-popover" id="popover-template">
           <div class="popover-title">Choose a CV layout</div>
@@ -203,61 +282,53 @@
 
       <!-- Accent Color Popover -->
       <div class="toolbar-item">
-        <button class="toolbar-chip" id="btn-color-popover" type="button" aria-expanded="false">
+        <button class="toolbar-trigger" id="btn-color-popover" type="button" aria-expanded="false">
           <span class="swatch-indicator" id="active-color-dot" style="background: #1e3a8a;"></span>
-          <span>Accent</span>
+          <span id="active-color-name">Prussian Navy</span>
+          <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </button>
         <div class="toolbar-popover" id="popover-color" style="min-width: 220px;">
           <div class="popover-title">Accent color</div>
           <div class="color-swatches-grid">
-            <button type="button" class="color-dot active" data-color="#1e3a8a" style="background: #1e3a8a;" title="Prussian Navy" aria-label="Prussian Navy"></button>
-            <button type="button" class="color-dot" data-color="#065f46" style="background: #065f46;" title="British Racing Green" aria-label="British Racing Green"></button>
-            <button type="button" class="color-dot" data-color="#0f172a" style="background: #0f172a;" title="Obsidian Slate" aria-label="Obsidian Slate"></button>
-            <button type="button" class="color-dot" data-color="#701a75" style="background: #701a75;" title="Bordeaux Wine" aria-label="Bordeaux Wine"></button>
-            <button type="button" class="color-dot" data-color="#334155" style="background: #334155;" title="Architectural Charcoal" aria-label="Architectural Charcoal"></button>
+            <button type="button" class="color-dot active" data-color="#1e3a8a" data-color-name="Prussian Navy" style="background: #1e3a8a;" title="Prussian Navy" aria-label="Prussian Navy"></button>
+            <button type="button" class="color-dot" data-color="#065f46" data-color-name="Racing Green" style="background: #065f46;" title="British Racing Green" aria-label="British Racing Green"></button>
+            <button type="button" class="color-dot" data-color="#0f172a" data-color-name="Obsidian Slate" style="background: #0f172a;" title="Obsidian Slate" aria-label="Obsidian Slate"></button>
+            <button type="button" class="color-dot" data-color="#701a75" data-color-name="Bordeaux Wine" style="background: #701a75;" title="Bordeaux Wine" aria-label="Bordeaux Wine"></button>
+            <button type="button" class="color-dot" data-color="#334155" data-color-name="Charcoal" style="background: #334155;" title="Architectural Charcoal" aria-label="Architectural Charcoal"></button>
           </div>
         </div>
       </div>
 
-      <!-- Spacing Density -->
+      <!-- Spacing Density Popover -->
       <div class="toolbar-item">
-        <label class="toolbar-chip" title="Vertical Density">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="21" y1="6" x2="3" y2="6"></line>
-            <line x1="21" y1="12" x2="3" y2="12"></line>
-            <line x1="21" y1="18" x2="3" y2="18"></line>
-          </svg>
-          <select id="spacing-select" class="toolbar-select" aria-label="Vertical Density">
-            <option value="normal">Standard</option>
-            <option value="compact">Compact</option>
-            <option value="spacious">Spacious</option>
-          </select>
-        </label>
-      </div>
-
-      <!-- Regional & DIN Options Popover -->
-      <div class="toolbar-item">
-        <button class="toolbar-chip" id="btn-regional-popover" type="button" aria-expanded="false">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-          </svg>
-          <span>Rules</span>
+        <button class="toolbar-trigger" id="btn-spacing-popover" type="button" aria-expanded="false" aria-haspopup="listbox" title="Vertical Density">
+          <span id="active-spacing-label">Standard</span>
+          <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </button>
-        <div class="toolbar-popover" id="popover-regional" style="width: 300px;">
-          <div class="popover-title">European formatting &amp; compliance</div>
-          <div id="formal-toggles-section">
-            <label class="toggle-row" id="row-toggle-photo">
-              <span>Include Candidate Photo</span>
-              <input type="checkbox" id="toggle-photo" checked>
-            </label>
-            <label class="toggle-row" id="row-toggle-signature">
-              <span>Closing Signature Block</span>
-              <input type="checkbox" id="toggle-signature" checked>
-            </label>
-          </div>
-          <div id="compliance-note-box" class="compliance-note-box">
-            DIN 5008 Standard: Candidate photo, birth date, and formal closing signature block are customary in Germany &amp; Austria.
+        <div class="toolbar-popover studio-menu-popover" id="popover-spacing" style="min-width: 215px;">
+          <div class="popover-title">Vertical density</div>
+          <div class="studio-menu-list" role="listbox" aria-label="Vertical Density">
+            <button type="button" class="studio-menu-item" data-spacing-val="compact">
+              <span class="studio-menu-copy">
+                <span class="studio-menu-name">Compact</span>
+                <span class="studio-menu-desc">Tighter margins for 1-page CVs</span>
+              </span>
+              <span class="studio-menu-check" aria-hidden="true">✓</span>
+            </button>
+            <button type="button" class="studio-menu-item active" data-spacing-val="normal">
+              <span class="studio-menu-copy">
+                <span class="studio-menu-name">Standard</span>
+                <span class="studio-menu-desc">Balanced A4 editorial spacing</span>
+              </span>
+              <span class="studio-menu-check" aria-hidden="true">✓</span>
+            </button>
+            <button type="button" class="studio-menu-item" data-spacing-val="spacious">
+              <span class="studio-menu-copy">
+                <span class="studio-menu-name">Spacious</span>
+                <span class="studio-menu-desc">Open executive breathing room</span>
+              </span>
+              <span class="studio-menu-check" aria-hidden="true">✓</span>
+            </button>
           </div>
         </div>
       </div>
