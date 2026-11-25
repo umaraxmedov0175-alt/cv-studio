@@ -6,8 +6,8 @@
 export const COUNTRY_STANDARDS = {
   DE: {
     code: 'DE',
-    name: 'Deutschland / DACH (DIN 5008)',
-    flag: '🇩🇪',
+    name: 'Germany / DACH (DIN 5008)',
+    flag: 'DE',
     allowPhoto: true,
     recommendPhoto: true,
     allowBirthDate: true,
@@ -17,12 +17,12 @@ export const COUNTRY_STANDARDS = {
     compactMode: false,
     languageCode: 'de',
     templateDefault: 'german-din-5008',
-    complianceNote: 'DIN 5008 Standard: Foto & Unterschriftenblock sind in Deutschland und Österreich traditionell üblich.'
+    complianceNote: 'DIN 5008 Standard: Candidate photo, birth date, and formal closing signature block are customary in Germany & Austria.'
   },
   UK: {
     code: 'UK',
-    name: 'United Kingdom / Ireland',
-    flag: '🇬🇧',
+    name: 'United Kingdom & Ireland',
+    flag: 'UK',
     allowPhoto: false,
     recommendPhoto: false,
     allowBirthDate: false,
@@ -32,12 +32,12 @@ export const COUNTRY_STANDARDS = {
     compactMode: false,
     languageCode: 'en',
     templateDefault: 'modern-european',
-    complianceNote: 'UK Equality Act 2010: Fotos, Geburtsdatum und Nationalität werden zur Vermeidung von Voreingenommenheit (Anti-Bias) weggelassen.'
+    complianceNote: 'UK Equality Act 2010: Candidate photo, birth date, and nationality are strictly omitted to guarantee anti-bias recruitment.'
   },
   FR: {
     code: 'FR',
-    name: 'France (CV Français)',
-    flag: '🇫🇷',
+    name: 'France (1-Page Executive)',
+    flag: 'FR',
     allowPhoto: true,
     recommendPhoto: false,
     allowBirthDate: false,
@@ -47,12 +47,12 @@ export const COUNTRY_STANDARDS = {
     compactMode: true,
     languageCode: 'fr',
     templateDefault: 'modern-european',
-    complianceNote: 'Standard Français: Format compact sur 1 page privilégié, pas de signature obligatoire.'
+    complianceNote: 'French Standard: Single-page executive format prioritizing career progression and key skills.'
   },
   NL: {
     code: 'NL',
     name: 'Netherlands / Benelux',
-    flag: '🇳🇱',
+    flag: 'NL',
     allowPhoto: true,
     recommendPhoto: false,
     allowBirthDate: true,
@@ -62,7 +62,7 @@ export const COUNTRY_STANDARDS = {
     compactMode: false,
     languageCode: 'en',
     templateDefault: 'minimal-swiss',
-    complianceNote: 'Nederlandse Stijl: Direct, nuchter, overzichtelijk, focus op concrete prestaties en vaardigheden.'
+    complianceNote: 'Dutch Standard: Pragmatic, direct layout highlighting measurable achievements and technical depth.'
   }
 };
 

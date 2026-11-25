@@ -39,8 +39,8 @@ export function runATSTests(assert) {
     }];
 
     const result = analyzeCVForATS(cv);
-    const expCheck = result.checks.find(c => c.category === 'Berufserfahrung');
-    assert.ok(expCheck, 'berufserfahrung category checked');
+    const expCheck = result.checks.find(c => c.category === 'Work Experience' || c.category === 'Berufserfahrung');
+    assert.ok(expCheck, 'work experience category checked');
     assert.ok(expCheck.points >= 20, 'awards points for action verbs and quantifiable metrics');
   });
 }

@@ -1,16 +1,17 @@
 /**
  * European CV Schema & Validation Specifications
- * Designed to conform to German DIN 5008 Lebenslauf conventions and European standards.
+ * Default language: English (accessible to international applicants)
+ * Features DIN 5008, UK Anti-Bias, French & Swiss regional rules.
  */
 
 export const CEFR_LEVELS = [
-  { code: 'native', label: 'Muttersprache / Native' },
-  { code: 'C2', label: 'C2 – Exzellente Kenntnisse / Mastery' },
-  { code: 'C1', label: 'C1 – Verhandlungssicher / Effective Operational' },
-  { code: 'B2', label: 'B2 – Fließend / Vantage' },
-  { code: 'B1', label: 'B1 – Gute Mittelstufe / Threshold' },
-  { code: 'A2', label: 'A2 – Grundkenntnisse / Waystage' },
-  { code: 'A1', label: 'A1 – Einstiegsstufe / Breakthrough' }
+  { code: 'native', label: 'Native / Bilingual' },
+  { code: 'C2', label: 'C2 – Mastery / Native-like' },
+  { code: 'C1', label: 'C1 – Effective Operational / Fluent' },
+  { code: 'B2', label: 'B2 – Vantage / Professional Working' },
+  { code: 'B1', label: 'B1 – Threshold / Intermediate' },
+  { code: 'A2', label: 'A2 – Waystage / Elementary' },
+  { code: 'A1', label: 'A1 – Breakthrough / Beginner' }
 ];
 
 export const TEMPLATE_IDS = {
@@ -22,97 +23,95 @@ export const TEMPLATE_IDS = {
 export function createEmptyCV() {
   return {
     meta: {
-      version: '1.0.0',
+      version: '2.0.0',
       template: TEMPLATE_IDS.GERMAN_DIN,
-      language: 'de', // 'de' or 'en'
-      accentColor: '#1e3a8a', // Deep Navy (German corporate precision)
-      fontFamily: 'Inter',
+      language: 'en',
+      targetCountry: 'DE',
+      accentColor: '#1e3a8a',
+      fontFamily: 'Plus Jakarta Sans',
       showPhoto: true,
       includeSignatureBlock: true
     },
     personal: {
       firstName: '',
       lastName: '',
-      title: '', // e.g. "Senior Software Architect" / "Wirtschaftswissenschaftler"
+      title: '',
       email: '',
       phone: '',
       address: '',
       city: '',
       postalCode: '',
-      country: 'Deutschland',
-      birthDate: '', // DD.MM.YYYY (German standard)
+      country: 'Germany',
+      birthDate: '',
       birthPlace: '',
-      nationality: 'deutsch',
-      maritalStatus: '', // optional in German CVs, usually omitted or optional
+      nationality: '',
       website: '',
       linkedin: '',
       github: '',
       photoUrl: ''
     },
     summary: '',
-    experience: [], // Array of Job objects
-    education: [],  // Array of Education objects
+    experience: [],
+    education: [],
     skills: {
       technical: [],
-      languages: [], // { language: string, level: string, certification?: string }
-      tools: [],
-      interests: []
+      languages: [],
+      tools: []
     },
     certifications: [],
     projects: [],
     signature: {
       place: 'Berlin',
-      date: new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      date: new Date().toLocaleDateString('en-GB'),
       signeeName: ''
     }
   };
 }
 
-export function createSampleGermanCV() {
+export function createSampleEuropeanCV() {
   return {
     meta: {
-      version: '1.0.0',
+      version: '2.0.0',
       template: TEMPLATE_IDS.GERMAN_DIN,
-      language: 'de',
-      accentColor: '#1e293b',
-      fontFamily: 'Inter',
+      language: 'en',
+      targetCountry: 'DE',
+      accentColor: '#1e3a8a',
+      fontFamily: 'Plus Jakarta Sans',
       showPhoto: true,
       includeSignatureBlock: true
     },
     personal: {
-      firstName: 'Maximilian',
-      lastName: 'Schmidt',
-      title: 'Full-Stack Softwareentwickler & Systemarchitekt',
-      email: 'm.schmidt.dev@example.de',
+      firstName: 'Alexander',
+      lastName: 'Wright',
+      title: 'Senior Full-Stack Engineer & System Architect',
+      email: 'alex.wright.dev@example.com',
       phone: '+49 170 12345678',
       address: 'Friedrichstraße 42',
       city: 'Berlin',
       postalCode: '10117',
-      country: 'Deutschland',
+      country: 'Germany',
       birthDate: '14.05.1994',
       birthPlace: 'Hamburg',
-      nationality: 'deutsch',
-      maritalStatus: '',
-      website: 'https://maxschmidt.tech',
-      linkedin: 'linkedin.com/in/maxschmidt-dev',
-      github: 'github.com/maxschmidt',
-      photoUrl: '' // Handled by avatar placeholder or uploaded image
+      nationality: 'German',
+      website: 'https://alexwright.dev',
+      linkedin: 'linkedin.com/in/alexwright-dev',
+      github: 'github.com/alexwright',
+      photoUrl: ''
     },
-    summary: 'Erfahrener Softwareentwickler mit 6+ Jahren Erfahrung in der Konzeption und Implementierung skalierbarer Webanwendungen und verteilter Microservices. Fokus auf TypeScript, React, Go und Cloud-Infrastruktur.',
+    summary: 'Full-Stack Software Engineer with 6+ years of experience designing and scaling fault-tolerant web applications and distributed microservices. Specialist in TypeScript, React, Go, and cloud-native infrastructure.',
     experience: [
       {
         id: 'exp-1',
         position: 'Senior Full-Stack Engineer',
         company: 'FinTech Solutions GmbH',
-        city: 'Berlin',
-        country: 'Deutschland',
+        city: 'Berlin, Germany',
         startDate: '03/2022',
-        endDate: 'Heute',
+        endDate: 'Present',
         current: true,
         bullets: [
-          'Leitung der Entwicklung einer hochverfügbaren Zahlungs-API mit über 500.000 täglichen Transaktionen.',
-          'Reduzierung der API-Latenz um 42% durch Migration auf Go-Microservices und Redis-Caching.',
-          'Mentoring von 4 Junior- und Mid-Level Entwicklern sowie Einführung von CI/CD-Pipelines mit GitHub Actions.'
+          'Architected high-availability payment pipeline processing 500,000+ daily transactions with 99.99% uptime.',
+          'Reduced API p95 response latency by 42% by migrating core endpoints to Go microservices with Redis caching.',
+          'Mentored 5 junior and mid-level engineers and implemented automated CI/CD deployment pipelines via GitHub Actions.'
         ],
         technologies: ['TypeScript', 'React', 'Go', 'PostgreSQL', 'Docker', 'AWS']
       },
@@ -120,15 +119,14 @@ export function createSampleGermanCV() {
         id: 'exp-2',
         position: 'Software Developer',
         company: 'DataMetrics Technologies AG',
-        city: 'München',
-        country: 'Deutschland',
+        city: 'Munich, Germany',
         startDate: '09/2018',
         endDate: '02/2022',
         current: false,
         bullets: [
-          'Entwicklung interaktiver Analyse-Dashboards für Unternehmenskunden mit React und D3.js.',
-          'Optimierung komplexer SQL-Abfragen, wodurch Berichtslaufzeiten von 12 Minuten auf 45 Sekunden sanken.',
-          'Aufbau automatisierter E2E-Tests mit Playwright zur Sicherstellung der Softwarequalität.'
+          'Engineered interactive real-time analytics dashboards for enterprise clients using React and D3.js.',
+          'Optimized mission-critical PostgreSQL queries, reducing analytical report execution times from 12 minutes to 45 seconds.',
+          'Constructed automated end-to-end testing suites with Playwright, elevating test coverage to 94%.'
         ],
         technologies: ['JavaScript', 'React', 'Node.js', 'Python', 'PostgreSQL']
       }
@@ -136,23 +134,23 @@ export function createSampleGermanCV() {
     education: [
       {
         id: 'edu-1',
-        degree: 'Master of Science (M.Sc.) Informatik',
-        institution: 'Technische Universität Berlin',
-        city: 'Berlin',
+        degree: 'M.Sc. Computer Science',
+        institution: 'Technical University of Berlin',
+        city: 'Berlin, Germany',
         startDate: '10/2016',
         endDate: '08/2018',
-        grade: 'Sehr gut (1,3)',
-        thesis: 'Verteilte Konsensus-Algorithmen in latenzkritischen Netzwerken'
+        grade: '1.3 (Highest Distinction / First Class)',
+        thesis: 'Distributed Consensus Algorithms in Latency-Critical Networks'
       },
       {
         id: 'edu-2',
-        degree: 'Bachelor of Science (B.Sc.) Angewandte Informatik',
-        institution: 'Universität Hamburg',
-        city: 'Hamburg',
+        degree: 'B.Sc. Applied Informatics',
+        institution: 'University of Hamburg',
+        city: 'Hamburg, Germany',
         startDate: '10/2013',
         endDate: '07/2016',
-        grade: 'Gut (1,7)',
-        thesis: 'Entwicklung einer reaktiven Single-Page-Application für Geodaten'
+        grade: '1.7 (Upper Second Class Honours)',
+        thesis: 'Reactive Geospatial Visualization Engine'
       }
     ],
     skills: {
@@ -163,16 +161,16 @@ export function createSampleGermanCV() {
         'Node.js & Express',
         'PostgreSQL & Redis',
         'Docker & Kubernetes',
+        'AWS Cloud Infrastructure',
         'REST & GraphQL APIs',
-        'Git & CI/CD Pipelines'
+        'CI/CD & Git'
       ],
       languages: [
-        { language: 'Deutsch', level: 'Muttersprache / Native' },
-        { language: 'Englisch', level: 'C1 – Verhandlungssicher / Fluent' },
-        { language: 'Französisch', level: 'B1 – Gute Grundkenntnisse' }
+        { language: 'English', level: 'Native / Bilingual' },
+        { language: 'German', level: 'C1 – Effective Operational / Fluent' },
+        { language: 'French', level: 'B1 – Threshold / Intermediate' }
       ],
-      tools: ['VS Code', 'Docker Desktop', 'Figma', 'Postman', 'Jira / Confluence'],
-      interests: ['Open-Source-Entwicklung', 'Langstreckenlauf', 'Schach']
+      tools: ['VS Code', 'Docker Desktop', 'Figma', 'Postman', 'Jira / Confluence']
     },
     certifications: [
       {
@@ -180,46 +178,43 @@ export function createSampleGermanCV() {
         name: 'AWS Certified Solutions Architect – Associate',
         issuer: 'Amazon Web Services',
         year: '2023'
-      },
-      {
-        id: 'cert-2',
-        name: 'Certified Kubernetes Application Developer (CKAD)',
-        issuer: 'Linux Foundation',
-        year: '2022'
       }
     ],
     projects: [
       {
         id: 'proj-1',
         name: 'OpenCV-Engine',
-        description: 'Open-Source Bibliothek zur automatisierten Validierung europäischer Lebenslauf-Standards.',
+        description: 'Open-source engine for automated European CV compliance and ATS optimization.',
         technologies: 'TypeScript, TailwindCSS',
-        link: 'https://github.com/maxschmidt/opencv-engine'
+        link: 'https://github.com/alexwright/opencv-engine'
       }
     ],
     signature: {
       place: 'Berlin',
       date: '24.11.2026',
-      signeeName: 'Maximilian Schmidt'
+      signeeName: 'Alexander Wright'
     }
   };
 }
 
+// Backward compatibility alias
+export const createSampleGermanCV = createSampleEuropeanCV;
+
 export function validateCV(cv) {
   const errors = [];
   if (!cv) {
-    return { valid: false, errors: ['CV-Objekt darf nicht leer sein.'] };
+    return { valid: false, errors: ['CV object cannot be empty.'] };
   }
   if (!cv.personal?.firstName?.trim()) {
-    errors.push('Vorname ist erforderlich.');
+    errors.push('First name is required.');
   }
   if (!cv.personal?.lastName?.trim()) {
-    errors.push('Nachname ist erforderlich.');
+    errors.push('Last name is required.');
   }
   if (!cv.personal?.email?.trim()) {
-    errors.push('E-Mail-Adresse ist erforderlich.');
+    errors.push('Email address is required.');
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cv.personal.email)) {
-    errors.push('E-Mail-Adresse hat ein ungültiges Format.');
+    errors.push('Invalid email address format.');
   }
   return {
     valid: errors.length === 0,

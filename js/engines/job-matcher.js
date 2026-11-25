@@ -92,7 +92,7 @@ export function calculateJobMatch(cv, jobText) {
       totalKeywords: 0,
       matched: [],
       missing: [],
-      recommendations: ['Fügen Sie eine Stellenanzeige ein, um fehlende Keywords zu analysieren.']
+      recommendations: ['Paste a job description to extract key requirements and benchmark your CV.']
     };
   }
 
@@ -112,9 +112,9 @@ export function calculateJobMatch(cv, jobText) {
 
   const recommendations = [];
   if (missing.length > 0) {
-    recommendations.push(`Fügen Sie folgende gesuchte Schlüsselbegriffe hinzu: ${missing.slice(0, 5).join(', ')}.`);
+    recommendations.push(`Consider incorporating these requested competencies where applicable: ${missing.slice(0, 5).join(', ')}.`);
   } else {
-    recommendations.push('Exzellente Übereinstimmung! Alle identifizierten Schlüsselqualifikationen sind in Ihrem Lebenslauf vorhanden.');
+    recommendations.push('Strong match! All detected technical qualifications are already highlighted in your CV.');
   }
 
   return {

@@ -4,7 +4,7 @@
 
 import { createSampleGermanCV, validateCV } from './cv-schema.js';
 
-const STORAGE_KEY = 'european_cv_builder_active_data_v1';
+const STORAGE_KEY = 'european_cv_studio_v2';
 const AUTOSAVE_DELAY = 400; // ms debounce
 
 let debounceTimer = null;
@@ -47,7 +47,7 @@ export function autoSaveCV(cv, onSavedCallback) {
 }
 
 export function exportCVAsJSON(cv) {
-  const filename = `${(cv.personal?.lastName || 'Lebenslauf')}_CV_${new Date().toISOString().slice(0, 10)}.json`;
+  const filename = `${(cv.personal?.lastName || 'Candidate')}_CV_${new Date().toISOString().slice(0, 10)}.json`;
   const blob = new Blob([JSON.stringify(cv, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -62,7 +62,7 @@ export function exportCVAsJSON(cv) {
 export function importCVFromJSON(file) {
   return new Promise((resolve, reject) => {
     if (!file) {
-      return reject(new Error('Keine Datei ausgewählt.'));
+      return reject(new Error('No file selected.'));
     }
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -70,14 +70,14 @@ export function importCVFromJSON(file) {
         const parsed = JSON.parse(e.target.result);
         const validation = validateCV(parsed);
         if (!validation.valid) {
-          return reject(new Error('Ungültiges CV-Format: ' + validation.errors.join(', ')));
+          return reject(new Error('Invalid CV schema: ' + validation.errors.join(', ')));
         }
         resolve(parsed);
       } catch (err) {
-        reject(new Error('Ungültige JSON-Datei: ' + err.message));
+        reject(new Error('Invalid JSON file: ' + err.message));
       }
     };
-    reader.onerror = () => reject(new Error('Fehler beim Lesen der Datei.'));
+    reader.onerror = () => reject(new Error('Failed to read file.'));
     reader.readAsText(file);
   });
 }

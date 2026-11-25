@@ -1,6 +1,7 @@
 /**
  * ATS (Applicant Tracking System) Compliance & Scoring Engine
- * Calibrated for European & German corporate recruitment filters.
+ * Calibrated for European, UK, and DACH corporate recruitment filters.
+ * Default language: English (with multi-language action verb support).
  */
 
 const GERMAN_ACTION_VERBS = [
@@ -13,7 +14,7 @@ const GERMAN_ACTION_VERBS = [
 const ENGLISH_ACTION_VERBS = [
   'led', 'developed', 'architected', 'optimized', 'reduced', 'increased',
   'implemented', 'built', 'spearheaded', 'automated', 'streamlined', 'managed',
-  'designed', 'engineered', 'delivered', 'improved', 'scaled'
+  'designed', 'engineered', 'delivered', 'improved', 'scaled', 'constructed'
 ];
 
 export function analyzeCVForATS(cv) {
@@ -25,9 +26,9 @@ export function analyzeCVForATS(cv) {
     return {
       score: 0,
       grade: 'F',
-      status: 'Kritisch unvollständig',
-      checks: [{ label: 'Daten vorhanden', passed: false, points: 0 }],
-      suggestions: ['Bitte füllen Sie Ihre Kontaktdaten aus.']
+      status: 'Critically Incomplete',
+      checks: [{ id: 'data', category: 'Contact Information', label: 'Data available', passed: false, points: 0 }],
+      suggestions: ['Please provide your contact details (name, email, phone).']
     };
   }
 
@@ -41,15 +42,16 @@ export function analyzeCVForATS(cv) {
   score += contactPts;
 
   checks.push({
-    category: 'Kontaktdaten',
-    label: 'Vollständige Kontakt- & Adressdaten',
+    id: 'contact',
+    category: 'Contact Information',
+    label: 'Complete Contact & Location Details',
     passed: contactPts >= 17,
     points: contactPts,
     maxPoints: 20
   });
 
   if (contactPts < 17) {
-    suggestions.push('Fügen Sie Ihre vollständige Telefonnummer, Stadt und eine professionelle Berufsbezeichnung hinzu.');
+    suggestions.push('Add your full phone number, target city/country, and a descriptive role title.');
   }
 
   // 2. Work Experience & Quantifiable Achievements (Max: 30 pts)
@@ -73,8 +75,8 @@ export function analyzeCVForATS(cv) {
       hasBullets = true;
     }
 
-    // Check for quantifiable impact (numbers, %, €, $)
-    const metricRegex = /\b\d+(\.\d+)?%|\b\d+\s*(jahre|monate|k|m|€|\$|tage|prozent)|\b\d{2,}\b/i;
+    // Check for quantifiable impact (numbers, %, €, $, k, m)
+    const metricRegex = /\b\d+(\.\d+)?%|\b\d+\s*(years|months|jahre|monate|k|m|€|\$|days|percent|tage|prozent)|\b\d{2,}\b/i;
     if (metricRegex.test(allText)) {
       expPts += 6;
       hasMetrics = true;
@@ -89,19 +91,20 @@ export function analyzeCVForATS(cv) {
     }
 
     if (!hasMetrics) {
-      suggestions.push('Fügen Sie messbare Erfolge hinzu (z. B. "Latenz um 40% reduziert" oder "Team von 5 Entwicklern").');
+      suggestions.push('Quantify your achievements with numbers or percentages (e.g., "Reduced latency by 40%").');
     }
     if (!hasActionVerbs) {
-      suggestions.push('Nutzen Sie prägnante Aktionsverben wie "Konzeptioniert", "Geleitet", "Optimiert" oder "Implementiert".');
+      suggestions.push('Start bullet points with impactful action verbs like "Architected", "Spearheaded", or "Optimized".');
     }
   } else {
-    suggestions.push('Fügen Sie mindestens eine berufliche Station oder ein Praktikum hinzu.');
+    suggestions.push('Add at least one professional work experience or relevant internship.');
   }
   score += expPts;
 
   checks.push({
-    category: 'Berufserfahrung',
-    label: 'Erfahrung mit messbaren Resultaten',
+    id: 'experience',
+    category: 'Work Experience',
+    label: 'Experience with Measurable Impact',
     passed: expPts >= 24,
     points: expPts,
     maxPoints: 30
@@ -113,17 +116,18 @@ export function analyzeCVForATS(cv) {
   if (education.length > 0) {
     eduPts += 8;
     const hasDegree = education.some(e => e.degree?.trim());
-    const hasDates = education.some(e => e.startDate?.trim() && e.endDate?.trim());
+    const hasDates = education.some(e => (e.startDate?.trim() || e.dateRange?.trim()));
     if (hasDegree) eduPts += 4;
     if (hasDates) eduPts += 3;
   } else {
-    suggestions.push('Geben Sie Ihren höchsten Bildungsabschluss oder Ihre Ausbildung an.');
+    suggestions.push('List your highest degree, university, or vocational training.');
   }
   score += eduPts;
 
   checks.push({
-    category: 'Ausbildung',
-    label: 'Bildungsstationen & Abschlüsse',
+    id: 'education',
+    category: 'Education',
+    label: 'Academic Degrees & Institutions',
     passed: eduPts >= 12,
     points: eduPts,
     maxPoints: 15
@@ -138,41 +142,46 @@ export function analyzeCVForATS(cv) {
     skillPts += 10;
   } else if (techSkills.length > 0) {
     skillPts += 5;
-    suggestions.push('Listen Sie mindestens 4-6 relevante Fachkompetenzen oder Technologien auf.');
+    suggestions.push('List at least 5-8 relevant technical competencies or tools.');
   } else {
-    suggestions.push('Fügen Sie technische Kenntnisse und Fachkompetenzen hinzu.');
+    suggestions.push('Add your technical skill competencies and tools.');
   }
 
   if (languages.length >= 2) {
-    const hasCefr = languages.some(l => l.level && (l.level.includes('A') || l.level.includes('B') || l.level.includes('C') || l.level.toLowerCase().includes('mutter')));
+    const hasCefr = languages.some(l => l.level && (l.level.includes('A') || l.level.includes('B') || l.level.includes('C') || l.level.toLowerCase().includes('native') || l.level.toLowerCase().includes('mutter')));
     skillPts += hasCefr ? 10 : 7;
   } else if (languages.length === 1) {
     skillPts += 5;
-    suggestions.push('Fügen Sie Fremdsprachenkenntnisse mit offiziellem GER/CEFR-Niveau (z. B. B2, C1) hinzu.');
+    suggestions.push('Add language competencies with official CEFR proficiency levels (e.g., B2, C1, Native).');
+  } else {
+    // If languages aren't in array, give baseline if technical skills are comprehensive
+    if (techSkills.length >= 6) skillPts += 8;
   }
   score += skillPts;
 
   checks.push({
-    category: 'Kompetenzen & Sprachen',
-    label: 'Fachkenntnisse & CEFR-Sprachniveau',
+    id: 'skills',
+    category: 'Skills & Languages',
+    label: 'Technical Stack & CEFR Languages',
     passed: skillPts >= 17,
     points: skillPts,
     maxPoints: 20
   });
 
-  // 5. European / German Formalities (Max: 15 pts)
+  // 5. European / Regional Formalities (Max: 15 pts)
   let formalPts = 0;
   if (cv.meta?.includeSignatureBlock) {
     if (cv.signature?.place?.trim() && cv.signature?.date?.trim()) formalPts += 8;
     if (cv.signature?.signeeName?.trim() || (cv.personal?.firstName && cv.personal?.lastName)) formalPts += 7;
   } else {
-    formalPts += 10; // Neutral if disabled for international
+    formalPts += 15; // UK Anti-bias or clean executive layout
   }
   score += formalPts;
 
   checks.push({
-    category: 'Formale Standards',
-    label: 'DIN 5008 Datum- & Signaturblock',
+    id: 'formalities',
+    category: 'Regional Standards',
+    label: 'European Format & Regional Compliance',
     passed: formalPts >= 12,
     points: formalPts,
     maxPoints: 15
@@ -180,19 +189,19 @@ export function analyzeCVForATS(cv) {
 
   // Determine Grade & Status
   let grade = 'A+';
-  let status = 'Exzellent für ATS & HR';
+  let status = 'Excellent for ATS & Hiring Managers';
   if (score < 50) {
     grade = 'D';
-    status = 'Verbesserungsbedarf';
+    status = 'Needs Significant Optimization';
   } else if (score < 70) {
     grade = 'C';
-    status = 'Grundlegend solide';
+    status = 'Basic Structure Present';
   } else if (score < 85) {
     grade = 'B';
-    status = 'Gut – Fast marktreif';
+    status = 'Strong ATS Pass Rate';
   } else if (score < 95) {
     grade = 'A';
-    status = 'Sehr gut optimiert';
+    status = 'Well Optimized for European Roles';
   }
 
   return {

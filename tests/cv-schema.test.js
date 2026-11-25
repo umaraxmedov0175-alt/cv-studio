@@ -18,8 +18,8 @@ export function runSchemaTests(assert) {
 
   assert.test('createSampleGermanCV contains all mandatory German DIN 5008 fields', () => {
     const cv = createSampleGermanCV();
-    assert.equal(cv.personal.firstName, 'Maximilian');
-    assert.equal(cv.personal.lastName, 'Schmidt');
+    assert.equal(cv.personal.firstName, 'Alexander');
+    assert.equal(cv.personal.lastName, 'Wright');
     assert.ok(cv.personal.birthDate.length > 0, 'contains birth date');
     assert.ok(cv.personal.nationality.length > 0, 'contains nationality');
     assert.ok(cv.experience.length >= 2, 'contains at least 2 experiences');

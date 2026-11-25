@@ -5,16 +5,16 @@
 
 export function exportCVToPDF(cv) {
   if (!cv || !cv.personal) {
-    alert('Bitte füllen Sie zuerst Ihren Lebenslauf aus.');
+    alert('Please fill out your personal details before exporting.');
     return;
   }
 
-  const firstName = cv.personal.firstName?.trim() || 'Bewerber';
-  const lastName = cv.personal.lastName?.trim() || 'Lebenslauf';
+  const firstName = cv.personal.firstName?.trim() || 'Candidate';
+  const lastName = cv.personal.lastName?.trim() || 'CV';
   const oldTitle = document.title;
 
   // Set document title to format default PDF file name
-  document.title = `Lebenslauf_${lastName}_${firstName}`;
+  document.title = `CV_${lastName}_${firstName}`;
 
   // Execute native high-fidelity print to PDF dialog
   window.print();
