@@ -1,0 +1,13 @@
+# Normalise line endings so diffs stay clean across Windows, macOS and Linux.
+# Everything in this repo is text except images and generated screenshots.
+* text=auto eol=lf
+
+*.ps1   text eol=lf
+*.js    text eol=lf
+*.css   text eol=lf
+*.html  text eol=lf
+*.md    text eol=lf
+*.json  text eol=lf
+
+*.png   binary
+*.pdf   binary
