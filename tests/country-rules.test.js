@@ -2,7 +2,7 @@
  * Unit Tests for European Country Compliance Rules
  */
 
-import { COUNTRY_STANDARDS, adaptCVForCountry } from '../js/engines/country-rules.js';
+import { COUNTRY_STANDARDS, adaptCVForCountry, getCountryFieldRules } from '../js/engines/country-rules.js';
 import { createSampleGermanCV } from '../js/model/cv-schema.js';
 
 export function runCountryRulesTests(assert) {
@@ -37,5 +37,54 @@ export function runCountryRulesTests(assert) {
     const adapted = adaptCVForCountry(cv, 'FR');
     assert.equal(adapted.rules.languageCode, 'fr', 'french language code');
     assert.ok(adapted.rules.compactMode, 'france prefers compact 1-page mode');
+    assert.notOk(adapted.rules.allowBirthDate, 'birth date suppressed in FR');
+    assert.notOk(adapted.rules.allowNationality, 'nationality suppressed in FR');
+    assert.notOk(adapted.meta.includeSignatureBlock, 'signature block disabled in FR');
+  });
+
+  assert.test('Netherlands standard allows photo and birthDate while suppressing nationality and signature', () => {
+    const cv = createSampleGermanCV();
+    const adapted = adaptCVForCountry(cv, 'NL');
+    assert.equal(adapted.meta.targetCountry, 'NL', 'targetCountry set to NL');
+    assert.equal(adapted.rules.languageCode, 'en', 'NL defaults to EN');
+    assert.ok(adapted.rules.allowPhoto, 'photo allowed in NL');
+    assert.ok(adapted.rules.allowBirthDate, 'birthDate allowed in NL');
+    assert.notOk(adapted.rules.allowNationality, 'nationality suppressed in NL');
+    assert.notOk(adapted.rules.allowSignatureBlock, 'signature block suppressed in NL');
+    assert.notOk(adapted.meta.includeSignatureBlock, 'includeSignatureBlock turned off for NL');
+  });
+
+  assert.test('getCountryFieldRules returns accurate visibility flags for DE, UK, FR, NL, and unknown fallback', () => {
+    const de = getCountryFieldRules('DE');
+    assert.ok(de.allowPhoto && de.allowBirthDate && de.allowNationality && de.allowSignatureBlock && !de.compactMode, 'DE flags accurate');
+
+    const uk = getCountryFieldRules('uk');
+    assert.ok(!uk.allowPhoto && !uk.allowBirthDate && !uk.allowNationality && !uk.allowSignatureBlock, 'UK flags accurate (case-insensitive)');
+
+    const fr = getCountryFieldRules('FR');
+    assert.ok(fr.allowPhoto && !fr.allowBirthDate && !fr.allowNationality && !fr.allowSignatureBlock && fr.compactMode, 'FR flags accurate');
+
+    const nl = getCountryFieldRules('NL');
+    assert.ok(nl.allowPhoto && nl.allowBirthDate && !nl.allowNationality && !nl.allowSignatureBlock && !nl.compactMode, 'NL flags accurate');
+
+    const fallback = getCountryFieldRules('ZZ');
+    assert.equal(JSON.stringify(fallback), JSON.stringify(de), 'unknown country falls back to DE');
+  });
+
+  assert.test('adaptCVForCountry handles null/invalid inputs safely and never mutates original CV', () => {
+    const fromNull = adaptCVForCountry(null, 'UK');
+    assert.equal(fromNull.meta.targetCountry, 'UK', 'null CV initializes cleanly for UK');
+    assert.notOk(fromNull.meta.showPhoto, 'applies UK rules to initialized CV');
+
+    const original = createSampleGermanCV();
+    original.meta.targetCountry = 'DE';
+    original.meta.showPhoto = true;
+    original.meta.includeSignatureBlock = true;
+
+    const adapted = adaptCVForCountry(original, 'UK');
+    assert.notOk(adapted.meta.showPhoto, 'adapted CV disables photo');
+    assert.equal(original.meta.targetCountry, 'DE', 'original targetCountry untouched');
+    assert.equal(original.meta.showPhoto, true, 'original showPhoto untouched');
+    assert.equal(original.meta.includeSignatureBlock, true, 'original includeSignatureBlock untouched');
   });
 }

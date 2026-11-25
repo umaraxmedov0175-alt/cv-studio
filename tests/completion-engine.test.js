@@ -45,6 +45,49 @@ export function runCompletionEngineTests(assert) {
     assert.equal(res.sectionStatus.education, 'complete');
     assert.equal(res.sectionStatus.skills, 'complete');
     assert.equal(res.sectionStatus.languages, 'complete');
+    assert.equal(res.nextAction.sectionId, 'export', 'All-Star CV recommends export/Job Matcher');
+  });
+
+  assert.test('calculateCVCompletion recognizes European decimal comma metrics like 12,5%', () => {
+    const cv = createEmptyCV();
+    cv.personal.firstName = 'Lukas';
+    cv.personal.lastName = 'Weber';
+    cv.personal.email = 'lukas@example.de';
+    cv.personal.phone = '+49 170 111222';
+    cv.personal.title = 'Product Analyst';
+    cv.skills.technical = ['SQL', 'Python', 'Tableau'];
+    cv.experience = [{
+      position: 'Analyst',
+      company: 'Data GmbH',
+      bullets: ['Steigerung der Conversion-Rate um 12,5% im Checkout']
+    }];
+
+    const res = calculateCVCompletion(cv);
+    // Identity (10) + Exp (15 + 7 + 10 metric = 32) + Skills (8) = 50%
+    assert.equal(res.percentage, 50, `expected 50% with 12,5% metric bonus, got ${res.percentage}%`);
+    assert.notOk(res.nextAction.sectionId === 'experience' && res.nextAction.prompt.includes('measurable'),
+      'does not ask for a metric when 12,5% is present');
+  });
+
+  assert.test('pickNextAction prompts to complete partial identity (7-9/10) and respects maxed skills/languages', () => {
+    // 7/10 identity: name (4) + email (3), missing phone/city (2) and title (1)
+    const partialId = createEmptyCV();
+    partialId.personal.firstName = 'Clara';
+    partialId.personal.lastName = 'Bauer';
+    partialId.personal.email = 'clara@example.com';
+    const resPartial = calculateCVCompletion(partialId);
+    assert.equal(resPartial.nextAction.sectionId, 'identity', 'prompts for partial identity');
+    assert.ok(resPartial.nextAction.prompt.includes('phone'), 'specifically prompts for missing phone/city/title');
+
+    // Maxed skills (5+) and languages (2+) on a CV with 1 exp & 1 bullet
+    const maxedSkillsLangs = createSampleEuropeanCV();
+    maxedSkillsLangs.experience = [{
+      position: 'Engineer',
+      company: 'Acme',
+      bullets: ['Reduced build times by 40%']
+    }];
+    const resMaxed = calculateCVCompletion(maxedSkillsLangs);
+    assert.equal(resMaxed.nextAction.sectionId, 'experience', 'prompts for second bullet instead of already-maxed skills/languages');
   });
 
   assert.test('DEFAULT_SECTION_ORDER and normalizeSectionOrder preserve valid order and append missing core sections', () => {
