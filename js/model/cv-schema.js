@@ -24,6 +24,7 @@ const VALID_TEMPLATES = new Set(Object.values(TEMPLATE_IDS));
 const VALID_LANGUAGES = new Set(['en', 'de', 'fr']);
 const VALID_COUNTRIES = new Set(['DE', 'UK', 'FR', 'NL']);
 const VALID_SPACING = new Set(['compact', 'normal', 'spacious']);
+export const MAX_EMBEDDED_PHOTO_DATA_URL_LENGTH = 180_000;
 
 export const DEFAULT_SECTION_ORDER = [
   'summary',
@@ -70,6 +71,7 @@ export function isSafePhotoUrl(url) {
   if (/[\u0000-\u001f\u007f]/.test(trimmed)) return false;
 
   if (/^data:/i.test(trimmed)) {
+    if (trimmed.length > MAX_EMBEDDED_PHOTO_DATA_URL_LENGTH) return false;
     return /^data:image\/(png|jpeg|jpg|webp|gif);base64,[a-z0-9+/=]+$/i.test(trimmed);
   }
 

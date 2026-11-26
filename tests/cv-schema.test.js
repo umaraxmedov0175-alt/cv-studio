@@ -82,6 +82,8 @@ export function runSchemaTests(assert) {
     assert.ok(isSafePhotoUrl('data:image/png;base64,iVBORw0KGgo='), 'data:image/png;base64 allowed');
     assert.ok(isSafePhotoUrl('data:image/jpeg;base64,/9j/4AAQ'), 'data:image/jpeg;base64 allowed');
     assert.ok(isSafePhotoUrl('data:image/webp;base64,UklGRg=='), 'data:image/webp;base64 allowed');
+    assert.notOk(isSafePhotoUrl(`data:image/jpeg;base64,${'a'.repeat(180_000)}`),
+      'rejects embedded photos above the browser-storage budget');
 
     assert.notOk(isSafePhotoUrl('javascript:alert(1)'), 'blocks javascript:');
     assert.notOk(isSafePhotoUrl('vbscript:msgbox(1)'), 'blocks vbscript:');

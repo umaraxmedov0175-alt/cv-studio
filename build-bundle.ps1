@@ -18,6 +18,7 @@ $files = @(
   'js/engines/completion-engine.js',
   'js/engines/pdf-exporter.js',
   'js/components/preview-renderer.js',
+  'js/ui/section-editors.js',
   'js/app.js'
 )
 

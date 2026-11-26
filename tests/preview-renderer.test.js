@@ -227,6 +227,11 @@ export function runPreviewRendererTests(assert) {
       Boolean(el.getAttribute('aria-label')?.trim())
     );
     assert.ok(allAccessible, 'every [contenteditable="true"] has role="textbox" and non-empty aria-label');
+    const bulletItem = container.querySelector('ul.bullet-list > li');
+    assert.ok(bulletItem, 'achievement is inside a semantic list item');
+    assert.notOk(bulletItem.hasAttribute('role'), 'list item keeps its native list semantics');
+    assert.ok(bulletItem.querySelector('span[contenteditable="true"][role="textbox"]'),
+      'achievement text remains directly editable inside the list item');
 
     const expDate = container.querySelector('[data-exp-field="dateRange"]');
     const eduDate = container.querySelector('[data-edu-field="dateRange"]');

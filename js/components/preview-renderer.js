@@ -261,7 +261,7 @@ function buildExperienceSectionHTML(cv, L, templateId) {
 
     const bulletsHTML = bullets.map((bullet, bIdx) => {
       if (typeof bullet !== 'string' && typeof bullet !== 'number') return '';
-      return `<li contenteditable="true" role="textbox" aria-label="Achievement ${bIdx + 1} for position ${idx + 1}" data-exp-bullet="${idx}:${bIdx}">${escapePreviewHTML(String(bullet))}</li>`;
+      return `<li><span contenteditable="true" role="textbox" aria-label="Achievement ${bIdx + 1} for position ${idx + 1}" data-exp-bullet="${idx}:${bIdx}">${escapePreviewHTML(String(bullet))}</span></li>`;
     }).filter(Boolean).join('');
 
     return `

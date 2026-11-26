@@ -1,5 +1,11 @@
 # Build / Screenshots
 *.png
 !assets/og-image.png
+!tests/e2e/studio.spec.js-snapshots/
+!tests/e2e/studio.spec.js-snapshots/*.png
 test_output.html
 dist/
+node_modules/
+test-results/
+playwright-report/
+blob-report/

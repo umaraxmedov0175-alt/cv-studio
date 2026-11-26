@@ -8,8 +8,8 @@ A browser-native, zero-dependency European CV Studio engineered for the German (
 
 1. **Three Editorial A4 Templates**:
    - **Frankfurt** (`german-din-5008`): German DIN 5008 asymmetric date grid (`32mm` date track), optional portrait photo slot (`Bewerbungsfoto`), per-role skill tags, and formal place/date/signature block.
-   - **Zurich** (`minimal-swiss`): Swiss modernist architectural grid (`Plus Jakarta Sans` + `JetBrains Mono`) with high-contrast typographic hierarchy.
-   - **Paris** (`modern-european`): Editorial layout pairing `Newsreader` serif typography with `JetBrains Mono` date margins.
+   - **Zurich** (`minimal-swiss`): Swiss modernist architectural grid with system sans-serif and monospaced typography.
+   - **Paris** (`modern-european`): Editorial layout pairing Georgia serif typography with system monospace date margins.
 
 2. **Porcelain Atelier & Dark Mode with 6 Ink Themes**:
    - Tactile **Light** default (`Porcelain Atelier`) and **Dark Mode** workspace toggle (`#btn-theme-toggle`), persisted locally.
@@ -36,7 +36,8 @@ A browser-native, zero-dependency European CV Studio engineered for the German (
 
 6. **Multi-Page Vector A4 PDF Export & Offline Privacy**:
    - Strict A4 print stylesheet (`@page { size: A4 portrait; margin: 12mm 15mm; }`) producing pure selectable vector text across single-page and multi-page CVs.
-   - Zero server storage or telemetry: auto-saved to `localStorage` with portable JSON backup export and import.
+   - Zero server storage or telemetry: auto-saved to `localStorage` with portable JSON backup export and import. Portraits are resized/compressed and capped at 180 KB of embedded data to protect browser storage.
+   - System font stacks keep both the landing page and editor usable without external font requests.
 
 ---
 
@@ -66,9 +67,21 @@ Then open `http://localhost:8080/` (or open `http://localhost:8080/tests/run-tes
 
 ## Development, Bundling & Testing
 
+The app has no runtime package dependencies. Optional development checks use Node.js and npm:
+
+```powershell
+npm ci
+npx playwright install chromium
+npm run test:all
+```
+
+This runs the browser unit suite, A4 print checks, accessibility checks, responsive-layout checks, and a desktop visual regression snapshot. GitHub Actions runs the same checks on pushes and pull requests.
+
+Use `npm run build:bundle` to regenerate the file-protocol bundle, or `npm run build` to also generate the standalone artifact.
+
 ### Running unit tests from the terminal
 
-`run_tests.ps1` runs `tests/run-tests.html` in headless Chrome or Edge, prints per-suite results (`56` assertions across 8 suites), and exits with a non-zero code on failures:
+`run_tests.ps1` runs `tests/run-tests.html` in headless Chrome or Edge and exits with a non-zero code on failures:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\run_tests.ps1
@@ -87,7 +100,7 @@ powershell -ExecutionPolicy Bypass -File .\tests\print-check.ps1
 `index.html` loads `js/app.bundle.js` over `file://` and modular `js/app.js` over HTTP. After modifying any file under `js/`, rebuild the bundle and standalone single-file HTML (`dist/european_cv_builder.html`):
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\build-bundle.ps1
+npm run build
 ```
 
-Pass `-SkipStandalone` to rebuild only `js/app.bundle.js`.
+Use `npm run build:bundle` to rebuild only `js/app.bundle.js`.
