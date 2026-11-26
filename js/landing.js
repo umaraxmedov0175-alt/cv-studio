@@ -108,6 +108,7 @@
   const stepItems = Array.from(document.querySelectorAll('[data-step-item]'));
   const stepPhotos = Array.from(document.querySelectorAll('[data-step-photo]'));
   const stepsFill = document.getElementById('steps-line-fill');
+  const stepBadge = document.getElementById('how-step-badge');
 
   function setActiveStep(numStr) {
     const num = Number(numStr) || 1;
@@ -116,7 +117,14 @@
     if (stepsFill) {
       stepsFill.style.transform = `scaleY(${(num / 3).toFixed(2)})`;
     }
+    if (stepBadge) {
+      stepBadge.textContent = `Step 0${num} / 03`;
+    }
   }
+
+  stepItems.forEach((item) => {
+    item.addEventListener('click', () => setActiveStep(item.dataset.stepItem));
+  });
 
   // IntersectionObserver for reveals, sticky steps, nav highlight, and mobile sticky CTA
   const printReveal = document.getElementById('print-sheet-reveal');

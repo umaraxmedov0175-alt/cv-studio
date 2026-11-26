@@ -93,7 +93,7 @@ section[id] {
 }
 
 /* Performance guardrail for offscreen sections */
-#why-format, #layouts, #ats, #how-it-works, #privacy, #faq, #start {
+#why-format, #layouts, #ats, #privacy, #faq, #start {
   content-visibility: auto;
   contain-intrinsic-size: auto 760px;
 }
@@ -1027,18 +1027,51 @@ section[id] {
     position: absolute;
     inset: 0;
     opacity: 0;
-    transition: opacity 0.55s ease;
+    transform: scale(1.045);
+    transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .how-crossfade.is-active { opacity: 1; }
+  .how-crossfade.is-active {
+    opacity: 1;
+    transform: scale(1);
+  }
   .how-crossfade img {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
+  .how-step-badge {
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+    z-index: 3;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: rgba(22, 22, 27, 0.78);
+    backdrop-filter: blur(8px);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
   .how-mobile-photo { display: none; }
   .how-steps-col {
-    padding-left: 32px;
-    gap: 72px;
+    padding-left: 36px;
+    gap: 0;
+  }
+  .how-step {
+    min-height: 46vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 32px 0;
+    opacity: 0.36;
+    transform: translateX(0);
+    transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+  }
+  .how-step.is-active {
+    opacity: 1;
+    transform: translateX(6px);
   }
   .steps-v-line {
     display: block;
