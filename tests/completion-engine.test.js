@@ -65,6 +65,8 @@ export function runCompletionEngineTests(assert) {
     const res = calculateCVCompletion(cv);
     // Identity (10) + Exp (15 + 7 + 10 metric = 32) + Skills (8) = 50%
     assert.equal(res.percentage, 50, `expected 50% with 12,5% metric bonus, got ${res.percentage}%`);
+    assert.equal(res.sectionStatus.experience, 'complete', '1 complete position with role, company, and bullet marks experience complete');
+    assert.equal(res.sectionStatus.skills, 'complete', '3+ skills marks skills complete');
     assert.notOk(res.nextAction.sectionId === 'experience' && res.nextAction.prompt.includes('measurable'),
       'does not ask for a metric when 12,5% is present');
   });

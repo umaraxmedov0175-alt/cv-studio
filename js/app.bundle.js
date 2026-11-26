@@ -1717,12 +1717,16 @@ function calculateCVCompletion(cv) {
   else if (percentage >= 71) tier = 'Recruiter Magnet';
   else if (percentage >= 31) tier = 'Interview Ready';
 
+  const completeExp = experiences.some(e =>
+    Boolean(cleanStr(e.position) && cleanStr(e.company) && Array.isArray(e.bullets) && e.bullets.some(b => cleanStr(String(b))))
+  );
+
   const sectionStatus = {
     identity: identityPts >= 9 ? 'complete' : identityPts > 0 ? 'partial' : 'empty',
     summary: summaryPts >= 10 ? 'complete' : summaryPts > 0 ? 'partial' : 'empty',
-    experience: expPts >= 35 ? 'complete' : experiences.length > 0 ? 'partial' : 'empty',
+    experience: completeExp ? 'complete' : experiences.length > 0 ? 'partial' : 'empty',
     education: eduPts >= 15 ? 'complete' : education.length > 0 ? 'partial' : 'empty',
-    skills: techPts >= 15 ? 'complete' : techSkills.length > 0 ? 'partial' : 'empty',
+    skills: techSkills.length >= 3 ? 'complete' : techSkills.length > 0 ? 'partial' : 'empty',
     languages: langPts >= 10 ? 'complete' : languages.length > 0 ? 'partial' : 'empty',
     projects: projects.length > 0 ? 'complete' : 'empty',
     certifications: certifications.length > 0 ? 'complete' : 'empty'
