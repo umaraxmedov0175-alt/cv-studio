@@ -1,4 +1,5 @@
 # Build / Screenshots
 *.png
+!assets/og-image.png
 test_output.html
 dist/

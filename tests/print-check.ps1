@@ -14,7 +14,7 @@ $testsDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $root = Split-Path -Parent $testsDir
 
 $harness = Join-Path $testsDir 'print-harness.html'
-$indexPage = Join-Path $root 'index.html'
+$indexPage = Join-Path $root 'app\index.html'
 foreach ($f in @($harness, $indexPage)) {
   if (-not (Test-Path $f)) { throw "Missing required file: $f" }
 }

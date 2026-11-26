@@ -1,908 +1,572 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>European CV Studio</title>
+  <title>European CV Studio — Country-Specific A4 CV Builder</title>
+  <meta name="description" content="Build a free, no-signup European CV formatted for Germany (DIN 5008), UK & Ireland (anti-bias), France (1-page executive), or the Netherlands. Live A4 preview, ATS keyword matcher, and instant PDF export.">
+  <link rel="canonical" href="https://cv-studio-gold.vercel.app/">
+
+  <!-- Open Graph & Twitter -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://cv-studio-gold.vercel.app/">
+  <meta property="og:title" content="European CV Studio — The CV that fits the country you're applying to">
+  <meta property="og:description" content="DIN 5008 for Germany, anti-bias for the UK, one page for France, direct for the Netherlands. Free, no signup, saved in your browser.">
+  <meta property="og:image" content="https://cv-studio-gold.vercel.app/assets/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="European CV Studio — Country-Specific A4 CV Builder">
+  <meta name="twitter:description" content="Free European CV builder with DE/UK/FR/NL compliance, Frankfurt/Zurich/Paris A4 layouts, ATS scoring, and instant PDF export.">
+  <meta name="twitter:image" content="https://cv-studio-gold.vercel.app/assets/og-image.png">
+
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='2' y='1' width='20' height='22' rx='4' fill='%23ffffff' stroke='%2316161b' stroke-width='1.8'/%3E%3Crect x='5' y='4.5' width='3' height='15' rx='1.5' fill='%232b3fe8'/%3E%3Cline x1='10.5' y1='7.5' x2='18.5' y2='7.5' stroke='%2316161b' stroke-width='1.8' stroke-linecap='round'/%3E%3Cline x1='10.5' y1='11.8' x2='18.5' y2='11.8' stroke='%23595964' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='10.5' y1='16' x2='15.5' y2='16' stroke='%23595964' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/print-a4.css">
-  <link rel="stylesheet" href="css/templates.css">
-  <link rel="stylesheet" href="css/app.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+
+  <!-- Preload hero primary A4 sheet for fast LCP -->
+  <link rel="preload" as="image" href="assets/hero-frankfurt.webp" imagesrcset="assets/hero-frankfurt-800.webp 800w, assets/hero-frankfurt.webp 1600w" imagesizes="(max-width: 767px) 80vw, 380px" fetchpriority="high">
+
+  <link rel="stylesheet" href="css/landing.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "name": "European CV Studio",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web Browser",
+        "url": "https://cv-studio-gold.vercel.app/",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "EUR"
+        },
+        "description": "Browser-based A4 CV builder for European job markets with Germany DIN 5008, UK anti-bias, France 1-page, and Netherlands presets, ATS score, keyword matcher, and PDF export."
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Do I need a photo on a European CV?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "It is customary in Germany and Austria (DIN 5008), optional in France and the Netherlands, and not used in the UK and Ireland under Equality Act anti-bias norms."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is DIN 5008?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "DIN 5008 is the German business layout standard that structures clear left date columns, formal contact headers, and an optional closing place, date, and signature block."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is European CV Studio free?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. It runs completely in your browser with no signup, no account, and no paywall."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I keep my CV safe?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Your CV is saved automatically in localStorage inside your browser, and you can export or import a portable JSON backup file at any time."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Will my CV fit on one page?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. A real-time Page Fit meter tracks A4 height, lets you switch between Compact, Standard, and Spacious density, and provides a one-click Auto-fit to 1 page action."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
-  <div class="studio-top-stripe no-print" aria-hidden="true"></div>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="paper-grain" aria-hidden="true"></div>
 
-  <!-- 1. Top Header Bar -->
-  <header class="app-header no-print">
-    <h1 class="sr-only">European CV Studio</h1>
-    <div class="brand-group">
-      <span class="folio-mark" aria-hidden="true">
-        <svg width="15" height="18" viewBox="0 0 18 22" fill="none">
-          <rect x="0.75" y="0.75" width="16.5" height="20.5" rx="3" stroke="currentColor" stroke-width="1.6"/>
-          <rect x="3.5" y="4" width="2.4" height="14" rx="1.2" fill="var(--accent)"/>
-          <line x1="8" y1="6.5" x2="14" y2="6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          <line x1="8" y1="10.2" x2="14" y2="10.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/>
-          <line x1="8" y1="13.8" x2="12.2" y2="13.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/>
-        </svg>
-      </span>
-      <span class="brand-name">European CV <span class="brand-name-sub">Studio</span></span>
-    </div>
+  <!-- Sticky Navigation -->
+  <header class="site-nav">
+    <div class="container nav-inner">
+      <a class="brand-link" href="#hero" aria-label="European CV Studio home">
+        <span class="folio-mark" aria-hidden="true">
+          <svg width="16" height="20" viewBox="0 0 18 22" fill="none">
+            <rect x="0.75" y="0.75" width="16.5" height="20.5" rx="3" stroke="currentColor" stroke-width="1.6"/>
+            <rect x="3.5" y="4" width="2.4" height="14" rx="1.2" fill="var(--ultramarine)"/>
+            <line x1="8" y1="6.5" x2="14" y2="6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="8" y1="10.2" x2="14" y2="10.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/>
+            <line x1="8" y1="13.8" x2="12.2" y2="13.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/>
+          </svg>
+        </span>
+        <span class="brand-wordmark">European CV Studio</span>
+      </a>
 
-    <div class="header-actions">
-      <button class="ats-gauge-btn" id="btn-ats-pill" type="button" title="Inspect ATS Score &amp; Match against a Job Description">
-        <svg class="ats-ring-svg" width="18" height="18" viewBox="0 0 20 20" aria-hidden="true">
-          <circle class="ats-ring-track" cx="10" cy="10" r="7.5" fill="none" stroke-width="2.3"/>
-          <circle class="ats-ring-arc" id="ats-ring-arc" cx="10" cy="10" r="7.5" fill="none" stroke-width="2.3" stroke-dasharray="47.12" stroke-dashoffset="47.12" stroke-linecap="round" transform="rotate(-90 10 10)"/>
-        </svg>
-        <span class="ats-score-num" id="ats-score-num">--</span>
-        <span class="ats-score-meta" id="ats-score-label">ATS</span>
-      </button>
+      <nav class="nav-links" aria-label="Primary navigation">
+        <a href="#markets">Markets</a>
+        <a href="#layouts">Layouts</a>
+        <a href="#ats">ATS</a>
+        <a href="#faq">FAQ</a>
+      </nav>
 
-      <button class="btn btn-outline" id="btn-open-matcher" type="button">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
-          <circle cx="12" cy="12" r="9"></circle>
-          <circle cx="12" cy="12" r="5"></circle>
-          <circle cx="12" cy="12" r="1.5"></circle>
-        </svg>
-        <span class="btn-label-desktop">Job Match</span>
-      </button>
-
-      <button class="btn btn-ghost" id="btn-open-launch" type="button" title="Start new CV, guided wizard, or import JSON">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <path d="M12 5v14M5 12h14"></path>
-        </svg>
-        <span class="btn-label-desktop">New / Import</span>
-      </button>
-
-      <button class="btn btn-ghost btn-icon-only" id="btn-theme-toggle" type="button" title="Switch light or dark workspace" aria-label="Toggle theme">
-        <svg id="icon-theme-moon" class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-        </svg>
-        <svg id="icon-theme-sun" class="btn-icon" style="display: none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
-          <circle cx="12" cy="12" r="5"></circle>
-          <line x1="12" y1="1" x2="12" y2="3"></line>
-          <line x1="12" y1="21" x2="12" y2="23"></line>
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-          <line x1="1" y1="12" x2="3" y2="12"></line>
-          <line x1="21" y1="12" x2="23" y2="12"></line>
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-        </svg>
-      </button>
-
-      <button class="btn btn-primary" id="btn-export-pdf" type="button">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" aria-hidden="true">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-          <polyline points="7 10 12 15 17 10"></polyline>
-          <line x1="12" y1="15" x2="12" y2="3"></line>
-        </svg>
-        <span><span class="btn-label-desktop">Download </span>PDF</span>
-      </button>
+      <div class="nav-actions">
+        <a class="btn btn-primary" href="/app">Build my CV</a>
+      </div>
     </div>
   </header>
 
-  <!-- 2. Studio Inspector Bar (Floating Pill Clusters on Mineral Stone) -->
-  <nav class="settings-toolbar no-print" aria-label="CV formatting and market settings">
-    <div class="toolbar-controls">
-      <!-- Cluster 1: Market & Locale -->
-      <div class="toolbar-cluster">
-        <div class="toolbar-item">
-          <button class="toolbar-trigger" id="btn-country-popover" type="button" aria-expanded="false" aria-haspopup="listbox" title="Target European Market">
-            <span class="iso-tag" id="active-country-code">DE</span>
-            <span id="active-country-label">Germany (DIN 5008)</span>
-            <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-          </button>
-          <div class="toolbar-popover studio-menu-popover" id="popover-country" style="width: 280px;">
-            <div class="popover-title">Target European market</div>
-            <div class="studio-menu-list" role="listbox" aria-label="Target European Market">
-              <button type="button" class="studio-menu-item active" role="option" aria-selected="true" data-country-val="DE">
-                <span class="iso-tag">DE</span>
-                <span class="studio-menu-copy">
-                  <span class="studio-menu-name">Germany / DACH (DIN 5008)</span>
-                  <span class="studio-menu-desc">Photo, birth date &amp; signature supported</span>
-                </span>
-                <span class="studio-menu-check" aria-hidden="true">✓</span>
-              </button>
-              <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-country-val="UK">
-                <span class="iso-tag">UK</span>
-                <span class="studio-menu-copy">
-                  <span class="studio-menu-name">UK &amp; Ireland</span>
-                  <span class="studio-menu-desc">Equality Act anti-bias format (no photo)</span>
-                </span>
-                <span class="studio-menu-check" aria-hidden="true">✓</span>
-              </button>
-              <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-country-val="FR">
-                <span class="iso-tag">FR</span>
-                <span class="studio-menu-copy">
-                  <span class="studio-menu-name">France (1-Page Executive)</span>
-                  <span class="studio-menu-desc">Compact 1-page progression &amp; skills</span>
-                </span>
-                <span class="studio-menu-check" aria-hidden="true">✓</span>
-              </button>
-              <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-country-val="NL">
-                <span class="iso-tag">NL</span>
-                <span class="studio-menu-copy">
-                  <span class="studio-menu-name">Netherlands / Benelux</span>
-                  <span class="studio-menu-desc">Direct, measurable skills &amp; impact</span>
-                </span>
-                <span class="studio-menu-check" aria-hidden="true">✓</span>
-              </button>
-            </div>
+  <main id="main">
+    <!-- 1. Hero -->
+    <section class="hero-section" id="hero" aria-labelledby="hero-title">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">DE · UK · FR · NL</p>
+          <h1 id="hero-title" class="display-xl word-reveal" aria-label="The CV that fits the country you're applying to.">
+            <span class="word-wrap"><span class="word">The</span></span>
+            <span class="word-wrap"><span class="word">CV</span></span>
+            <span class="word-wrap"><span class="word">that</span></span>
+            <span class="word-wrap"><span class="word">fits</span></span>
+            <span class="word-wrap"><span class="word">the</span></span>
+            <span class="word-wrap"><span class="word">country</span></span>
+            <span class="word-wrap"><span class="word">you’re</span></span>
+            <span class="word-wrap"><span class="word">applying</span></span>
+            <span class="word-wrap"><span class="word">to.</span></span>
+          </h1>
+          <p class="hero-sub">
+            DIN 5008 for Germany, anti-bias for the UK, one page for France, direct for the Netherlands. Free, no signup, saved in your browser.
+          </p>
+          <div class="cta-row">
+            <a class="btn btn-primary btn-lg" href="/app">Build my CV</a>
+            <a class="btn btn-secondary btn-lg" href="/app?sample=1">See a sample CV</a>
           </div>
+          <p class="hero-note">Headings in English, Deutsch &amp; Français · CEFR language levels · Projects &amp; certifications</p>
         </div>
 
-        <span class="toolbar-cluster-sep" aria-hidden="true"></span>
+        <div class="hero-stage" id="hero-stage" aria-label="Three real A4 CV layouts fanned on a desk">
+          <figure class="sheet-card sheet-pos-back" data-hero-card="zurich">
+            <img
+              src="assets/hero-zurich.webp"
+              srcset="assets/hero-zurich-800.webp 800w, assets/hero-zurich.webp 1600w"
+              sizes="(max-width: 767px) 78vw, 370px"
+              width="1600"
+              height="2263"
+              alt="Zurich Swiss typographic grid A4 CV layout with high-contrast hierarchy"
+              decoding="async"
+            >
+            <figcaption class="sheet-caption">Zurich · Swiss Grid</figcaption>
+          </figure>
 
-        <div class="toolbar-item">
-          <button class="toolbar-trigger" id="btn-language-popover" type="button" aria-expanded="false" aria-haspopup="listbox" title="CV Headings Language">
-            <span id="active-language-label">English</span>
-            <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-          </button>
-          <div class="toolbar-popover studio-menu-popover" id="popover-language" style="min-width: 210px;">
-            <div class="popover-title">CV headings language</div>
-            <div class="studio-menu-list" role="listbox" aria-label="CV Headings Language">
-              <button type="button" class="studio-menu-item active" role="option" aria-selected="true" data-lang-val="en">
-                <span class="studio-menu-copy">
-                  <span class="studio-menu-name">English</span>
-                  <span class="studio-menu-desc">International &amp; UK headings</span>
-                </span>
-                <span class="studio-menu-check" aria-hidden="true">✓</span>
-              </button>
-              <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-lang-val="de">
-                <span class="studio-menu-copy">
-                  <span class="studio-menu-name">Deutsch</span>
-                  <span class="studio-menu-desc">DACH / Lebenslauf headings</span>
-                </span>
-                <span class="studio-menu-check" aria-hidden="true">✓</span>
-              </button>
-              <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-lang-val="fr">
-                <span class="studio-menu-copy">
-                  <span class="studio-menu-name">Français</span>
-                  <span class="studio-menu-desc">France &amp; Benelux headings</span>
-                </span>
-                <span class="studio-menu-check" aria-hidden="true">✓</span>
-              </button>
-            </div>
-          </div>
-        </div>
+          <figure class="sheet-card sheet-pos-mid" data-hero-card="paris">
+            <img
+              src="assets/hero-paris.webp"
+              srcset="assets/hero-paris-800.webp 800w, assets/hero-paris.webp 1600w"
+              sizes="(max-width: 767px) 78vw, 370px"
+              width="1600"
+              height="2263"
+              alt="Paris Newsreader editorial serif A4 CV layout for modern European roles"
+              decoding="async"
+            >
+            <figcaption class="sheet-caption">Paris · Newsreader Serif</figcaption>
+          </figure>
 
-        <span class="toolbar-cluster-sep" aria-hidden="true"></span>
-
-        <!-- Regional & DIN Options Popover -->
-        <div class="toolbar-item">
-          <button class="toolbar-trigger" id="btn-regional-popover" type="button" aria-expanded="false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-              <line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line>
-              <line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line>
-              <line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line>
-              <line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line>
-              <line x1="17" y1="16" x2="23" y2="16"></line>
-            </svg>
-            <span>Compliance</span>
-            <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-          </button>
-          <div class="toolbar-popover" id="popover-regional" style="width: 300px;">
-            <div class="popover-title">European formatting &amp; compliance</div>
-            <div id="formal-toggles-section">
-              <label class="toggle-row" id="row-toggle-photo" for="toggle-photo">
-                <span>Include Candidate Photo</span>
-                <input type="checkbox" id="toggle-photo" checked>
-              </label>
-              <label class="toggle-row" id="row-toggle-signature" for="toggle-signature">
-                <span>Closing Signature Block</span>
-                <input type="checkbox" id="toggle-signature" checked>
-              </label>
-            </div>
-            <div id="compliance-note-box" class="compliance-note-box">
-              DIN 5008 Standard: Candidate photo, birth date, and formal closing signature block are customary in Germany &amp; Austria.
-            </div>
-          </div>
+          <figure class="sheet-card sheet-pos-front" data-hero-card="frankfurt">
+            <img
+              src="assets/hero-frankfurt.webp"
+              srcset="assets/hero-frankfurt-800.webp 800w, assets/hero-frankfurt.webp 1600w"
+              sizes="(max-width: 767px) 80vw, 380px"
+              width="1600"
+              height="2263"
+              alt="Frankfurt DIN 5008 A4 CV layout with portrait photo, asymmetric date column, and closing signature"
+              fetchpriority="high"
+              decoding="sync"
+            >
+            <figcaption class="sheet-caption">Frankfurt · DIN 5008</figcaption>
+          </figure>
         </div>
       </div>
+    </section>
 
-      <!-- Cluster 2: Typography, Accent & Rhythm -->
-      <div class="toolbar-cluster">
-        <div class="toolbar-item">
-          <button class="toolbar-trigger" id="btn-template-popover" type="button" aria-expanded="false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
-              <path d="M3 9h18M9 21V9"></path>
-            </svg>
-            <span id="active-template-label">Frankfurt</span>
-            <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-          </button>
-          <div class="toolbar-popover" id="popover-template">
-            <div class="popover-title">Choose a CV layout</div>
-            <div class="template-gallery-grid" id="template-gallery" role="group" aria-label="CV layout templates">
-              <button type="button" class="template-card-option active" data-template-id="german-din-5008" aria-pressed="true">
-                <div class="template-thumb" aria-hidden="true">
-                  <div class="thumb-header-row">
-                    <div style="flex:1; display:flex; flex-direction:column; gap:3px;">
-                      <div class="thumb-line dark" style="width:70%; height:5px;"></div>
-                      <div class="thumb-line accent" style="width:50%;"></div>
-                    </div>
-                    <div class="thumb-photo"></div>
-                  </div>
-                  <div class="thumb-grid-row">
-                    <div class="thumb-line" style="width:18px;"></div>
-                    <div style="display:flex; flex-direction:column; gap:3px;">
-                      <div class="thumb-line dark" style="width:85%;"></div>
-                      <div class="thumb-line" style="width:100%;"></div>
-                    </div>
-                  </div>
-                  <div class="thumb-grid-row">
-                    <div class="thumb-line" style="width:18px;"></div>
-                    <div style="display:flex; flex-direction:column; gap:3px;">
-                      <div class="thumb-line dark" style="width:65%;"></div>
-                      <div class="thumb-line" style="width:90%;"></div>
-                    </div>
-                  </div>
-                </div>
-                <div class="template-card-name">Frankfurt</div>
-                <div class="template-card-desc">DIN 5008 asymmetric date grid</div>
-              </button>
-
-              <button type="button" class="template-card-option" data-template-id="minimal-swiss" aria-pressed="false">
-                <div class="template-thumb" aria-hidden="true">
-                  <div style="border-bottom: 3px solid #0f172a; padding-bottom: 5px; display:flex; flex-direction:column; gap:3px;">
-                    <div class="thumb-line dark" style="width:80%; height:6px;"></div>
-                    <div class="thumb-line accent" style="width:45%;"></div>
-                  </div>
-                  <div style="border-top: 1px solid #0f172a; padding-top:4px; display:flex; flex-direction:column; gap:3px;">
-                    <div class="thumb-line dark" style="width:55%;"></div>
-                    <div class="thumb-line" style="width:95%;"></div>
-                    <div class="thumb-line" style="width:80%;"></div>
-                  </div>
-                  <div style="border-top: 1px solid #0f172a; padding-top:4px; display:flex; flex-direction:column; gap:3px;">
-                    <div class="thumb-line dark" style="width:45%;"></div>
-                    <div class="thumb-line" style="width:85%;"></div>
-                  </div>
-                </div>
-                <div class="template-card-name">Zurich</div>
-                <div class="template-card-desc">Swiss typographic grid</div>
-              </button>
-
-              <button type="button" class="template-card-option" data-template-id="modern-european" aria-pressed="false">
-                <div class="template-thumb" aria-hidden="true">
-                  <div style="align-items:center; border-bottom: 1px solid #0f172a; padding-bottom: 5px; display:flex; flex-direction:column; gap:3px;">
-                    <div class="thumb-line dark" style="width:65%; height:5px;"></div>
-                    <div class="thumb-line accent" style="width:45%;"></div>
-                  </div>
-                  <div class="thumb-line" style="width:88%; margin: 2px auto;"></div>
-                  <div class="thumb-grid-row">
-                    <div class="thumb-line" style="width:18px;"></div>
-                    <div style="display:flex; flex-direction:column; gap:3px;">
-                      <div class="thumb-line dark" style="width:75%;"></div>
-                      <div class="thumb-line" style="width:95%;"></div>
-                    </div>
-                  </div>
-                </div>
-                <div class="template-card-name">Paris</div>
-                <div class="template-card-desc">Newsreader editorial serif</div>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <span class="toolbar-cluster-sep" aria-hidden="true"></span>
-
-        <!-- Accent Color & Studio Theme Popover -->
-        <div class="toolbar-item">
-          <button class="toolbar-trigger" id="btn-color-popover" type="button" aria-expanded="false">
-            <span class="swatch-indicator" id="active-color-dot" style="background: #2b3fe8;"></span>
-            <span id="active-color-name">Ultramarine</span>
-            <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-          </button>
-          <div class="toolbar-popover" id="popover-color" style="min-width: 240px;">
-            <div class="popover-title">Ink palette &amp; studio tone</div>
-            <div class="color-swatches-grid" role="group" aria-label="Studio ink palette">
-              <button type="button" class="color-dot active" data-color="#2b3fe8" data-color-name="Ultramarine" data-ink-key="ultramarine" style="background: #2b3fe8;" title="Ultramarine Cobalt" aria-label="Ultramarine Cobalt" aria-pressed="true"></button>
-              <button type="button" class="color-dot" data-color="#1e3a8a" data-color-name="Prussian Navy" data-ink-key="prussian" style="background: #1e3a8a;" title="Prussian Navy" aria-label="Prussian Navy" aria-pressed="false"></button>
-              <button type="button" class="color-dot" data-color="#065f46" data-color-name="Botanical Emerald" data-ink-key="emerald" style="background: #065f46;" title="Botanical Emerald" aria-label="Botanical Emerald" aria-pressed="false"></button>
-              <button type="button" class="color-dot" data-color="#701a75" data-color-name="Bordeaux Plum" data-ink-key="bordeaux" style="background: #701a75;" title="Bordeaux Plum" aria-label="Bordeaux Plum" aria-pressed="false"></button>
-              <button type="button" class="color-dot" data-color="#b4432a" data-color-name="Burnt Sienna" data-ink-key="sienna" style="background: #b4432a;" title="Burnt Sienna" aria-label="Burnt Sienna" aria-pressed="false"></button>
-              <button type="button" class="color-dot" data-color="#0f172a" data-color-name="Obsidian Slate" data-ink-key="obsidian" style="background: #0f172a;" title="Obsidian Slate" aria-label="Obsidian Slate" aria-pressed="false"></button>
-            </div>
-          </div>
-        </div>
-
-        <span class="toolbar-cluster-sep" aria-hidden="true"></span>
-
-        <!-- Spacing Density Popover -->
-        <div class="toolbar-item">
-          <button class="toolbar-trigger" id="btn-spacing-popover" type="button" aria-expanded="false" aria-haspopup="listbox" title="Vertical Density">
-            <span id="active-spacing-label">Standard</span>
-            <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-          </button>
-          <div class="toolbar-popover studio-menu-popover" id="popover-spacing" style="min-width: 215px;">
-            <div class="popover-title">Vertical density</div>
-            <div class="studio-menu-list" role="listbox" aria-label="Vertical Density">
-              <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-spacing-val="compact">
-                <span class="studio-menu-copy">
-                  <span class="studio-menu-name">Compact</span>
-                  <span class="studio-menu-desc">Tighter margins for 1-page CVs</span>
-                </span>
-                <span class="studio-menu-check" aria-hidden="true">✓</span>
-              </button>
-              <button type="button" class="studio-menu-item active" role="option" aria-selected="true" data-spacing-val="normal">
-                <span class="studio-menu-copy">
-                  <span class="studio-menu-name">Standard</span>
-                  <span class="studio-menu-desc">Balanced A4 editorial spacing</span>
-                </span>
-                <span class="studio-menu-check" aria-hidden="true">✓</span>
-              </button>
-              <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-spacing-val="spacious">
-                <span class="studio-menu-copy">
-                  <span class="studio-menu-name">Spacious</span>
-                  <span class="studio-menu-desc">Open executive breathing room</span>
-                </span>
-                <span class="studio-menu-check" aria-hidden="true">✓</span>
-              </button>
-            </div>
-          </div>
-        </div>
+    <!-- 2. Fact Strip -->
+    <section class="fact-strip" aria-label="Key product facts">
+      <div class="container fact-grid">
+        <span>Free</span>
+        <span class="fact-sep" aria-hidden="true">/</span>
+        <span>No signup</span>
+        <span class="fact-sep" aria-hidden="true">/</span>
+        <span>Saved locally in your browser</span>
+        <span class="fact-sep" aria-hidden="true">/</span>
+        <span>A4 PDF export</span>
       </div>
-    </div>
-  </nav>
+    </section>
 
-  <!-- Mobile View Switcher (< 768px) -->
-  <div class="mobile-pane-tabs no-print" role="group" aria-label="Workspace view">
-    <button type="button" class="mobile-tab-btn active" id="tab-mobile-editor" aria-pressed="true">Edit CV</button>
-    <button type="button" class="mobile-tab-btn" id="tab-mobile-preview" aria-pressed="false">Preview A4</button>
-  </div>
+    <!-- 3. Market Switcher -->
+    <section class="section-block" id="markets" aria-labelledby="markets-title">
+      <div class="container market-grid">
+        <div class="market-copy">
+          <p class="eyebrow">One person, four correct CVs</p>
+          <h2 id="markets-title" class="display-lg">Each country reads a CV differently.</h2>
+          <p class="section-lead">
+            Switch your target market and the studio adapts photo rules, personal details, section headings (English, Deutsch, or Français), and closing blocks to match local hiring norms.
+          </p>
 
-  <!-- 3. Two-Pane Studio Workspace -->
-  <main class="studio-layout" id="studio-layout" data-mobile-view="editor">
-
-    <!-- Left Pane: Stepper + Collapsible Accordion Sections -->
-    <section class="pane-editor no-print" aria-label="CV Editor">
-      <div class="stepper-wrap">
-        <div class="stepper-bar" id="stepper-bar" role="tablist" aria-label="CV sections"></div>
-      </div>
-
-      <div class="editor-scroll" id="editor-scroll">
-        <!-- Pinned Section 1: Identity & Contact -->
-        <div class="accordion-card is-open" data-section-id="identity" id="accordion-identity">
-          <div class="accordion-header">
-            <h2 class="accordion-heading">
-              <button type="button" class="accordion-toggle" id="heading-identity" aria-expanded="true" aria-controls="body-identity" data-section-toggle="identity">
-                <span class="section-jewel" data-jewel="identity">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-3.5 3.6-6 8-6s8 2.5 8 6"></path></svg>
-                  <span class="section-status-dot" data-status-dot="identity" aria-hidden="true">•</span>
-                </span>
-                <span class="accordion-heading-group">
-                  <span class="accordion-title-row">
-                    <span class="accordion-title">Personal details</span>
-                  </span>
-                  <span class="accordion-summary" data-summary-for="identity">Name, target role &amp; contact details</span>
-                </span>
-                <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
-            </h2>
+          <div class="market-tabs" role="tablist" aria-label="European market presets">
+            <button type="button" class="market-tab is-active" role="tab" aria-selected="true" aria-controls="panel-market-de" id="tab-de" data-market="de">
+              <span class="tab-code">DE</span>
+              <span class="tab-label">Germany / DACH</span>
+            </button>
+            <button type="button" class="market-tab" role="tab" aria-selected="false" aria-controls="panel-market-uk" id="tab-uk" data-market="uk" tabindex="-1">
+              <span class="tab-code">UK</span>
+              <span class="tab-label">UK &amp; Ireland</span>
+            </button>
+            <button type="button" class="market-tab" role="tab" aria-selected="false" aria-controls="panel-market-fr" id="tab-fr" data-market="fr" tabindex="-1">
+              <span class="tab-code">FR</span>
+              <span class="tab-label">France</span>
+            </button>
+            <button type="button" class="market-tab" role="tab" aria-selected="false" aria-controls="panel-market-nl" id="tab-nl" data-market="nl" tabindex="-1">
+              <span class="tab-code">NL</span>
+              <span class="tab-label">Netherlands / Benelux</span>
+            </button>
           </div>
-          <div class="accordion-body" id="body-identity" role="region" aria-labelledby="heading-identity">
-            <div class="field-grid-2">
-              <div class="field-group">
-                <label class="field-label" for="p-first-name">First name</label>
-                <input type="text" id="p-first-name" class="field-input" placeholder="e.g. Alexander">
-              </div>
-              <div class="field-group">
-                <label class="field-label" for="p-last-name">Last name</label>
-                <input type="text" id="p-last-name" class="field-input" placeholder="e.g. Wright">
-              </div>
-            </div>
-            <div class="field-group">
-              <label class="field-label" for="p-title">Target role / job title</label>
-              <input type="text" id="p-title" class="field-input" placeholder="e.g. Senior Full-Stack Engineer">
-            </div>
-            <div class="field-grid-2">
-              <div class="field-group">
-                <label class="field-label" for="p-email">Email</label>
-                <input type="email" id="p-email" class="field-input" placeholder="alex@example.com">
-              </div>
-              <div class="field-group">
-                <label class="field-label" for="p-phone">Phone</label>
-                <input type="tel" id="p-phone" class="field-input" placeholder="+49 170 12345678">
-              </div>
-            </div>
-            <div class="field-grid-2">
-              <div class="field-group">
-                <label class="field-label" for="p-city">City</label>
-                <input type="text" id="p-city" class="field-input" placeholder="e.g. Berlin">
-              </div>
-              <div class="field-group">
-                <label class="field-label" for="p-linkedin">LinkedIn / portfolio</label>
-                <input type="text" id="p-linkedin" class="field-input" placeholder="linkedin.com/in/yourname">
-              </div>
-            </div>
-            <div class="field-grid-2" id="regional-identity-fields">
-              <div class="field-group" id="group-birth">
-                <label class="field-label" for="p-birth">Date of birth</label>
-                <input type="text" id="p-birth" class="field-input" placeholder="DD.MM.YYYY">
-              </div>
-              <div class="field-group" id="group-nationality">
-                <label class="field-label" for="p-nationality">Nationality</label>
-                <input type="text" id="p-nationality" class="field-input" placeholder="e.g. German">
-              </div>
-            </div>
-            <div class="field-group" id="group-photo-upload">
-              <label class="field-label" for="p-photo-file">Portrait photo (DIN 5008)</label>
-              <div class="photo-upload-row">
-                <div class="photo-thumb-preview" id="photo-mini-preview">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6"></path></svg>
-                </div>
-                <input type="file" id="p-photo-file" accept="image/*" style="display: none;">
-                <button class="btn btn-outline btn-compact" id="btn-upload-photo" type="button">Upload photo</button>
-                <button class="btn btn-ghost btn-compact" id="btn-clear-photo" type="button" style="color: var(--danger);">Clear</button>
-              </div>
-            </div>
-            <div class="step-nav-footer">
-              <span></span>
-              <button type="button" class="btn btn-primary" data-goto-next="identity" data-step-next="identity">Next section</button>
-            </div>
+
+          <div class="market-panels">
+            <p class="market-desc is-active" id="panel-market-de" role="tabpanel" aria-labelledby="tab-de" data-market-panel="de">
+              <strong>Germany / DACH:</strong> DIN 5008 standard supporting candidate portrait photo, date of birth, nationality, and formal closing signature block.
+            </p>
+            <p class="market-desc" id="panel-market-uk" role="tabpanel" aria-labelledby="tab-uk" data-market-panel="uk" hidden>
+              <strong>UK &amp; Ireland:</strong> Equality Act anti-bias format that automatically removes photo, birth date, nationality, and signature block, renaming experience to Employment History.
+            </p>
+            <p class="market-desc" id="panel-market-fr" role="tabpanel" aria-labelledby="tab-fr" data-market-panel="fr" hidden>
+              <strong>France:</strong> Compact one-page executive layout with optional photo, clear CEFR language tiers, and concise reverse-chronological focus.
+            </p>
+            <p class="market-desc" id="panel-market-nl" role="tabpanel" aria-labelledby="tab-nl" data-market-panel="nl" hidden>
+              <strong>Netherlands / Benelux:</strong> Direct, achievement-oriented layout highlighting measurable impact metrics, technical skills, and structured language proficiency.
+            </p>
           </div>
         </div>
 
-        <!-- Reorderable Sections Container -->
-        <div class="reorderable-list" id="reorderable-sections">
-
-          <!-- Summary -->
-          <div class="accordion-card" data-section-id="summary" draggable="true">
-            <div class="accordion-header">
-              <span class="drag-handle" title="Drag to reorder section" aria-hidden="true">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
-              </span>
-              <h2 class="accordion-heading">
-                <button type="button" class="accordion-toggle" id="heading-summary" aria-expanded="false" aria-controls="body-summary" data-section-toggle="summary">
-                  <span class="section-jewel" data-jewel="summary">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="18" y2="12"></line><line x1="4" y1="18" x2="14" y2="18"></line></svg>
-                    <span class="section-status-dot" data-status-dot="summary" aria-hidden="true">•</span>
-                  </span>
-                  <span class="accordion-heading-group">
-                    <span class="accordion-title-row">
-                      <span class="accordion-title">Professional summary</span>
-                    </span>
-                    <span class="accordion-summary" data-summary-for="summary">Write a crisp 2–3 sentence overview</span>
-                  </span>
-                  <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-              </h2>
-              <div class="accordion-controls">
-                <button type="button" class="reorder-arrow-btn" data-move-up="summary" aria-label="Move Summary up" title="Move up">↑</button>
-                <button type="button" class="reorder-arrow-btn" data-move-down="summary" aria-label="Move Summary down" title="Move down">↓</button>
-              </div>
-            </div>
-            <div class="accordion-body" id="body-summary" role="region" aria-labelledby="heading-summary">
-              <div class="field-group">
-                <label class="field-label" for="f-summary">
-                  <span>Executive bio (2–4 sentences)</span>
-                  <span id="summary-char-hint" style="font-size: 11px;"></span>
-                </label>
-                <textarea id="f-summary" class="field-input" rows="4" placeholder="Example: Senior Full-Stack Engineer with 6+ years building fault-tolerant SaaS products in TypeScript and Go. Focused on high reliability and crisp UX."></textarea>
-              </div>
-              <div class="step-nav-footer">
-                <button type="button" class="btn btn-outline" data-goto-prev="summary">Back</button>
-                <button type="button" class="btn btn-primary" data-goto-next="summary" data-step-next="summary">Next section</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Work Experience -->
-          <div class="accordion-card" data-section-id="experience" draggable="true">
-            <div class="accordion-header">
-              <span class="drag-handle" title="Drag to reorder section" aria-hidden="true">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
-              </span>
-              <h2 class="accordion-heading">
-                <button type="button" class="accordion-toggle" id="heading-experience" aria-expanded="false" aria-controls="body-experience" data-section-toggle="experience">
-                  <span class="section-jewel" data-jewel="experience">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="3"></rect><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"></path></svg>
-                    <span class="section-status-dot" data-status-dot="experience" aria-hidden="true">•</span>
-                  </span>
-                  <span class="accordion-heading-group">
-                    <span class="accordion-title-row">
-                      <span class="accordion-title">Work experience</span>
-                    </span>
-                    <span class="accordion-summary" data-summary-for="experience">Add positions and measurable impact</span>
-                  </span>
-                  <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-              </h2>
-              <div class="accordion-controls">
-                <button type="button" class="reorder-arrow-btn" data-move-up="experience" aria-label="Move Work experience up" title="Move up">↑</button>
-                <button type="button" class="reorder-arrow-btn" data-move-down="experience" aria-label="Move Work experience down" title="Move down">↓</button>
-              </div>
-            </div>
-            <div class="accordion-body" id="body-experience" role="region" aria-labelledby="heading-experience">
-              <div style="display:flex; justify-content:space-between; align-items:center; gap: 8px;">
-                <span style="font-size:12px; color:var(--text-secondary);">List roles in reverse chronological order.</span>
-                <button class="btn btn-outline btn-compact" id="btn-add-job" type="button">+ Add position</button>
-              </div>
-              <div id="experience-card-list" style="display:flex; flex-direction:column; gap:10px;"></div>
-              <div class="step-nav-footer">
-                <button type="button" class="btn btn-outline" data-goto-prev="experience">Back</button>
-                <button type="button" class="btn btn-primary" data-goto-next="experience" data-step-next="experience">Next section</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Education -->
-          <div class="accordion-card" data-section-id="education" draggable="true">
-            <div class="accordion-header">
-              <span class="drag-handle" title="Drag to reorder section" aria-hidden="true">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
-              </span>
-              <h2 class="accordion-heading">
-                <button type="button" class="accordion-toggle" id="heading-education" aria-expanded="false" aria-controls="body-education" data-section-toggle="education">
-                  <span class="section-jewel" data-jewel="education">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
-                    <span class="section-status-dot" data-status-dot="education" aria-hidden="true">•</span>
-                  </span>
-                  <span class="accordion-heading-group">
-                    <span class="accordion-title-row">
-                      <span class="accordion-title">Education &amp; qualifications</span>
-                    </span>
-                    <span class="accordion-summary" data-summary-for="education">University degrees &amp; vocational training</span>
-                  </span>
-                  <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-              </h2>
-              <div class="accordion-controls">
-                <button type="button" class="reorder-arrow-btn" data-move-up="education" aria-label="Move Education up" title="Move up">↑</button>
-                <button type="button" class="reorder-arrow-btn" data-move-down="education" aria-label="Move Education down" title="Move down">↓</button>
-              </div>
-            </div>
-            <div class="accordion-body" id="body-education" role="region" aria-labelledby="heading-education">
-              <div style="display:flex; justify-content:space-between; align-items:center; gap: 8px;">
-                <span style="font-size:12px; color:var(--text-secondary);">Include honors or GPA if recent graduate.</span>
-                <button class="btn btn-outline btn-compact" id="btn-add-edu" type="button">+ Add degree</button>
-              </div>
-              <div id="education-card-list" style="display:flex; flex-direction:column; gap:10px;"></div>
-              <div class="step-nav-footer">
-                <button type="button" class="btn btn-outline" data-goto-prev="education">Back</button>
-                <button type="button" class="btn btn-primary" data-goto-next="education" data-step-next="education">Next section</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Technical Skills -->
-          <div class="accordion-card" data-section-id="skills" draggable="true">
-            <div class="accordion-header">
-              <span class="drag-handle" title="Drag to reorder section" aria-hidden="true">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
-              </span>
-              <h2 class="accordion-heading">
-                <button type="button" class="accordion-toggle" id="heading-skills" aria-expanded="false" aria-controls="body-skills" data-section-toggle="skills">
-                  <span class="section-jewel" data-jewel="skills">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                    <span class="section-status-dot" data-status-dot="skills" aria-hidden="true">•</span>
-                  </span>
-                  <span class="accordion-heading-group">
-                    <span class="accordion-title-row">
-                      <span class="accordion-title">Skills &amp; technologies</span>
-                    </span>
-                    <span class="accordion-summary" data-summary-for="skills">Add key competencies for ATS matching</span>
-                  </span>
-                  <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-              </h2>
-              <div class="accordion-controls">
-                <button type="button" class="reorder-arrow-btn" data-move-up="skills" aria-label="Move Skills up" title="Move up">↑</button>
-                <button type="button" class="reorder-arrow-btn" data-move-down="skills" aria-label="Move Skills down" title="Move down">↓</button>
-              </div>
-            </div>
-            <div class="accordion-body" id="body-skills" role="region" aria-labelledby="heading-skills">
-              <div class="field-group">
-                <label class="field-label" for="skill-quick-input">Add a skill (press Enter)</label>
-                <div class="skill-add-row">
-                  <input type="text" id="skill-quick-input" class="field-input" placeholder="e.g. TypeScript, PostgreSQL, Docker">
-                  <button type="button" class="btn btn-outline" id="btn-add-skill-chip">Add</button>
-                </div>
-              </div>
-              <div id="skills-chip-list" class="skill-tags-wrap"></div>
-              <details style="font-size: 12px; color: var(--text-secondary);">
-                <summary style="cursor: pointer; user-select: none;">Bulk edit comma-separated list</summary>
-                <div class="field-group" style="margin-top: 8px;">
-                  <input type="text" id="f-skills-tech" class="field-input" aria-label="Technical skills comma-separated list">
-                </div>
-              </details>
-              <div class="step-nav-footer">
-                <button type="button" class="btn btn-outline" data-goto-prev="skills">Back</button>
-                <button type="button" class="btn btn-primary" data-goto-next="skills" data-step-next="skills">Next section</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Languages (CEFR) -->
-          <div class="accordion-card" data-section-id="languages" draggable="true">
-            <div class="accordion-header">
-              <span class="drag-handle" title="Drag to reorder section" aria-hidden="true">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
-              </span>
-              <h2 class="accordion-heading">
-                <button type="button" class="accordion-toggle" id="heading-languages" aria-expanded="false" aria-controls="body-languages" data-section-toggle="languages">
-                  <span class="section-jewel" data-jewel="languages">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-                    <span class="section-status-dot" data-status-dot="languages" aria-hidden="true">•</span>
-                  </span>
-                  <span class="accordion-heading-group">
-                    <span class="accordion-title-row">
-                      <span class="accordion-title">Languages (CEFR scale)</span>
-                    </span>
-                    <span class="accordion-summary" data-summary-for="languages">Add spoken languages and proficiency</span>
-                  </span>
-                  <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-              </h2>
-              <div class="accordion-controls">
-                <button type="button" class="reorder-arrow-btn" data-move-up="languages" aria-label="Move Languages up" title="Move up">↑</button>
-                <button type="button" class="reorder-arrow-btn" data-move-down="languages" aria-label="Move Languages down" title="Move down">↓</button>
-              </div>
-            </div>
-            <div class="accordion-body" id="body-languages" role="region" aria-labelledby="heading-languages">
-              <div style="display:flex; justify-content:space-between; align-items:center; gap: 8px;">
-                <span style="font-size:12px; color:var(--text-secondary);">European employers look for CEFR tiers (A1–C2).</span>
-                <button class="btn btn-outline btn-compact" id="btn-add-lang" type="button">+ Add language</button>
-              </div>
-              <div id="language-card-list" style="display:flex; flex-direction:column; gap:10px;"></div>
-              <div class="step-nav-footer">
-                <button type="button" class="btn btn-outline" data-goto-prev="languages">Back</button>
-                <button type="button" class="btn btn-primary" data-goto-next="languages" data-step-next="languages">Next section</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Optional Section: Projects -->
-          <div class="accordion-card" data-section-id="projects" draggable="true" style="display: none;">
-            <div class="accordion-header">
-              <span class="drag-handle" title="Drag to reorder section" aria-hidden="true">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
-              </span>
-              <h2 class="accordion-heading">
-                <button type="button" class="accordion-toggle" id="heading-projects" aria-expanded="false" aria-controls="body-projects" data-section-toggle="projects">
-                  <span class="section-jewel" data-jewel="projects">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-                    <span class="section-status-dot" data-status-dot="projects" aria-hidden="true">•</span>
-                  </span>
-                  <span class="accordion-heading-group">
-                    <span class="accordion-title-row">
-                      <span class="accordion-title">Projects</span>
-                    </span>
-                    <span class="accordion-summary" data-summary-for="projects">Open-source or notable builds</span>
-                  </span>
-                  <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-              </h2>
-              <div class="accordion-controls">
-                <button type="button" class="reorder-arrow-btn" data-move-up="projects" aria-label="Move Projects up" title="Move up">↑</button>
-                <button type="button" class="reorder-arrow-btn" data-move-down="projects" aria-label="Move Projects down" title="Move down">↓</button>
-              </div>
-            </div>
-            <div class="accordion-body" id="body-projects" role="region" aria-labelledby="heading-projects">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <button type="button" class="btn-remove-inline" data-remove-section="projects">Remove section</button>
-                <button class="btn btn-outline btn-compact" id="btn-add-project" type="button">+ Add project</button>
-              </div>
-              <div id="projects-card-list" style="display:flex; flex-direction:column; gap:10px;"></div>
-              <div class="step-nav-footer">
-                <button type="button" class="btn btn-outline" data-goto-prev="projects">Back</button>
-                <button type="button" class="btn btn-primary" data-goto-next="projects" data-step-next="projects">Next section</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Optional Section: Certifications -->
-          <div class="accordion-card" data-section-id="certifications" draggable="true" style="display: none;">
-            <div class="accordion-header">
-              <span class="drag-handle" title="Drag to reorder section" aria-hidden="true">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
-              </span>
-              <h2 class="accordion-heading">
-                <button type="button" class="accordion-toggle" id="heading-certifications" aria-expanded="false" aria-controls="body-certifications" data-section-toggle="certifications">
-                  <span class="section-jewel" data-jewel="certifications">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="6"></circle><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"></path></svg>
-                    <span class="section-status-dot" data-status-dot="certifications" aria-hidden="true">•</span>
-                  </span>
-                  <span class="accordion-heading-group">
-                    <span class="accordion-title-row">
-                      <span class="accordion-title">Certifications</span>
-                    </span>
-                    <span class="accordion-summary" data-summary-for="certifications">Industry licenses &amp; credentials</span>
-                  </span>
-                  <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-              </h2>
-              <div class="accordion-controls">
-                <button type="button" class="reorder-arrow-btn" data-move-up="certifications" aria-label="Move Certifications up" title="Move up">↑</button>
-                <button type="button" class="reorder-arrow-btn" data-move-down="certifications" aria-label="Move Certifications down" title="Move down">↓</button>
-              </div>
-            </div>
-            <div class="accordion-body" id="body-certifications" role="region" aria-labelledby="heading-certifications">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <button type="button" class="btn-remove-inline" data-remove-section="certifications">Remove section</button>
-                <button class="btn btn-outline btn-compact" id="btn-add-cert" type="button">+ Add certification</button>
-              </div>
-              <div id="certifications-card-list" style="display:flex; flex-direction:column; gap:10px;"></div>
-              <div class="step-nav-footer">
-                <button type="button" class="btn btn-outline" data-goto-prev="certifications">Back</button>
-                <button type="button" class="btn btn-primary" data-goto-next="certifications" data-step-next="certifications">Next section</button>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- Quick-Add Section Button -->
-        <div class="quick-add-wrap">
-          <button type="button" class="btn btn-outline quick-add-btn" id="btn-quick-add-toggle">
-            + Add section or entry
-          </button>
-          <div class="quick-add-menu" id="quick-add-menu">
-            <button type="button" class="quick-add-item" data-quick-action="experience">+ Work experience entry</button>
-            <button type="button" class="quick-add-item" data-quick-action="education">+ Education degree</button>
-            <button type="button" class="quick-add-item" data-quick-action="language">+ Language (CEFR)</button>
-            <button type="button" class="quick-add-item" data-quick-action="section-projects">+ Add Projects section</button>
-            <button type="button" class="quick-add-item" data-quick-action="section-certifications">+ Add Certifications section</button>
+        <div class="market-stage">
+          <div class="market-sheet-frame">
+            <img class="market-sheet is-active" data-market-img="de"
+              src="assets/market-de.webp"
+              srcset="assets/market-de-800.webp 800w, assets/market-de.webp 1600w"
+              sizes="(max-width: 767px) 92vw, 480px"
+              width="1600" height="2263" loading="lazy" decoding="async"
+              alt="German DIN 5008 CV sheet featuring candidate portrait photo, birth date, nationality, and formal signature layout">
+            <img class="market-sheet" data-market-img="uk"
+              src="assets/market-uk.webp"
+              srcset="assets/market-uk-800.webp 800w, assets/market-uk.webp 1600w"
+              sizes="(max-width: 767px) 92vw, 480px"
+              width="1600" height="2263" loading="lazy" decoding="async"
+              alt="UK and Ireland anti-bias CV sheet with portrait photo, birth date, nationality, and signature removed">
+            <img class="market-sheet" data-market-img="fr"
+              src="assets/market-fr.webp"
+              srcset="assets/market-fr-800.webp 800w, assets/market-fr.webp 1600w"
+              sizes="(max-width: 767px) 92vw, 480px"
+              width="1600" height="2263" loading="lazy" decoding="async"
+              alt="French compact one-page executive CV sheet with clean CEFR language scale">
+            <img class="market-sheet" data-market-img="nl"
+              src="assets/market-nl.webp"
+              srcset="assets/market-nl-800.webp 800w, assets/market-nl.webp 1600w"
+              sizes="(max-width: 767px) 92vw, 480px"
+              width="1600" height="2263" loading="lazy" decoding="async"
+              alt="Netherlands Benelux CV sheet highlighting direct measurable impact and technical competencies">
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Right Pane: Live A4 Paper Canvas -->
-    <section class="pane-canvas" aria-label="Live A4 CV Preview">
-      <div class="canvas-top-bar no-print">
-        <div class="page-budget-container" id="page-budget-box">
-          <span style="font-weight: 600; color: var(--text-secondary);">Page Fit</span>
-          <div class="budget-bar-track" id="budget-track" role="progressbar" aria-label="A4 page fit" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-            <div class="budget-bar-fill" id="budget-fill"></div>
-          </div>
-          <span id="budget-status-label" style="font-weight: 600; color: var(--success);">Calculating...</span>
-          <button id="btn-auto-fit" class="btn btn-primary btn-compact" type="button" style="display: none;">Auto-fit 1 page</button>
+    <!-- 4. Layout Gallery (Desktop scroll track / Mobile snap carousel) -->
+    <section class="section-block section-tinted" id="layouts" aria-labelledby="layouts-title">
+      <div class="container layouts-head">
+        <div>
+          <p class="eyebrow">A4 Layouts &amp; Density</p>
+          <h2 id="layouts-title" class="display-lg">Three layouts. Compact, Standard, or Spacious.</h2>
         </div>
-
-        <span class="canvas-hint">Click any text on the page to edit directly</span>
-
-        <div class="zoom-controls" role="group" aria-label="Canvas zoom">
-          <button class="zoom-pill-btn" id="zoom-out" type="button" aria-label="Zoom out">−</button>
-          <button class="zoom-pill-btn zoom-fit-btn" id="zoom-fit" type="button">Fit</button>
-          <button class="zoom-pill-btn" id="zoom-in" type="button" aria-label="Zoom in">+</button>
-        </div>
+        <p class="section-lead">
+          Each layout is engineered on a strict 210&times;297mm A4 canvas with the Ultramarine ink palette, CEFR language tiers, and optional Projects and Certifications sections.
+        </p>
       </div>
 
-      <div class="canvas-desk">
-        <div class="a4-sheet template-german-din-5008" id="preview-sheet"></div>
+      <div class="layouts-viewport" id="layouts-viewport">
+        <div class="layouts-track" id="layouts-track">
+          <article class="layout-slide">
+            <figure class="layout-paper">
+              <img
+                src="assets/hero-frankfurt.webp"
+                srcset="assets/hero-frankfurt-800.webp 800w, assets/hero-frankfurt.webp 1600w"
+                sizes="(max-width: 767px) 84vw, 380px"
+                width="1600" height="2263" loading="lazy" decoding="async"
+                alt="Frankfurt DIN 5008 asymmetric date grid A4 CV capture">
+            </figure>
+            <div class="layout-meta">
+              <h3>Frankfurt</h3>
+              <p>DIN 5008 asymmetric date grid with dedicated photo slot, skill tags, and formal signature block.</p>
+            </div>
+          </article>
+
+          <article class="layout-slide">
+            <figure class="layout-paper">
+              <img
+                src="assets/hero-zurich.webp"
+                srcset="assets/hero-zurich-800.webp 800w, assets/hero-zurich.webp 1600w"
+                sizes="(max-width: 767px) 84vw, 380px"
+                width="1600" height="2263" loading="lazy" decoding="async"
+                alt="Zurich Swiss typographic grid A4 CV capture">
+            </figure>
+            <div class="layout-meta">
+              <h3>Zurich</h3>
+              <p>Swiss typographic grid with crisp monospaced date columns and structured visual restraint.</p>
+            </div>
+          </article>
+
+          <article class="layout-slide">
+            <figure class="layout-paper">
+              <img
+                src="assets/hero-paris.webp"
+                srcset="assets/hero-paris-800.webp 800w, assets/hero-paris.webp 1600w"
+                sizes="(max-width: 767px) 84vw, 380px"
+                width="1600" height="2263" loading="lazy" decoding="async"
+                alt="Paris Newsreader editorial serif A4 CV capture">
+            </figure>
+            <div class="layout-meta">
+              <h3>Paris</h3>
+              <p>Newsreader editorial serif paired with subtle accent headings and balanced one-page density.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Portrait Strip (Opposite-direction photo marquee) -->
+    <section class="section-block portraits-section" aria-labelledby="portraits-title">
+      <div class="container portraits-head">
+        <p class="eyebrow">Built for international candidates</p>
+        <h2 id="portraits-title" class="display-md">From local graduates to relocating engineers across DACH, UK, France, and Benelux.</h2>
+      </div>
+
+      <div class="marquee-wrap" id="portrait-marquee" aria-label="Editorial applicant portraits">
+        <div class="marquee-row marquee-left">
+          <div class="marquee-group">
+            <img src="assets/portrait-01.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of an applicant in a navy blazer">
+            <img src="assets/portrait-02.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of a product designer in a charcoal jacket">
+            <img src="assets/portrait-03.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of a finance director in a tailored suit">
+            <img src="assets/portrait-04.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of a systems architect wearing glasses">
+          </div>
+          <div class="marquee-group" aria-hidden="true">
+            <img src="assets/portrait-01.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+            <img src="assets/portrait-02.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+            <img src="assets/portrait-03.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+            <img src="assets/portrait-04.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+          </div>
+        </div>
+
+        <div class="marquee-row marquee-right">
+          <div class="marquee-group">
+            <img src="assets/portrait-05.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of an engineering manager in a burgundy blazer">
+            <img src="assets/portrait-06.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of a data analyst in an Oxford shirt">
+            <img src="assets/portrait-07.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of an operations executive in a charcoal blazer">
+            <img src="assets/portrait-08.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of a clinical researcher in a camel blazer">
+          </div>
+          <div class="marquee-group" aria-hidden="true">
+            <img src="assets/portrait-05.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+            <img src="assets/portrait-06.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+            <img src="assets/portrait-07.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+            <img src="assets/portrait-08.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. ATS & Job Keyword Matcher -->
+    <section class="section-block section-tinted" id="ats" aria-labelledby="ats-title">
+      <div class="container ats-grid">
+        <div class="ats-visual" id="ats-visual">
+          <div class="ats-photo-wrap">
+            <img
+              src="assets/ats-panel.webp"
+              srcset="assets/ats-panel-600.webp 600w, assets/ats-panel.webp 1200w"
+              sizes="(max-width: 767px) 92vw, 440px"
+              width="1200" height="2509" loading="lazy" decoding="async"
+              alt="Live capture of the ATS Health and Job Keyword Matcher drawer analyzing a sample Senior Full-Stack Engineer CV">
+          </div>
+
+          <div class="ats-telemetry-card" aria-label="Sample CV ATS readout">
+            <div class="ats-telemetry-top">
+              <span class="ats-sample-tag">Sample CV · Alexander Wright</span>
+              <span class="ats-score-readout"><span class="tabular" id="ats-counter" data-target="97">97</span>/100</span>
+            </div>
+            <div class="ats-chip-cloud" id="ats-chip-cloud">
+              <span class="chip-hit">TypeScript</span>
+              <span class="chip-hit">React</span>
+              <span class="chip-hit">Go</span>
+              <span class="chip-hit">PostgreSQL</span>
+              <span class="chip-hit">Docker</span>
+              <span class="chip-hit">AWS</span>
+              <span class="chip-hit">CI/CD</span>
+              <span class="chip-miss" id="ats-missing-chip">+ Terraform</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ats-copy">
+          <p class="eyebrow">ATS Health &amp; Job Match</p>
+          <h2 id="ats-title" class="display-lg">Check your CV against the job posting before you apply.</h2>
+          <p class="section-lead">
+            The built-in ATS Health engine scores contact completeness, action verbs, quantified results, technical skills, CEFR languages, and regional compliance in real time.
+          </p>
+          <ul class="clean-list">
+            <li>Paste any target job description to compare matched vs. missing technical keywords.</li>
+            <li>Add missing competencies straight into your skills list in one click.</li>
+            <li>Spot unquantified bullets with the inline Impact Coach before exporting.</li>
+          </ul>
+          <a class="btn btn-primary" href="/app">Test your CV in the studio</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. How It Works -->
+    <section class="section-block" id="how-it-works" aria-labelledby="how-title">
+      <div class="container">
+        <div class="how-head">
+          <p class="eyebrow">How it works</p>
+          <h2 id="how-title" class="display-lg">Three calm steps to an A4 PDF.</h2>
+        </div>
+
+        <div class="steps-rail" id="steps-rail">
+          <div class="steps-line" aria-hidden="true"><span class="steps-line-fill" id="steps-line-fill"></span></div>
+
+          <article class="step-item">
+            <div class="step-num tabular">01</div>
+            <figure class="step-photo">
+              <img src="assets/market-de.webp" srcset="assets/market-de-800.webp 800w, assets/market-de.webp 1600w" sizes="(max-width: 767px) 88vw, 320px" width="1600" height="2263" loading="lazy" decoding="async" alt="Choosing a European market preset in European CV Studio">
+            </figure>
+            <h3>Choose your market</h3>
+            <p>Select Germany/DACH, UK &amp; Ireland, France, or Netherlands, plus English, Deutsch, or Français headings.</p>
+          </article>
+
+          <article class="step-item">
+            <div class="step-num tabular">02</div>
+            <figure class="step-photo">
+              <img src="assets/hero-zurich.webp" srcset="assets/hero-zurich-800.webp 800w, assets/hero-zurich.webp 1600w" sizes="(max-width: 767px) 88vw, 320px" width="1600" height="2263" loading="lazy" decoding="async" alt="Editing CV sections with live A4 preview">
+            </figure>
+            <h3>Fill it in, or load the sample</h3>
+            <p>Start guided from a blank page, explore the built-in sample CV, or import an existing JSON backup.</p>
+          </article>
+
+          <article class="step-item">
+            <div class="step-num tabular">03</div>
+            <figure class="step-photo">
+              <img src="assets/hero-paris.webp" srcset="assets/hero-paris-800.webp 800w, assets/hero-paris.webp 1600w" sizes="(max-width: 767px) 88vw, 320px" width="1600" height="2263" loading="lazy" decoding="async" alt="Exporting a crisp selectable A4 PDF">
+            </figure>
+            <h3>Download your PDF</h3>
+            <p>Auto-fit to one page if needed, verify your ATS health, and print a selectable-text A4 PDF directly from your browser.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. Privacy -->
+    <section class="section-block section-tinted" id="privacy" aria-labelledby="privacy-title">
+      <div class="container privacy-grid">
+        <div class="privacy-copy">
+          <p class="eyebrow">Local-first privacy</p>
+          <h2 id="privacy-title" class="display-lg">No account. Your CV stays in your browser.</h2>
+          <p class="section-lead">
+            There is no backend database and no account wall. Edits save automatically to your browser’s localStorage, and you can export or import a JSON backup file at any time.
+          </p>
+          <div class="cta-row">
+            <a class="btn btn-secondary" href="/app">Open studio</a>
+          </div>
+        </div>
+        <figure class="privacy-photo">
+          <img src="assets/market-uk.webp" srcset="assets/market-uk-800.webp 800w, assets/market-uk.webp 1600w" sizes="(max-width: 767px) 92vw, 400px" width="1600" height="2263" loading="lazy" decoding="async" alt="Clean A4 CV saved locally in browser storage">
+        </figure>
+      </div>
+    </section>
+
+    <!-- 9. FAQ -->
+    <section class="section-block" id="faq" aria-labelledby="faq-title">
+      <div class="container faq-container">
+        <div class="faq-head">
+          <p class="eyebrow">Questions</p>
+          <h2 id="faq-title" class="display-lg">Common questions before you start.</h2>
+        </div>
+
+        <div class="faq-list">
+          <details class="faq-item" open>
+            <summary>Do I need a photo?</summary>
+            <p>It depends on the country. A portrait photo is customary in Germany and Austria (DIN 5008), optional in France and the Netherlands, and omitted in the UK and Ireland under Equality Act anti-bias guidelines.</p>
+          </details>
+          <details class="faq-item">
+            <summary>What is DIN 5008?</summary>
+            <p>DIN 5008 is the German standard for structured business layouts. In European CV Studio, the Frankfurt layout uses DIN 5008’s asymmetric date column, structured personal header, and optional closing place, date, and signature block.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Is it free?</summary>
+            <p>Yes. Every layout, market preset, ATS score check, keyword matcher, and PDF export runs free in your browser with no signup.</p>
+          </details>
+          <details class="faq-item">
+            <summary>How do I keep my CV safe?</summary>
+            <p>Your CV is saved locally in your browser’s <code>localStorage</code> on this domain. For portability across devices or browsers, click <strong>New / Import</strong> inside the studio to download or restore a JSON backup.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Will it fit on one page?</summary>
+            <p>The live Page Fit bar measures A4 page usage as you type. You can switch between Compact, Standard, and Spacious density or click <strong>Auto-fit 1 page</strong> whenever a draft spills slightly onto page two.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. Final Print-Up CTA -->
+    <section class="section-block final-cta-section" id="start" aria-labelledby="final-cta-title">
+      <div class="container final-cta-inner">
+        <figure class="print-sheet-reveal" id="print-sheet-reveal">
+          <img src="assets/hero-frankfurt.webp" srcset="assets/hero-frankfurt-800.webp 800w, assets/hero-frankfurt.webp 1600w" sizes="(max-width: 767px) 84vw, 420px" width="1600" height="2263" loading="lazy" decoding="async" alt="Completed DIN 5008 A4 CV ready for PDF download">
+        </figure>
+        <div class="final-cta-copy">
+          <h2 id="final-cta-title" class="display-lg">Ready to print your A4 CV?</h2>
+          <p class="section-lead">Open the studio, pick your market, and export a clean selectable-text PDF.</p>
+          <div class="cta-row cta-center">
+            <a class="btn btn-primary btn-lg" href="/app">Build my CV</a>
+            <a class="btn btn-secondary btn-lg" href="/app?sample=1">See a sample CV</a>
+          </div>
+        </div>
       </div>
     </section>
   </main>
 
-  <!-- 4. Sticky Progress & CV Strength Footer -->
-  <footer class="strength-footer no-print" aria-label="CV completion meter">
-    <div class="strength-meter-group">
-      <span class="strength-pct" id="strength-pct">0%</span>
-      <div class="strength-track" id="strength-track" role="progressbar" aria-label="CV completion strength" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-        <div class="strength-fill" id="strength-fill"></div>
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <span class="brand-wordmark">European CV Studio</span>
+        <p>Browser-native A4 CV studio for DACH, UK &amp; Ireland, France, and Benelux.</p>
       </div>
-      <span class="strength-tier-badge" id="strength-tier">Draft Mode</span>
+      <div class="footer-links">
+        <a href="/app">Open Builder</a>
+        <a href="#markets">Markets</a>
+        <a href="#layouts">Layouts</a>
+        <a href="#ats">ATS Matcher</a>
+        <a href="#faq">FAQ</a>
+        <a href="assets/CREDITS.md">Image Credits</a>
+      </div>
     </div>
-    <button type="button" class="strength-next-btn" id="strength-next-btn">Complete your identity</button>
   </footer>
 
-  <!-- 5. Onboarding Launch Screen ("How do you want to start?") -->
-  <div class="launch-overlay no-print" id="launch-overlay" role="dialog" aria-modal="true" aria-labelledby="launch-modal-title">
-    <div class="launch-modal">
-      <div class="launch-header">
-        <div>
-          <h2 class="launch-title" id="launch-modal-title">How would you like to start?</h2>
-          <p class="launch-subtitle">Your A4 preview stays visible beside you as you build — zero signups, saved locally in your browser.</p>
-        </div>
-        <button type="button" class="drawer-close-btn" id="btn-close-launch" aria-label="Close">×</button>
-      </div>
-
-      <div class="launch-paths">
-        <button type="button" class="launch-path-card" id="btn-start-guided">
-          <span class="launch-path-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-          </span>
-          <span class="launch-path-title">Guided step-by-step</span>
-          <span class="launch-path-desc">Start with a clean slate and recruiter coaching tips one section at a time.</span>
-        </button>
-
-        <button type="button" class="launch-path-card" id="btn-start-sample">
-          <span class="launch-path-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="8" y1="8" x2="16" y2="8"></line><line x1="8" y1="12" x2="16" y2="12"></line><line x1="8" y1="16" x2="12" y2="16"></line></svg>
-          </span>
-          <span class="launch-path-title">Explore sample CV</span>
-          <span class="launch-path-desc">Load a polished DIN 5008 example CV and swap in your own details right away.</span>
-        </button>
-
-        <button type="button" class="launch-path-card" id="btn-start-import">
-          <span class="launch-path-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-          </span>
-          <span class="launch-path-title">Import JSON backup</span>
-          <span class="launch-path-desc">Restore an existing European CV Studio JSON export from your computer.</span>
-        </button>
-      </div>
-      <input type="file" id="import-json-file" accept=".json,application/json" style="display: none;">
-      <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;">
-        <span style="font-size: 12px; color: var(--text-secondary);">Need a portable backup of your current CV?</span>
-        <button class="btn btn-outline btn-compact" id="btn-export-json" type="button">Download JSON backup</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Backdrop for ATS Drawer -->
-  <div class="drawer-backdrop no-print" id="drawer-backdrop"></div>
-
-  <!-- Toast Notification -->
-  <div id="toast-notice" class="toast-notice" role="status" aria-live="polite"></div>
-
-  <!-- Slide-Over Drawer: ATS Health & Job Description Matcher -->
-  <aside class="slide-drawer no-print" id="job-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" inert>
-    <div class="drawer-header">
-      <div>
-        <h2 class="drawer-title" id="drawer-title">ATS Health &amp; Job Keyword Matcher</h2>
-        <p class="drawer-subtitle">Audit completeness and match against a target job posting.</p>
-      </div>
-      <button id="btn-close-drawer" class="drawer-close-btn" type="button" aria-label="Close drawer">&times;</button>
-    </div>
-
-    <div class="drawer-body">
-      <div class="ats-panel">
-        <div class="drawer-score-header">
-          <span class="drawer-score-label">Overall ATS Score</span>
-          <span id="drawer-ats-badge" class="ats-pill">--/100</span>
-        </div>
-        <div id="drawer-ats-checks"></div>
-        <div id="drawer-ats-tips" style="margin-top: 8px; font-size: 11.5px; color: var(--warning); line-height: 1.45;"></div>
-      </div>
-
-      <div class="ats-panel">
-        <label for="job-description-input" style="font-size: 13px; font-weight: 700; color: var(--text-primary); display: block; margin-bottom: 8px;">Match against target job posting</label>
-        <textarea id="job-description-input" class="field-input" style="height: 115px; margin-bottom: 10px;" placeholder="Paste job requirements from LinkedIn, Indeed, Welcome to the Jungle, or StepStone..."></textarea>
-
-        <button class="btn btn-primary" id="btn-analyze-job" type="button" style="width: 100%;">Run keyword match</button>
-
-        <div id="job-analysis-results" style="display: none; border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px;">
-          <div class="drawer-score-header">
-            <span class="drawer-score-label" style="font-size: 12.5px; font-weight: 600;">Keyword Match Rate:</span>
-            <span id="job-match-badge" class="ats-pill">0%</span>
-          </div>
-
-          <div style="margin-bottom: 10px;">
-            <div style="font-size: 11.5px; font-weight: 600; color: var(--success); margin-bottom: 6px;">Present in your CV:</div>
-            <div id="job-matched-tags" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>
-          </div>
-
-          <div style="margin-bottom: 12px;">
-            <div style="font-size: 11.5px; font-weight: 600; color: var(--danger); margin-bottom: 6px;">Missing (Click to add to Skills):</div>
-            <div id="job-missing-tags" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>
-          </div>
-
-          <div id="job-match-recs" style="font-size: 12px; color: var(--text-primary); background: var(--accent-soft); padding: 10px; border-radius: 8px; border-left: 3px solid var(--accent); line-height: 1.45;"></div>
-        </div>
-      </div>
-    </div>
-  </aside>
-
-  <!-- Automatic Module vs File-Protocol Loader (works both via HTTP server and double-click file://) -->
-  <script>
-    (function () {
-      var script = document.createElement('script');
-      if (window.location.protocol === 'file:') {
-        script.src = 'js/app.bundle.js';
-      } else {
-        script.type = 'module';
-        script.src = 'js/app.js';
-      }
-      document.body.appendChild(script);
-    })();
-  </script>
+  <script src="js/landing.js" defer></script>
 </body>
 </html>

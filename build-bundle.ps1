@@ -68,7 +68,7 @@ if (-not $SkipStandalone) {
     New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
   }
 
-  $indexHtml = Get-Content -Path (Join-Path $root 'index.html') -Raw -Encoding UTF8
+  $indexHtml = Get-Content -Path (Join-Path $root 'app/index.html') -Raw -Encoding UTF8
   $cssPrint = Get-Content -Path (Join-Path $root 'css/print-a4.css') -Raw -Encoding UTF8
   $cssTpl = Get-Content -Path (Join-Path $root 'css/templates.css') -Raw -Encoding UTF8
   $cssApp = Get-Content -Path (Join-Path $root 'css/app.css') -Raw -Encoding UTF8
@@ -76,7 +76,7 @@ if (-not $SkipStandalone) {
   $combinedCSS = "<style>`n$cssPrint`n$cssTpl`n$cssApp`n</style>"
   $standaloneHtml = [regex]::Replace(
     $indexHtml,
-    '(?s)<link rel="stylesheet" href="css/print-a4\.css">.*?<link rel="stylesheet" href="css/app\.css">',
+    '(?s)<link rel="stylesheet" href="(?:\.\./)?css/print-a4\.css">.*?<link rel="stylesheet" href="(?:\.\./)?css/app\.css">',
     { param($m) $combinedCSS }
   )
 
