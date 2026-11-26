@@ -118,8 +118,7 @@
     }
   }
 
-  // IntersectionObserver for reveals, marquee offscreen pause, sticky steps, nav highlight, and mobile sticky CTA
-  const marqueeWrap = document.getElementById('portrait-marquee');
+  // IntersectionObserver for reveals, sticky steps, nav highlight, and mobile sticky CTA
   const printReveal = document.getElementById('print-sheet-reveal');
   const revealTargets = Array.from(document.querySelectorAll('[data-reveal]'));
   const mobileCta = document.getElementById('mobile-sticky-cta');
@@ -140,10 +139,6 @@
     const revealIO = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         const el = entry.target;
-        if (el === marqueeWrap) {
-          el.classList.toggle('is-paused', !entry.isIntersecting);
-          return;
-        }
         if (entry.isIntersecting) {
           el.classList.add('is-inview');
           if (el === atsVisual) animateAtsCounter();
@@ -152,7 +147,7 @@
       });
     }, { threshold: 0.05 });
 
-    [marqueeWrap, atsVisual, printReveal, ...revealTargets].forEach((el) => {
+    [atsVisual, printReveal, ...revealTargets].forEach((el) => {
       if (el) revealIO.observe(el);
     });
 
