@@ -53,10 +53,10 @@
         "mainEntity": [
           {
             "@type": "Question",
-            "name": "Do I need a photo on a European CV?",
+            "name": "Do I need a photo?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "It is customary in Germany and Austria (DIN 5008), optional in France and the Netherlands, and not used in the UK and Ireland under Equality Act anti-bias norms."
+              "text": "It is customary in Germany and Austria (DIN 5008), optional in France and the Netherlands, and not used in the UK and Ireland under Equality Act anti-bias guidelines."
             }
           },
           {
@@ -64,15 +64,15 @@
             "name": "What is DIN 5008?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "DIN 5008 is the German business layout standard that structures clear left date columns, formal contact headers, and an optional closing place, date, and signature block."
+              "text": "DIN 5008 is the German standard for business layouts, using clear date margins, structured contact headers, and an optional closing place, date, and signature block."
             }
           },
           {
             "@type": "Question",
-            "name": "Is European CV Studio free?",
+            "name": "Is it free?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes. It runs completely in your browser with no signup, no account, and no paywall."
+              "text": "Yes. European CV Studio runs free in your browser with no account and no signup."
             }
           },
           {
@@ -80,15 +80,15 @@
             "name": "How do I keep my CV safe?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Your CV is saved automatically in localStorage inside your browser, and you can export or import a portable JSON backup file at any time."
+              "text": "Your CV is saved locally in your browser's localStorage, and you can export or import a JSON backup file at any time."
             }
           },
           {
             "@type": "Question",
-            "name": "Will my CV fit on one page?",
+            "name": "Will it fit on one page?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes. A real-time Page Fit meter tracks A4 height, lets you switch between Compact, Standard, and Spacious density, and provides a one-click Auto-fit to 1 page action."
+              "text": "A live Page Fit meter tracks A4 height, lets you switch Compact, Standard, or Spacious density, and offers one-click Auto-fit to 1 page."
             }
           }
         ]
@@ -117,10 +117,10 @@
       </a>
 
       <nav class="nav-links" aria-label="Primary navigation">
-        <a href="#markets">Markets</a>
-        <a href="#layouts">Layouts</a>
-        <a href="#ats">ATS</a>
-        <a href="#faq">FAQ</a>
+        <a href="#markets" data-nav-section="markets">Markets</a>
+        <a href="#layouts" data-nav-section="layouts">Layouts</a>
+        <a href="#ats" data-nav-section="ats">ATS</a>
+        <a href="#faq" data-nav-section="faq">FAQ</a>
       </nav>
 
       <div class="nav-actions">
@@ -130,7 +130,7 @@
   </header>
 
   <main id="main">
-    <!-- 1. Hero -->
+    <!-- 0. Hero (Untouched from Phase 1) -->
     <section class="hero-section" id="hero" aria-labelledby="hero-title">
       <div class="container hero-grid">
         <div class="hero-copy">
@@ -200,7 +200,7 @@
       </div>
     </section>
 
-    <!-- 2. Fact Strip -->
+    <!-- 1. Fact Strip -->
     <section class="fact-strip" aria-label="Key product facts">
       <div class="container fact-grid">
         <span>Free</span>
@@ -213,358 +213,422 @@
       </div>
     </section>
 
-    <!-- 3. Market Switcher -->
+    <!-- 2. Four Countries, Four Ways to Read a CV (Expanding City Panels + Supporting CV Sheet) -->
     <section class="section-block" id="markets" aria-labelledby="markets-title">
-      <div class="container market-grid">
-        <div class="market-copy">
-          <p class="eyebrow">One person, four correct CVs</p>
-          <h2 id="markets-title" class="display-lg">Each country reads a CV differently.</h2>
+      <div class="container">
+        <div class="section-intro-split">
+          <div>
+            <p class="eyebrow">Four countries, four ways to read a CV</p>
+            <h2 id="markets-title" class="display-lg">Every hiring desk expects its own conventions.</h2>
+          </div>
+          <p class="editorial-caption">Hover, focus, or tap a city to inspect how European CV Studio adapts photo rules, personal fields, headings, and closing signatures.</p>
+        </div>
+
+        <div class="city-panels" id="city-panels">
+          <article class="city-panel is-active" tabindex="0" aria-expanded="true" data-city-panel="de">
+            <picture class="city-bg">
+              <source type="image/webp" srcset="assets/city-dach-800.webp 800w, assets/city-dach.webp 1600w" sizes="(max-width: 899px) 92vw, 420px">
+              <img src="assets/city-dach.jpg" width="1600" height="2133" loading="lazy" decoding="async" alt="Frankfurt financial skyline and riverfront in soft daylight">
+            </picture>
+            <div class="city-scrim" aria-hidden="true"></div>
+            <div class="city-sheet-slide" aria-hidden="true">
+              <img src="assets/market-de-800.webp" width="800" height="1132" loading="lazy" decoding="async" alt="">
+            </div>
+            <div class="city-overlay">
+              <span class="city-code tabular">DE / DACH</span>
+              <h3 class="city-name">Frankfurt &amp; DACH</h3>
+              <p class="city-copy">DIN 5008 format where candidate photo, birth date, and closing signature are customary.</p>
+            </div>
+          </article>
+
+          <article class="city-panel" tabindex="0" aria-expanded="false" data-city-panel="uk">
+            <picture class="city-bg">
+              <source type="image/webp" srcset="assets/city-uk-800.webp 800w, assets/city-uk.webp 1600w" sizes="(max-width: 899px) 92vw, 420px">
+              <img src="assets/city-uk.jpg" width="1600" height="2133" loading="lazy" decoding="async" alt="London Georgian brick street in soft overcast morning light">
+            </picture>
+            <div class="city-scrim" aria-hidden="true"></div>
+            <div class="city-sheet-slide" aria-hidden="true">
+              <img src="assets/market-uk-800.webp" width="800" height="1132" loading="lazy" decoding="async" alt="">
+            </div>
+            <div class="city-overlay">
+              <span class="city-code tabular">UK &amp; IE</span>
+              <h3 class="city-name">London &amp; Dublin</h3>
+              <p class="city-copy">Anti-bias Equality Act format: photo, birth date, nationality, and signature omitted automatically.</p>
+            </div>
+          </article>
+
+          <article class="city-panel" tabindex="0" aria-expanded="false" data-city-panel="fr">
+            <picture class="city-bg">
+              <source type="image/webp" srcset="assets/city-fr-800.webp 800w, assets/city-fr.webp 1600w" sizes="(max-width: 899px) 92vw, 420px">
+              <img src="assets/city-fr.jpg" width="1600" height="2133" loading="lazy" decoding="async" alt="Paris Haussmann stone facades and street corner in morning sun">
+            </picture>
+            <div class="city-scrim" aria-hidden="true"></div>
+            <div class="city-sheet-slide" aria-hidden="true">
+              <img src="assets/market-fr-800.webp" width="800" height="1132" loading="lazy" decoding="async" alt="">
+            </div>
+            <div class="city-overlay">
+              <span class="city-code tabular">FR</span>
+              <h3 class="city-name">Paris</h3>
+              <p class="city-copy">One-page executive presentation with concise profile framing and CEFR language tiers.</p>
+            </div>
+          </article>
+
+          <article class="city-panel" tabindex="0" aria-expanded="false" data-city-panel="nl">
+            <picture class="city-bg">
+              <source type="image/webp" srcset="assets/city-nl-800.webp 800w, assets/city-nl.webp 1600w" sizes="(max-width: 899px) 92vw, 420px">
+              <img src="assets/city-nl.jpg" width="1600" height="2133" loading="lazy" decoding="async" alt="Amsterdam canal houses and gabled rooftops along calm water">
+            </picture>
+            <div class="city-scrim" aria-hidden="true"></div>
+            <div class="city-sheet-slide" aria-hidden="true">
+              <img src="assets/market-nl-800.webp" width="800" height="1132" loading="lazy" decoding="async" alt="">
+            </div>
+            <div class="city-overlay">
+              <span class="city-code tabular">NL</span>
+              <h3 class="city-name">Amsterdam &amp; Benelux</h3>
+              <p class="city-copy">Direct, scannable hierarchy highlighting measurable skills, outcomes, and languages.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Why Format Matters (Editorial Hook with Human Window Moment) -->
+    <section class="section-block section-tinted" id="why-format" aria-labelledby="why-title">
+      <div class="container split-editorial">
+        <figure class="clip-photo duotone-photo" data-reveal>
+          <picture>
+            <source type="image/webp" srcset="assets/people-window-reading-800.webp 800w, assets/people-window-reading.webp 1600w" sizes="(max-width: 767px) 92vw, 520px">
+            <img src="assets/people-window-reading.jpg" width="1600" height="2133" loading="lazy" decoding="async" alt="Open printed pages and reading glasses beside a morning coffee mug">
+          </picture>
+        </figure>
+
+        <div class="editorial-story">
+          <p class="eyebrow">Why format matters</p>
+          <blockquote class="pull-quote" id="why-title">
+            “In Germany a photo is customary. In the UK it is left out. The same person, a different CV.”
+          </blockquote>
           <p class="section-lead">
-            Switch your target market and the studio adapts photo rules, personal details, section headings (English, Deutsch, or Français), and closing blocks to match local hiring norms.
+            When you apply across European borders, subtle layout choices signal whether you understand the local workplace. Switch country presets and section headings between English, Deutsch, and Français without rewriting your work history.
           </p>
-
-          <div class="market-tabs" role="tablist" aria-label="European market presets">
-            <button type="button" class="market-tab is-active" role="tab" aria-selected="true" aria-controls="panel-market-de" id="tab-de" data-market="de">
-              <span class="tab-code">DE</span>
-              <span class="tab-label">Germany / DACH</span>
-            </button>
-            <button type="button" class="market-tab" role="tab" aria-selected="false" aria-controls="panel-market-uk" id="tab-uk" data-market="uk" tabindex="-1">
-              <span class="tab-code">UK</span>
-              <span class="tab-label">UK &amp; Ireland</span>
-            </button>
-            <button type="button" class="market-tab" role="tab" aria-selected="false" aria-controls="panel-market-fr" id="tab-fr" data-market="fr" tabindex="-1">
-              <span class="tab-code">FR</span>
-              <span class="tab-label">France</span>
-            </button>
-            <button type="button" class="market-tab" role="tab" aria-selected="false" aria-controls="panel-market-nl" id="tab-nl" data-market="nl" tabindex="-1">
-              <span class="tab-code">NL</span>
-              <span class="tab-label">Netherlands / Benelux</span>
-            </button>
-          </div>
-
-          <div class="market-panels">
-            <p class="market-desc is-active" id="panel-market-de" role="tabpanel" aria-labelledby="tab-de" data-market-panel="de">
-              <strong>Germany / DACH:</strong> DIN 5008 standard supporting candidate portrait photo, date of birth, nationality, and formal closing signature block.
-            </p>
-            <p class="market-desc" id="panel-market-uk" role="tabpanel" aria-labelledby="tab-uk" data-market-panel="uk" hidden>
-              <strong>UK &amp; Ireland:</strong> Equality Act anti-bias format that automatically removes photo, birth date, nationality, and signature block, renaming experience to Employment History.
-            </p>
-            <p class="market-desc" id="panel-market-fr" role="tabpanel" aria-labelledby="tab-fr" data-market-panel="fr" hidden>
-              <strong>France:</strong> Compact one-page executive layout with optional photo, clear CEFR language tiers, and concise reverse-chronological focus.
-            </p>
-            <p class="market-desc" id="panel-market-nl" role="tabpanel" aria-labelledby="tab-nl" data-market-panel="nl" hidden>
-              <strong>Netherlands / Benelux:</strong> Direct, achievement-oriented layout highlighting measurable impact metrics, technical skills, and structured language proficiency.
-            </p>
-          </div>
-        </div>
-
-        <div class="market-stage">
-          <div class="market-sheet-frame">
-            <img class="market-sheet is-active" data-market-img="de"
-              src="assets/market-de.webp"
-              srcset="assets/market-de-800.webp 800w, assets/market-de.webp 1600w"
-              sizes="(max-width: 767px) 92vw, 480px"
-              width="1600" height="2263" loading="lazy" decoding="async"
-              alt="German DIN 5008 CV sheet featuring candidate portrait photo, birth date, nationality, and formal signature layout">
-            <img class="market-sheet" data-market-img="uk"
-              src="assets/market-uk.webp"
-              srcset="assets/market-uk-800.webp 800w, assets/market-uk.webp 1600w"
-              sizes="(max-width: 767px) 92vw, 480px"
-              width="1600" height="2263" loading="lazy" decoding="async"
-              alt="UK and Ireland anti-bias CV sheet with portrait photo, birth date, nationality, and signature removed">
-            <img class="market-sheet" data-market-img="fr"
-              src="assets/market-fr.webp"
-              srcset="assets/market-fr-800.webp 800w, assets/market-fr.webp 1600w"
-              sizes="(max-width: 767px) 92vw, 480px"
-              width="1600" height="2263" loading="lazy" decoding="async"
-              alt="French compact one-page executive CV sheet with clean CEFR language scale">
-            <img class="market-sheet" data-market-img="nl"
-              src="assets/market-nl.webp"
-              srcset="assets/market-nl-800.webp 800w, assets/market-nl.webp 1600w"
-              sizes="(max-width: 767px) 92vw, 480px"
-              width="1600" height="2263" loading="lazy" decoding="async"
-              alt="Netherlands Benelux CV sheet highlighting direct measurable impact and technical competencies">
-          </div>
+          <a class="btn btn-secondary" href="/app">Build my CV</a>
         </div>
       </div>
     </section>
 
-    <!-- 4. Layout Gallery (Desktop scroll track / Mobile snap carousel) -->
-    <section class="section-block section-tinted" id="layouts" aria-labelledby="layouts-title">
-      <div class="container layouts-head">
-        <div>
-          <p class="eyebrow">A4 Layouts &amp; Density</p>
-          <h2 id="layouts-title" class="display-lg">Three layouts. Compact, Standard, or Spacious.</h2>
+    <!-- 4. Three Layouts (Place-Matched Photos + CV Peek on Hover/Focus) -->
+    <section class="section-block" id="layouts" aria-labelledby="layouts-title">
+      <div class="container">
+        <div class="section-intro-split">
+          <div>
+            <p class="eyebrow">Three A4 layouts</p>
+            <h2 id="layouts-title" class="display-lg">Frankfurt, Zurich, and Paris.</h2>
+          </div>
+          <p class="editorial-caption">Tuned for Ultramarine ink and Compact, Standard, or Spacious density, with optional Projects and Certifications.</p>
         </div>
-        <p class="section-lead">
-          Each layout is engineered on a strict 210&times;297mm A4 canvas with the Ultramarine ink palette, CEFR language tiers, and optional Projects and Certifications sections.
-        </p>
-      </div>
 
-      <div class="layouts-viewport" id="layouts-viewport">
-        <div class="layouts-track" id="layouts-track">
-          <article class="layout-slide">
-            <figure class="layout-paper">
-              <img
-                src="assets/hero-frankfurt.webp"
-                srcset="assets/hero-frankfurt-800.webp 800w, assets/hero-frankfurt.webp 1600w"
-                sizes="(max-width: 767px) 84vw, 380px"
-                width="1600" height="2263" loading="lazy" decoding="async"
-                alt="Frankfurt DIN 5008 asymmetric date grid A4 CV capture">
-            </figure>
-            <div class="layout-meta">
+        <div class="place-cards">
+          <article class="place-card" tabindex="0">
+            <div class="place-media duotone-photo" data-reveal>
+              <picture>
+                <source type="image/webp" srcset="assets/card-frankfurt-600.webp 600w, assets/card-frankfurt.webp 1200w" sizes="(max-width: 767px) 92vw, 370px">
+                <img src="assets/card-frankfurt.jpg" width="1200" height="900" loading="lazy" decoding="async" alt="Frankfurt high-rise geometric tower facade against clear morning sky">
+              </picture>
+              <img class="cv-peek" src="assets/hero-frankfurt-800.webp" width="800" height="1132" loading="lazy" decoding="async" alt="Frankfurt DIN 5008 CV layout preview">
+            </div>
+            <div class="place-meta">
               <h3>Frankfurt</h3>
-              <p>DIN 5008 asymmetric date grid with dedicated photo slot, skill tags, and formal signature block.</p>
+              <p>DIN 5008 asymmetric date grid with portrait slot, role tags, and closing signature.</p>
             </div>
           </article>
 
-          <article class="layout-slide">
-            <figure class="layout-paper">
-              <img
-                src="assets/hero-zurich.webp"
-                srcset="assets/hero-zurich-800.webp 800w, assets/hero-zurich.webp 1600w"
-                sizes="(max-width: 767px) 84vw, 380px"
-                width="1600" height="2263" loading="lazy" decoding="async"
-                alt="Zurich Swiss typographic grid A4 CV capture">
-            </figure>
-            <div class="layout-meta">
+          <article class="place-card" tabindex="0">
+            <div class="place-media duotone-photo" data-reveal>
+              <picture>
+                <source type="image/webp" srcset="assets/card-zurich-600.webp 600w, assets/card-zurich.webp 1200w" sizes="(max-width: 767px) 92vw, 370px">
+                <img src="assets/card-zurich.jpg" width="1200" height="900" loading="lazy" decoding="async" alt="Calm Lake Zurich and distant Alpine horizon in soft morning light">
+              </picture>
+              <img class="cv-peek" src="assets/hero-zurich-800.webp" width="800" height="1132" loading="lazy" decoding="async" alt="Zurich Swiss grid CV layout preview">
+            </div>
+            <div class="place-meta">
               <h3>Zurich</h3>
-              <p>Swiss typographic grid with crisp monospaced date columns and structured visual restraint.</p>
+              <p>Swiss typographic grid with monospaced dates and crisp structural hierarchy.</p>
             </div>
           </article>
 
-          <article class="layout-slide">
-            <figure class="layout-paper">
-              <img
-                src="assets/hero-paris.webp"
-                srcset="assets/hero-paris-800.webp 800w, assets/hero-paris.webp 1600w"
-                sizes="(max-width: 767px) 84vw, 380px"
-                width="1600" height="2263" loading="lazy" decoding="async"
-                alt="Paris Newsreader editorial serif A4 CV capture">
-            </figure>
-            <div class="layout-meta">
+          <article class="place-card" tabindex="0">
+            <div class="place-media duotone-photo" data-reveal>
+              <picture>
+                <source type="image/webp" srcset="assets/card-paris-600.webp 600w, assets/card-paris.webp 1200w" sizes="(max-width: 767px) 92vw, 370px">
+                <img src="assets/card-paris.jpg" width="1200" height="900" loading="lazy" decoding="async" alt="Quiet Parisian cafe terrace corner with classic bistro chairs">
+              </picture>
+              <img class="cv-peek" src="assets/hero-paris-800.webp" width="800" height="1132" loading="lazy" decoding="async" alt="Paris Newsreader serif CV layout preview">
+            </div>
+            <div class="place-meta">
               <h3>Paris</h3>
-              <p>Newsreader editorial serif paired with subtle accent headings and balanced one-page density.</p>
+              <p>Newsreader editorial serif paired with balanced one-page executive density.</p>
             </div>
           </article>
         </div>
       </div>
     </section>
 
-    <!-- 5. Portrait Strip (Opposite-direction photo marquee) -->
-    <section class="section-block portraits-section" aria-labelledby="portraits-title">
-      <div class="container portraits-head">
-        <p class="eyebrow">Built for international candidates</p>
-        <h2 id="portraits-title" class="display-md">From local graduates to relocating engineers across DACH, UK, France, and Benelux.</h2>
-      </div>
-
-      <div class="marquee-wrap" id="portrait-marquee" aria-label="Editorial applicant portraits">
-        <div class="marquee-row marquee-left">
-          <div class="marquee-group">
-            <img src="assets/portrait-01.webp" width="600" height="750" decoding="async" alt="Editorial headshot portrait of an applicant in a navy blazer">
-            <img src="assets/portrait-02.webp" width="600" height="750" decoding="async" alt="Editorial headshot portrait of a product designer in a charcoal jacket">
-            <img src="assets/portrait-03.webp" width="600" height="750" decoding="async" alt="Editorial headshot portrait of a finance director in a tailored suit">
-            <img src="assets/portrait-04.webp" width="600" height="750" decoding="async" alt="Editorial headshot portrait of a systems architect wearing glasses">
-            <img src="assets/portrait-05.webp" width="600" height="750" decoding="async" alt="Editorial headshot portrait of an engineering manager in a burgundy blazer">
-            <img src="assets/portrait-06.webp" width="600" height="750" decoding="async" alt="Editorial headshot portrait of a data analyst in an Oxford shirt">
-            <img src="assets/portrait-07.webp" width="600" height="750" decoding="async" alt="Editorial headshot portrait of an operations executive in a charcoal blazer">
-            <img src="assets/portrait-08.webp" width="600" height="750" decoding="async" alt="Editorial headshot portrait of a clinical researcher in a camel blazer">
-          </div>
-          <div class="marquee-group" aria-hidden="true">
-            <img src="assets/portrait-01.webp" width="600" height="750" decoding="async" alt="">
-            <img src="assets/portrait-02.webp" width="600" height="750" decoding="async" alt="">
-            <img src="assets/portrait-03.webp" width="600" height="750" decoding="async" alt="">
-            <img src="assets/portrait-04.webp" width="600" height="750" decoding="async" alt="">
-            <img src="assets/portrait-05.webp" width="600" height="750" decoding="async" alt="">
-            <img src="assets/portrait-06.webp" width="600" height="750" decoding="async" alt="">
-            <img src="assets/portrait-07.webp" width="600" height="750" decoding="async" alt="">
-            <img src="assets/portrait-08.webp" width="600" height="750" decoding="async" alt="">
-          </div>
-        </div>
-
-        <div class="marquee-row marquee-right">
-          <div class="marquee-group">
-            <img src="assets/portrait-06.webp" width="600" height="750" decoding="async" alt="Editorial headshot portrait of a data analyst in an Oxford shirt">
-            <img src="assets/portrait-07.webp" width="600" height="750" decoding="async" alt="Editorial headshot portrait of an operations executive in a charcoal blazer">
-            <img src="assets/portrait-08.webp" width="600" height="750" decoding="async" alt="Editorial headshot portrait of a clinical researcher in a camel blazer">
-            <img src="assets/portrait-01.webp" width="600" height="750" decoding="async" alt="Editorial headshot portrait of an applicant in a navy blazer">
-            <img src="assets/portrait-02.webp" width="600" height="750" decoding="async" alt="Editorial headshot portrait of a product designer in a charcoal jacket">
-            <img src="assets/portrait-03.webp" width="600" height="750" decoding="async" alt="Editorial headshot portrait of a finance director in a tailored suit">
-            <img src="assets/portrait-04.webp" width="600" height="750" decoding="async" alt="Editorial headshot portrait of a systems architect wearing glasses">
-            <img src="assets/portrait-05.webp" width="600" height="750" decoding="async" alt="Editorial headshot portrait of an engineering manager in a burgundy blazer">
-          </div>
-          <div class="marquee-group" aria-hidden="true">
-            <img src="assets/portrait-06.webp" width="600" height="750" decoding="async" alt="">
-            <img src="assets/portrait-07.webp" width="600" height="750" decoding="async" alt="">
-            <img src="assets/portrait-08.webp" width="600" height="750" decoding="async" alt="">
-            <img src="assets/portrait-01.webp" width="600" height="750" decoding="async" alt="">
-            <img src="assets/portrait-02.webp" width="600" height="750" decoding="async" alt="">
-            <img src="assets/portrait-03.webp" width="600" height="750" decoding="async" alt="">
-            <img src="assets/portrait-04.webp" width="600" height="750" decoding="async" alt="">
-            <img src="assets/portrait-05.webp" width="600" height="750" decoding="async" alt="">
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 6. ATS & Job Keyword Matcher -->
+    <!-- 5. ATS Check (Candid Cafe Photo + Floating Sample ATS Capture) -->
     <section class="section-block section-tinted" id="ats" aria-labelledby="ats-title">
-      <div class="container ats-grid">
-        <div class="ats-visual" id="ats-visual">
-          <div class="ats-photo-wrap">
-            <img
-              src="assets/ats-panel.webp"
-              srcset="assets/ats-panel-600.webp 600w, assets/ats-panel.webp 1200w"
-              sizes="(max-width: 767px) 92vw, 440px"
-              width="1200" height="2509" loading="lazy" decoding="async"
-              alt="Live capture of the ATS Health and Job Keyword Matcher drawer analyzing a sample Senior Full-Stack Engineer CV">
-          </div>
+      <div class="container ats-story-grid">
+        <div class="ats-photo-stage" id="ats-visual">
+          <figure class="ats-mood-photo parallax-frame duotone-photo" data-reveal>
+            <picture>
+              <source type="image/webp" srcset="assets/people-cafe-laptop-700.webp 700w, assets/people-cafe-laptop.webp 1400w" sizes="(max-width: 767px) 92vw, 480px">
+              <img class="parallax-img" src="assets/people-cafe-laptop.jpg" width="1400" height="1750" loading="lazy" decoding="async" alt="Overhead view of people working calmly on laptops in a warm cafe">
+            </picture>
+          </figure>
 
-          <div class="ats-telemetry-card" aria-label="Sample CV ATS readout">
-            <div class="ats-telemetry-top">
-              <span class="ats-sample-tag">Sample CV · Alexander Wright</span>
+          <div class="ats-floating-proof">
+            <div class="ats-proof-head">
+              <span class="ats-sample-badge">Sample · Alexander Wright</span>
               <span class="ats-score-readout"><span class="tabular" id="ats-counter" data-target="97">97</span>/100</span>
             </div>
+            <img class="ats-capture-thumb" src="assets/ats-panel-600.webp" width="600" height="1255" loading="lazy" decoding="async" alt="Sample ATS Health and Job Keyword Matcher drawer">
             <div class="ats-chip-cloud" id="ats-chip-cloud">
               <span class="chip-hit">TypeScript</span>
               <span class="chip-hit">React</span>
               <span class="chip-hit">Go</span>
               <span class="chip-hit">PostgreSQL</span>
-              <span class="chip-hit">Docker</span>
               <span class="chip-hit">AWS</span>
-              <span class="chip-hit">CI/CD</span>
               <span class="chip-miss" id="ats-missing-chip">+ Terraform</span>
             </div>
           </div>
         </div>
 
         <div class="ats-copy">
-          <p class="eyebrow">ATS Health &amp; Job Match</p>
-          <h2 id="ats-title" class="display-lg">Check your CV against the job posting before you apply.</h2>
+          <p class="eyebrow">ATS &amp; Job Keyword Match</p>
+          <h2 id="ats-title" class="display-lg">Check your CV against the job posting before you send.</h2>
           <p class="section-lead">
-            The built-in ATS Health engine scores contact completeness, action verbs, quantified results, technical skills, CEFR languages, and regional compliance in real time.
+            Paste a target job description inside the studio to see matched vs. missing keywords alongside your ATS completeness score, and add missing skills in one click.
           </p>
           <ul class="clean-list">
-            <li>Paste any target job description to compare matched vs. missing technical keywords.</li>
-            <li>Add missing competencies straight into your skills list in one click.</li>
-            <li>Spot unquantified bullets with the inline Impact Coach before exporting.</li>
+            <li>Scores contact completeness, action verbs, metrics, CEFR languages, and regional compliance.</li>
+            <li>Highlights unquantified experience bullets with the inline Impact Coach.</li>
           </ul>
-          <a class="btn btn-primary" href="/app">Test your CV in the studio</a>
+          <a class="btn btn-primary" href="/app">Build my CV</a>
         </div>
       </div>
     </section>
 
-    <!-- 7. How It Works -->
+    <!-- 6. How It Works (Sticky Crossfade Photo + Scrolling Steps + Progress Line) -->
     <section class="section-block" id="how-it-works" aria-labelledby="how-title">
       <div class="container">
         <div class="how-head">
           <p class="eyebrow">How it works</p>
-          <h2 id="how-title" class="display-lg">Three calm steps to an A4 PDF.</h2>
+          <h2 id="how-title" class="display-lg">From blank sheet to printed A4 PDF.</h2>
         </div>
 
-        <div class="steps-rail" id="steps-rail">
-          <div class="steps-line" aria-hidden="true"><span class="steps-line-fill" id="steps-line-fill"></span></div>
+        <div class="how-grid" id="how-grid">
+          <div class="how-sticky-frame" aria-hidden="true">
+            <div class="how-frame-inner">
+              <picture class="how-crossfade is-active" data-step-photo="1">
+                <source type="image/webp" srcset="assets/step-1-choose-500.webp 500w, assets/step-1-choose.webp 1000w" sizes="440px">
+                <img src="assets/step-1-choose.jpg" width="1000" height="1250" loading="lazy" decoding="async" alt="">
+              </picture>
+              <picture class="how-crossfade" data-step-photo="2">
+                <source type="image/webp" srcset="assets/step-2-fill-500.webp 500w, assets/step-2-fill.webp 1000w" sizes="440px">
+                <img src="assets/step-2-fill.jpg" width="1000" height="1250" loading="lazy" decoding="async" alt="">
+              </picture>
+              <picture class="how-crossfade" data-step-photo="3">
+                <source type="image/webp" srcset="assets/step-3-print-500.webp 500w, assets/step-3-print.webp 1000w" sizes="440px">
+                <img src="assets/step-3-print.jpg" width="1000" height="1250" loading="lazy" decoding="async" alt="">
+              </picture>
+            </div>
+          </div>
 
-          <article class="step-item">
-            <div class="step-num tabular">01</div>
-            <figure class="step-photo">
-              <img src="assets/market-de.webp" srcset="assets/market-de-800.webp 800w, assets/market-de.webp 1600w" sizes="(max-width: 767px) 88vw, 320px" width="1600" height="2263" loading="lazy" decoding="async" alt="Choosing a European market preset in European CV Studio">
-            </figure>
-            <h3>Choose your market</h3>
-            <p>Select Germany/DACH, UK &amp; Ireland, France, or Netherlands, plus English, Deutsch, or Français headings.</p>
-          </article>
+          <div class="how-steps-col" id="steps-rail">
+            <div class="steps-v-line" aria-hidden="true"><span class="steps-v-fill" id="steps-line-fill"></span></div>
 
-          <article class="step-item">
-            <div class="step-num tabular">02</div>
-            <figure class="step-photo">
-              <img src="assets/hero-zurich.webp" srcset="assets/hero-zurich-800.webp 800w, assets/hero-zurich.webp 1600w" sizes="(max-width: 767px) 88vw, 320px" width="1600" height="2263" loading="lazy" decoding="async" alt="Editing CV sections with live A4 preview">
-            </figure>
-            <h3>Fill it in, or load the sample</h3>
-            <p>Start guided from a blank page, explore the built-in sample CV, or import an existing JSON backup.</p>
-          </article>
+            <article class="how-step is-active" data-step-item="1">
+              <div class="step-num tabular">01</div>
+              <figure class="how-mobile-photo">
+                <img src="assets/step-1-choose-500.webp" width="500" height="625" loading="lazy" decoding="async" alt="Hands with an espresso cup beside a laptop on a table">
+              </figure>
+              <h3>Choose your market</h3>
+              <p>Select Germany/DACH, UK &amp; Ireland, France, or Netherlands, and set headings in English, Deutsch, or Français.</p>
+            </article>
 
-          <article class="step-item">
-            <div class="step-num tabular">03</div>
-            <figure class="step-photo">
-              <img src="assets/hero-paris.webp" srcset="assets/hero-paris-800.webp 800w, assets/hero-paris.webp 1600w" sizes="(max-width: 767px) 88vw, 320px" width="1600" height="2263" loading="lazy" decoding="async" alt="Exporting a crisp selectable A4 PDF">
-            </figure>
-            <h3>Download your PDF</h3>
-            <p>Auto-fit to one page if needed, verify your ATS health, and print a selectable-text A4 PDF directly from your browser.</p>
-          </article>
-        </div>
-      </div>
-    </section>
+            <article class="how-step" data-step-item="2">
+              <div class="step-num tabular">02</div>
+              <figure class="how-mobile-photo">
+                <img src="assets/step-2-fill-500.webp" width="500" height="625" loading="lazy" decoding="async" alt="Macro fountain pen nib resting on notebook paper">
+              </figure>
+              <h3>Fill it in, or load the sample</h3>
+              <p>Use guided mode, explore the built-in sample CV, or import a JSON backup. Add CEFR languages, projects, and certifications.</p>
+            </article>
 
-    <!-- 8. Privacy -->
-    <section class="section-block section-tinted" id="privacy" aria-labelledby="privacy-title">
-      <div class="container privacy-grid">
-        <div class="privacy-copy">
-          <p class="eyebrow">Local-first privacy</p>
-          <h2 id="privacy-title" class="display-lg">No account. Your CV stays in your browser.</h2>
-          <p class="section-lead">
-            There is no backend database and no account wall. Edits save automatically to your browser’s localStorage, and you can export or import a JSON backup file at any time.
-          </p>
-          <div class="cta-row">
-            <a class="btn btn-secondary" href="/app">Open studio</a>
+            <article class="how-step" data-step-item="3">
+              <div class="step-num tabular">03</div>
+              <figure class="how-mobile-photo">
+                <img src="assets/step-3-print-500.webp" width="500" height="625" loading="lazy" decoding="async" alt="Paper notebook and pen on stone desk by window light">
+              </figure>
+              <h3>Download your PDF</h3>
+              <p>Check your Page Fit meter, auto-fit to one page if needed, and export a clean selectable-text A4 PDF directly from your browser.</p>
+            </article>
           </div>
         </div>
-        <figure class="privacy-photo">
-          <img src="assets/market-uk.webp" srcset="assets/market-uk-800.webp 800w, assets/market-uk.webp 1600w" sizes="(max-width: 767px) 92vw, 400px" width="1600" height="2263" loading="lazy" decoding="async" alt="Clean A4 CV saved locally in browser storage">
-        </figure>
       </div>
     </section>
 
-    <!-- 9. FAQ -->
-    <section class="section-block" id="faq" aria-labelledby="faq-title">
-      <div class="container faq-container">
-        <div class="faq-head">
+    <!-- 7. Made for People Moving Across Europe (Portrait Marquee) -->
+    <section class="section-block section-tinted portraits-section" aria-labelledby="portraits-title">
+      <div class="container portraits-head">
+        <p class="eyebrow">Made for people moving across Europe</p>
+        <h2 id="portraits-title" class="display-md">From local graduates to relocating engineers across DACH, UK, France, and Benelux.</h2>
+      </div>
+
+      <div class="marquee-wrap" id="portrait-marquee" aria-label="Editorial applicant portraits">
+        <div class="marquee-row marquee-left">
+          <div class="marquee-group">
+            <img src="assets/portrait-01.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of an applicant in a navy blazer">
+            <img src="assets/portrait-02.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of a product designer in a charcoal jacket">
+            <img src="assets/portrait-03.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of a finance director in a tailored suit">
+            <img src="assets/portrait-04.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of a systems architect wearing glasses">
+            <img src="assets/portrait-05.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of an engineering manager in a burgundy blazer">
+            <img src="assets/portrait-06.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of a data analyst in an Oxford shirt">
+            <img src="assets/portrait-07.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of an operations executive in a charcoal blazer">
+            <img src="assets/portrait-08.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of a clinical researcher in a camel blazer">
+          </div>
+          <div class="marquee-group" aria-hidden="true">
+            <img src="assets/portrait-01.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+            <img src="assets/portrait-02.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+            <img src="assets/portrait-03.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+            <img src="assets/portrait-04.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+            <img src="assets/portrait-05.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+            <img src="assets/portrait-06.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+            <img src="assets/portrait-07.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+            <img src="assets/portrait-08.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+          </div>
+        </div>
+
+        <div class="marquee-row marquee-right">
+          <div class="marquee-group">
+            <img src="assets/portrait-06.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of a data analyst in an Oxford shirt">
+            <img src="assets/portrait-07.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of an operations executive in a charcoal blazer">
+            <img src="assets/portrait-08.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of a clinical researcher in a camel blazer">
+            <img src="assets/portrait-01.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of an applicant in a navy blazer">
+            <img src="assets/portrait-02.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of a product designer in a charcoal jacket">
+            <img src="assets/portrait-03.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of a finance director in a tailored suit">
+            <img src="assets/portrait-04.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of a systems architect wearing glasses">
+            <img src="assets/portrait-05.webp" width="600" height="750" loading="lazy" decoding="async" alt="Editorial headshot portrait of an engineering manager in a burgundy blazer">
+          </div>
+          <div class="marquee-group" aria-hidden="true">
+            <img src="assets/portrait-06.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+            <img src="assets/portrait-07.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+            <img src="assets/portrait-08.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+            <img src="assets/portrait-01.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+            <img src="assets/portrait-02.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+            <img src="assets/portrait-03.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+            <img src="assets/portrait-04.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+            <img src="assets/portrait-05.webp" width="600" height="750" loading="lazy" decoding="async" alt="">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. Privacy (Calm Paper Texture Photo) -->
+    <section class="section-block privacy-section" id="privacy" aria-labelledby="privacy-title">
+      <div class="privacy-bg-photo" aria-hidden="true">
+        <picture>
+          <source type="image/webp" srcset="assets/texture-paper-1000.webp 1000w, assets/texture-paper.webp 2000w" sizes="100vw">
+          <img src="assets/texture-paper.jpg" width="2000" height="1125" loading="lazy" decoding="async" alt="">
+        </picture>
+      </div>
+      <div class="container privacy-card">
+        <p class="eyebrow">Local-first privacy</p>
+        <h2 id="privacy-title" class="display-lg">No account. Your CV stays in your browser.</h2>
+        <p class="section-lead">
+          Your work history and personal details are saved locally in browser storage, never on our servers. Export or import a portable JSON backup any time.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="/app">Build my CV</a>
+          <a class="btn btn-secondary" href="/privacy">Read privacy note</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. FAQ (Sticky Desk Photo + Accordion List) -->
+    <section class="section-block section-tinted" id="faq" aria-labelledby="faq-title">
+      <div class="container faq-grid">
+        <div class="faq-sticky-col">
+          <figure class="faq-photo duotone-photo" data-reveal>
+            <picture>
+              <source type="image/webp" srcset="assets/faq-side-600.webp 600w, assets/faq-side.webp 1200w" sizes="(max-width: 900px) 92vw, 380px">
+              <img src="assets/faq-side.jpg" width="1200" height="1600" loading="lazy" decoding="async" alt="Quiet minimalist desk with laptop, coffee cup, and yellow flowers in morning daylight">
+            </picture>
+          </figure>
+        </div>
+
+        <div class="faq-content-col">
           <p class="eyebrow">Questions</p>
           <h2 id="faq-title" class="display-lg">Common questions before you start.</h2>
-        </div>
 
-        <div class="faq-list">
-          <details class="faq-item" open>
-            <summary>Do I need a photo?</summary>
-            <p>It depends on the country. A portrait photo is customary in Germany and Austria (DIN 5008), optional in France and the Netherlands, and omitted in the UK and Ireland under Equality Act anti-bias guidelines.</p>
-          </details>
-          <details class="faq-item">
-            <summary>What is DIN 5008?</summary>
-            <p>DIN 5008 is the German standard for structured business layouts. In European CV Studio, the Frankfurt layout uses DIN 5008’s asymmetric date column, structured personal header, and optional closing place, date, and signature block.</p>
-          </details>
-          <details class="faq-item">
-            <summary>Is it free?</summary>
-            <p>Yes. Every layout, market preset, ATS score check, keyword matcher, and PDF export runs free in your browser with no signup.</p>
-          </details>
-          <details class="faq-item">
-            <summary>How do I keep my CV safe?</summary>
-            <p>Your CV is saved locally in your browser’s <code>localStorage</code> on this domain. For portability across devices or browsers, click <strong>New / Import</strong> inside the studio to download or restore a JSON backup.</p>
-          </details>
-          <details class="faq-item">
-            <summary>Will it fit on one page?</summary>
-            <p>The live Page Fit bar measures A4 page usage as you type. You can switch between Compact, Standard, and Spacious density or click <strong>Auto-fit 1 page</strong> whenever a draft spills slightly onto page two.</p>
-          </details>
+          <div class="faq-list">
+            <details class="faq-item" open>
+              <summary>Do I need a photo?</summary>
+              <p>It depends on the country. A portrait photo is customary in Germany and Austria (DIN 5008), optional in France and the Netherlands, and left out in the UK and Ireland under Equality Act anti-bias guidelines.</p>
+            </details>
+            <details class="faq-item">
+              <summary>What is DIN 5008?</summary>
+              <p>DIN 5008 is the German standard for structured business layouts. In European CV Studio, the Frankfurt layout uses DIN 5008’s asymmetric date column, structured personal header, and optional closing place, date, and signature block.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Is it free?</summary>
+              <p>Yes. Every layout, market preset, ATS score check, keyword matcher, and PDF export runs free in your browser with no signup.</p>
+            </details>
+            <details class="faq-item">
+              <summary>How do I keep my CV safe?</summary>
+              <p>Your CV is saved locally in your browser’s <code>localStorage</code> on this domain. For portability across devices or browsers, click <strong>New / Import</strong> inside the studio to download or restore a JSON backup.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Will it fit on one page?</summary>
+              <p>The live Page Fit bar measures A4 page usage as you type. Switch between Compact, Standard, and Spacious density or click <strong>Auto-fit 1 page</strong> whenever a draft spills slightly onto page two.</p>
+            </details>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- 10. Final Print-Up CTA -->
-    <section class="section-block final-cta-section" id="start" aria-labelledby="final-cta-title">
+    <!-- 10. Final Call to Action (Wide Photo + 70% Ultramarine Overlay + Sliding A4 Sheet) -->
+    <section class="final-cta-banner" id="start" aria-labelledby="final-cta-title">
+      <div class="final-cta-bg" aria-hidden="true">
+        <picture>
+          <source type="image/webp" srcset="assets/final-cta-1200.webp 1200w, assets/final-cta.webp 2400w" sizes="100vw">
+          <img src="assets/final-cta.jpg" width="2400" height="1028" loading="lazy" decoding="async" alt="">
+        </picture>
+        <div class="final-cta-overlay"></div>
+      </div>
+
       <div class="container final-cta-inner">
-        <figure class="print-sheet-reveal" id="print-sheet-reveal">
-          <img src="assets/hero-frankfurt.webp" srcset="assets/hero-frankfurt-800.webp 800w, assets/hero-frankfurt.webp 1600w" sizes="(max-width: 767px) 84vw, 420px" width="1600" height="2263" loading="lazy" decoding="async" alt="Completed DIN 5008 A4 CV ready for PDF download">
-        </figure>
         <div class="final-cta-copy">
-          <h2 id="final-cta-title" class="display-lg">Ready to print your A4 CV?</h2>
-          <p class="section-lead">Open the studio, pick your market, and export a clean selectable-text PDF.</p>
-          <div class="cta-row cta-center">
-            <a class="btn btn-primary btn-lg" href="/app">Build my CV</a>
-            <a class="btn btn-secondary btn-lg" href="/app?sample=1">See a sample CV</a>
+          <p class="eyebrow eyebrow-light">Ready when you are</p>
+          <h2 id="final-cta-title" class="display-lg display-light">Ready to print your A4 CV?</h2>
+          <p class="section-lead lead-light">Open the studio, pick your market, and export a clean selectable-text PDF.</p>
+          <div class="cta-row">
+            <a class="btn btn-paper btn-lg" href="/app">Build my CV</a>
+            <a class="btn btn-outline-light btn-lg" href="/app?sample=1">See a sample CV</a>
           </div>
         </div>
+
+        <figure class="print-sheet-reveal" id="print-sheet-reveal">
+          <img src="assets/hero-frankfurt.webp" srcset="assets/hero-frankfurt-800.webp 800w, assets/hero-frankfurt.webp 1600w" sizes="(max-width: 767px) 80vw, 340px" width="1600" height="2263" loading="lazy" decoding="async" alt="Completed DIN 5008 A4 CV ready for PDF download">
+        </figure>
       </div>
     </section>
   </main>
 
+  <!-- Sticky Mobile CTA Bar (appears after hero, hides near final CTA) -->
+  <div class="mobile-sticky-cta" id="mobile-sticky-cta" hidden>
+    <span class="mobile-sticky-label">European CV Studio</span>
+    <a class="btn btn-primary" href="/app">Build my CV</a>
+  </div>
+
+  <!-- 11. Footer -->
   <footer class="site-footer">
     <div class="container footer-inner">
       <div class="footer-brand">
@@ -572,16 +636,20 @@
         <p>Browser-native A4 CV studio for DACH, UK &amp; Ireland, France, and Benelux.</p>
       </div>
       <div class="footer-links">
-        <a href="/app">Open Builder</a>
+        <a href="/app">Build my CV</a>
         <a href="#markets">Markets</a>
         <a href="#layouts">Layouts</a>
-        <a href="#ats">ATS Matcher</a>
+        <a href="#ats">ATS</a>
         <a href="#faq">FAQ</a>
-        <a href="assets/CREDITS.md">Image Credits</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/impressum">Imprint</a>
+        <a href="/public/credits.md">Credits</a>
       </div>
     </div>
   </footer>
 
+  <!-- Placeholder owner contact note (not rendered on page):
+       Replace owner identity/address placeholders in impressum.html and privacy.html before commercial DACH launch. -->
   <script src="js/landing.js" defer></script>
 </body>
 </html>
