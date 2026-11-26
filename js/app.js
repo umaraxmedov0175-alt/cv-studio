@@ -532,6 +532,12 @@ function initStudio() {
       charHint.textContent = len ? `${len} chars` : 'Recommended: 120–260 chars';
     }
 
+    const emailHint = document.getElementById('email-format-hint');
+    if (emailHint) {
+      const emailVal = (currentCV.personal.email || '').trim();
+      emailHint.style.display = (emailVal && !emailVal.includes('@')) ? 'block' : 'none';
+    }
+
     syncPhotoThumb();
   };
 
@@ -1105,7 +1111,14 @@ function initStudio() {
     syncSignatureNameIfLinked(prevFull);
   });
   bindStaticField('p-title', val => { currentCV.personal.title = val; });
-  bindStaticField('p-email', val => { currentCV.personal.email = val; });
+  bindStaticField('p-email', val => {
+    currentCV.personal.email = val;
+    const emailHint = document.getElementById('email-format-hint');
+    if (emailHint) {
+      const trimmed = val.trim();
+      emailHint.style.display = (trimmed && !trimmed.includes('@')) ? 'block' : 'none';
+    }
+  });
   bindStaticField('p-phone', val => { currentCV.personal.phone = val; });
   bindStaticField('p-city', val => {
     const prevCity = (currentCV.personal.city || '').trim();
