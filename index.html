@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>European CV Studio — Country-Specific A4 CV Builder</title>
-  <meta name="description" content="Build a free, no-signup European CV formatted for Germany (DIN 5008), UK & Ireland (anti-bias), France (1-page executive), or the Netherlands. Live A4 preview, ATS keyword matcher, and instant PDF export.">
+  <meta name="description" content="Build a free, no-signup A4 CV formatted for Germany (DIN 5008), UK & Ireland (anti-bias), France (1-page), Netherlands, Russia (1-page), or Uzbekistan (formal). Live A4 preview, Unicode ATS matcher, and instant PDF export.">
   <link rel="canonical" href="https://cv-studio-gold.vercel.app/">
 
   <!-- Open Graph & Twitter -->
@@ -17,7 +17,7 @@
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="European CV Studio — Country-Specific A4 CV Builder">
-  <meta name="twitter:description" content="Free European CV builder with DE/UK/FR/NL compliance, Frankfurt/Zurich/Paris A4 layouts, ATS scoring, and instant PDF export.">
+  <meta name="twitter:description" content="Free A4 CV builder with DE/UK/FR/NL/RU/UZ presets, Frankfurt/Zurich/Paris layouts, Unicode ATS scoring, and instant PDF export.">
   <meta name="twitter:image" content="https://cv-studio-gold.vercel.app/assets/og-image.png">
 
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='2' y='1' width='20' height='22' rx='4' fill='%23ffffff' stroke='%2316161b' stroke-width='1.8'/%3E%3Crect x='5' y='4.5' width='3' height='15' rx='1.5' fill='%232b3fe8'/%3E%3Cline x1='10.5' y1='7.5' x2='18.5' y2='7.5' stroke='%2316161b' stroke-width='1.8' stroke-linecap='round'/%3E%3Cline x1='10.5' y1='11.8' x2='18.5' y2='11.8' stroke='%23595964' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='10.5' y1='16' x2='15.5' y2='16' stroke='%23595964' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E">
@@ -42,7 +42,7 @@
           "price": "0",
           "priceCurrency": "EUR"
         },
-        "description": "Browser-based A4 CV builder for European job markets with Germany DIN 5008, UK anti-bias, France 1-page, and Netherlands presets, ATS score, keyword matcher, and PDF export."
+        "description": "Browser-based A4 CV builder for Europe, Russia, and Uzbekistan with Germany DIN 5008, UK anti-bias, France 1-page, Netherlands, Russia 1-page, and Uzbekistan formal presets, ATS score, Unicode keyword matcher, and PDF export."
       },
       {
         "@type": "FAQPage",
@@ -85,6 +85,30 @@
             "acceptedAnswer": {
               "@type": "Answer",
               "text": "A live Page Fit meter tracks A4 height, lets you switch Compact, Standard, or Spacious density, and offers one-click Auto-fit to 1 page."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Do I need a photo for a Russian CV?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No, it is optional. If you include one, a neutral business-style portrait works best rather than a passport photo."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I write my CV in Uzbek?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. You can write your CV in Uzbek (Latin script), Russian, or English, and switch section headings independently between Oʻzbekcha, Русский, English, Deutsch, and Français."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does the ATS check work in Russian and Uzbek?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. The job matcher uses Unicode-aware tokenization, script detection, Uzbek apostrophe normalization, and Russian/Uzbek stop-word filtering."
             }
           }
         ]
@@ -206,15 +230,17 @@
         <span>Saved locally in your browser</span>
         <span class="fact-sep" aria-hidden="true">/</span>
         <span>A4 PDF export</span>
+        <span class="fact-sep" aria-hidden="true">/</span>
+        <span>Europe, Russia and Uzbekistan</span>
       </div>
     </section>
 
-    <!-- 2. Four Countries, Four Ways to Read a CV (Expanding City Panels + Supporting CV Sheet) -->
+    <!-- 2. Six Markets, Six Ways to Read a CV (3x2 City Cards + Supporting CV Sheet) -->
     <section class="section-block" id="markets" aria-labelledby="markets-title">
       <div class="container">
         <div class="section-intro-split">
           <div>
-            <p class="eyebrow">Four countries, four ways to read a CV</p>
+            <p class="eyebrow">Six markets, six ways to read a CV</p>
             <h2 id="markets-title" class="display-lg">Every hiring desk expects its own conventions.</h2>
           </div>
           <p class="editorial-caption">Hover, focus, or tap a city to inspect how European CV Studio adapts photo rules, personal fields, headings, and closing signatures.</p>
@@ -284,6 +310,38 @@
               <p class="city-copy">Direct, scannable hierarchy highlighting measurable skills, outcomes, and languages.</p>
             </div>
           </article>
+
+          <article class="city-panel" tabindex="0" aria-expanded="false" data-city-panel="ru">
+            <picture class="city-bg">
+              <source type="image/webp" srcset="assets/city-ru-800.webp 800w, assets/city-ru.webp 1600w" sizes="(max-width: 899px) 92vw, 420px">
+              <img src="assets/city-ru.jpg" width="1600" height="2133" loading="lazy" decoding="async" alt="Moscow embankment architecture along the river in soft daylight">
+            </picture>
+            <div class="city-scrim" aria-hidden="true"></div>
+            <div class="city-sheet-slide" aria-hidden="true">
+              <img src="assets/market-ru-800.webp" width="800" height="1132" loading="lazy" decoding="async" alt="">
+            </div>
+            <div class="city-overlay">
+              <span class="city-code tabular">RU</span>
+              <h3 class="city-name">Moscow &amp; Russia</h3>
+              <p class="city-copy">One A4 page. Photo, salary and citizenship are your choice.</p>
+            </div>
+          </article>
+
+          <article class="city-panel" tabindex="0" aria-expanded="false" data-city-panel="uz">
+            <picture class="city-bg">
+              <source type="image/webp" srcset="assets/city-uz-800.webp 800w, assets/city-uz.webp 1600w" sizes="(max-width: 899px) 92vw, 420px">
+              <img src="assets/city-uz.jpg" width="1600" height="2133" loading="lazy" decoding="async" alt="Samarkand Registan tiled facade in warm daylight">
+            </picture>
+            <div class="city-scrim" aria-hidden="true"></div>
+            <div class="city-sheet-slide" aria-hidden="true">
+              <img src="assets/market-uz-800.webp" width="800" height="1132" loading="lazy" decoding="async" alt="">
+            </div>
+            <div class="city-overlay">
+              <span class="city-code tabular">UZ</span>
+              <h3 class="city-name">Tashkent &amp; Samarkand</h3>
+              <p class="city-copy">A formal personal block for Uzbek employers, in Uzbek, Russian or English.</p>
+            </div>
+          </article>
         </div>
       </div>
     </section>
@@ -304,7 +362,7 @@
             “In Germany a photo is customary. In the UK it is left out. The same person, a different CV.”
           </blockquote>
           <p class="section-lead">
-            When you apply across European borders, subtle layout choices signal whether you understand the local workplace. Switch country presets and section headings between English, Deutsch, and Français without rewriting your work history.
+            When you apply across borders, subtle layout choices signal whether you understand the local workplace. Switch country presets and section headings between English, Deutsch, Français, Русский, and Oʻzbekcha without rewriting your work history.
           </p>
           <a class="btn btn-secondary" href="/app">Build my CV</a>
         </div>
@@ -474,8 +532,8 @@
     <!-- 7. Made for People Moving Across Europe (Portrait Marquee) -->
     <section class="section-block section-tinted portraits-section" aria-labelledby="portraits-title">
       <div class="container portraits-head">
-        <p class="eyebrow">Made for people moving across Europe</p>
-        <h2 id="portraits-title" class="display-md">From local graduates to relocating engineers across DACH, UK, France, and Benelux.</h2>
+        <p class="eyebrow">Made for people moving across borders</p>
+        <h2 id="portraits-title" class="display-md">From local graduates to relocating engineers across Europe, Russia, and Uzbekistan.</h2>
       </div>
 
       <div class="marquee-wrap" id="portrait-marquee" aria-label="Editorial applicant portraits">
@@ -585,6 +643,18 @@
               <summary>Will it fit on one page?</summary>
               <p>The live Page Fit bar measures A4 page usage as you type. Switch between Compact, Standard, and Spacious density or click <strong>Auto-fit 1 page</strong> whenever a draft spills slightly onto page two.</p>
             </details>
+            <details class="faq-item">
+              <summary>Do I need a photo for a Russian CV?</summary>
+              <p>No, it is optional. If you include one, a neutral business-style portrait works best rather than a passport photo.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Can I write my CV in Uzbek?</summary>
+              <p>Yes. You can write your CV in Uzbek (Latin script), Russian, or English, and switch section headings independently between Oʻzbekcha, Русский, English, Deutsch, and Français.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Does the ATS check work in Russian and Uzbek?</summary>
+              <p>Yes. The job matcher uses Unicode-aware tokenization, script detection, Uzbek apostrophe normalization, and Russian/Uzbek stop-word filtering.</p>
+            </details>
           </div>
         </div>
       </div>
@@ -629,7 +699,7 @@
     <div class="container footer-inner">
       <div class="footer-brand">
         <span class="brand-wordmark">European CV Studio</span>
-        <p>Browser-native A4 CV studio for DACH, UK &amp; Ireland, France, and Benelux.</p>
+        <p>Browser-native A4 CV studio for Europe, Russia, and Uzbekistan.</p>
       </div>
       <div class="footer-links">
         <a href="/app">Build my CV</a>

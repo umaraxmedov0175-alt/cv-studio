@@ -49,6 +49,81 @@ const AMBIGUOUS_PROSE_MATCHERS = {
     /(?:^|[^a-z0-9#+.])in the cloud(?=$|[^a-z0-9#+.])/i.test(text)
 };
 
+const RU_STOP_WORDS = new Set([
+  'и', 'в', 'во', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все',
+  'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'же', 'вы', 'за', 'бы', 'по',
+  'только', 'ее', 'мне', 'было', 'вот', 'от', 'меня', 'еще', 'нет', 'о', 'из',
+  'ему', 'теперь', 'когда', 'даже', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или',
+  'ни', 'быть', 'был', 'него', 'до', 'вас', 'нибудь', 'опять', 'уж', 'вам',
+  'ведь', 'там', 'потом', 'себя', 'ничего', 'ей', 'может', 'они', 'тут', 'где',
+  'есть', 'надо', 'ней', 'для', 'мы', 'тебя', 'их', 'чем', 'была', 'сам', 'чтоб',
+  'без', 'будто', 'чего', 'раз', 'тоже', 'себе', 'под', 'будет', 'ж', 'тогда',
+  'кто', 'этот', 'того', 'потому', 'этого', 'какой', 'совсем', 'ним', 'здесь',
+  'этом', 'один', 'почти', 'мой', 'тем', 'чтобы', 'нее', 'сейчас', 'были', 'куда',
+  'зачем', 'всех', 'никогда', 'можно', 'при', 'наконец', 'два', 'об', 'другой',
+  'хоть', 'после', 'над', 'больше', 'тот', 'через', 'эти', 'нас', 'про', 'всего',
+  'них', 'какая', 'много', 'разве', 'три', 'эту', 'моя', 'впрочем', 'хорошо',
+  'свою', 'этой', 'перед', 'иногда', 'лучше', 'чуть', 'том', 'нельзя', 'такой',
+  'им', 'более', 'всегда', 'конечно', 'всю', 'между', 'опыт', 'работы', 'работа',
+  'требования', 'обязанности', 'условия', 'умение', 'знание', 'навыки'
+]);
+
+const UZ_STOP_WORDS = new Set([
+  'va', 'ham', 'bilan', 'uchun', 'bu', 'u', 'esa', 'yoki', 'lekin', 'ammo', 'biroq',
+  'agar', 'chunki', 'shuningdek', 'hamda', 'qadar', 'kabi', 'boʼyicha', 'orqali',
+  'boshqa', 'barcha', 'har', 'bir', 'ikki', 'uch', 'bor', 'yoʼq', 'kerak', 'lozim',
+  'mumkin', 'haqida', 'ichida', 'ustida', 'oldin', 'keyin', 'soʻng', 'doim',
+  'tajriba', 'bilim', 'koʻnikma', 'ish', 'talablar', 'vazifalar', 'sharoitlar',
+  'oʼz', 'biz', 'siz', 'ular', 'men', 'sen', 'uni', 'buni', 'shuni', 'nima', 'kim'
+]);
+
+export function normalizeUnicodeText(text) {
+  if (typeof text !== 'string') return '';
+  return text
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[ʻʼ'‘’`]/g, 'ʼ');
+}
+
+function detectPostingLanguage(jobText) {
+  const norm = normalizeUnicodeText(jobText);
+  if (/[а-я]/i.test(norm)) return 'ru';
+  if (/[ʻʼ]/.test(jobText) || /\b(?:uchun|bilan|tajriba|koʼnikma|lavozim|bilim|ishlab)\b/i.test(norm)) {
+    return 'uz';
+  }
+  return 'latin';
+}
+
+// Heuristic: prefix-stem matching for inflected Russian and Uzbek words
+function tokensMatchHeuristic(a, b) {
+  if (a === b) return true;
+  if (a.length >= 5 && b.length >= 5) {
+    const minLen = Math.min(a.length, b.length);
+    const prefixLen = Math.max(4, Math.min(6, minLen - 1));
+    if (a.slice(0, prefixLen) === b.slice(0, prefixLen)) return true;
+  }
+  return false;
+}
+
+function tokenizeUnicodeTerms(text, lang) {
+  const norm = normalizeUnicodeText(text);
+  const matches = norm.match(/[\p{L}\p{N}ʼ#+.]{2,}/gu) || [];
+  const stops = lang === 'ru' ? RU_STOP_WORDS : (lang === 'uz' ? UZ_STOP_WORDS : new Set());
+  const seen = new Set();
+  const out = [];
+  for (const rawTok of matches) {
+    const tok = rawTok.replace(/^[.-]+|[.-]+$/g, '');
+    if (tok.length < 3) continue;
+    if (/^\d+$/.test(tok)) continue;
+    if (stops.has(tok) || RU_STOP_WORDS.has(tok) || UZ_STOP_WORDS.has(tok)) continue;
+    if (!seen.has(tok)) {
+      seen.add(tok);
+      out.push(tok);
+    }
+  }
+  return out;
+}
+
 function normalizeMatchText(text) {
   if (typeof text !== 'string' || !text.trim()) return '';
   return text
@@ -94,7 +169,16 @@ function collectKeywordsFromText(rawText, { isStructured = false } = {}) {
 
 export function extractKeywordsFromJob(jobText) {
   if (!jobText || typeof jobText !== 'string') return [];
-  return Array.from(collectKeywordsFromText(jobText, { isStructured: false }));
+  const techKeywords = Array.from(collectKeywordsFromText(jobText, { isStructured: false }));
+  const lang = detectPostingLanguage(jobText);
+  if (lang === 'latin') return techKeywords;
+
+  const unicodeTerms = tokenizeUnicodeTerms(jobText, lang).slice(0, 24);
+  const combined = new Set(techKeywords);
+  for (const term of unicodeTerms) {
+    combined.add(term);
+  }
+  return Array.from(combined);
 }
 
 export function extractCVKeywords(cv) {
@@ -176,11 +260,27 @@ export function calculateJobMatch(cv, jobText) {
   }
 
   const cvKeywords = extractCVKeywords(cv);
+  const lang = detectPostingLanguage(jobText);
+  const cvUnicodeTokens = lang === 'latin'
+    ? []
+    : tokenizeUnicodeTerms([
+      cv?.personal?.title,
+      cv?.summary,
+      ...(Array.isArray(cv?.skills?.technical) ? cv.skills.technical : []),
+      ...(Array.isArray(cv?.skills?.tools) ? cv.skills.tools : []),
+      ...(Array.isArray(cv?.experience) ? cv.experience.flatMap(e => [e?.position, e?.company, ...(e?.bullets || []), ...(e?.technologies || [])]) : []),
+      ...(Array.isArray(cv?.education) ? cv.education.flatMap(e => [e?.degree, e?.thesis]) : []),
+      ...(Array.isArray(cv?.projects) ? cv.projects.flatMap(p => [p?.name, p?.description, p?.technologies]) : [])
+    ].filter(Boolean).join(' '), lang);
+
   const matched = [];
   const missing = [];
 
   for (const kw of targetKeywords) {
-    if (cvKeywords.has(kw)) {
+    const isMatched = cvKeywords.has(kw) || (
+      lang !== 'latin' && cvUnicodeTokens.some(cvTok => tokensMatchHeuristic(kw, cvTok))
+    );
+    if (isMatched) {
       matched.push(kw);
     } else {
       missing.push(kw);

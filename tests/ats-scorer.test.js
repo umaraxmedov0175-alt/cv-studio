@@ -141,4 +141,11 @@ export function runATSTests(assert) {
     const deFormal = deRes.checks.find(c => c.id === 'formalities');
     assert.equal(deFormal.points, 0, 'empty DE CV gets 0 formalities points even when includeSignatureBlock is false');
   });
+
+  assert.test('recognizes Russian and Uzbek past-tense action verbs and metrics', () => {
+    assert.ok(hasActionVerb('Разработал платёжный сервис на Go'), 'detects Russian action verb');
+    assert.ok(hasActionVerb('Toʻlov kabinetini ishlab chiqdi'), 'detects Uzbek action verb');
+    assert.ok(hasQuantifiableMetric('Сократил отклик на 38% и обработал 450 тыс. запросов'), 'detects Russian metrics');
+    assert.ok(hasQuantifiableMetric('Yuklanish tezligini 42% ga oshirdi'), 'detects Uzbek metrics');
+  });
 }

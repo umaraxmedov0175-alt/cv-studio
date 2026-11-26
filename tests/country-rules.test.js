@@ -87,4 +87,20 @@ export function runCountryRulesTests(assert) {
     assert.equal(original.meta.showPhoto, true, 'original showPhoto untouched');
     assert.equal(original.meta.includeSignatureBlock, true, 'original includeSignatureBlock untouched');
   });
+
+  assert.test('RU and UZ market presets have expected defaults and allow any heading language', () => {
+    const ru = getCountryFieldRules('RU');
+    assert.ok(ru.allowPhoto, 'RU allows photo');
+    assert.ok(ru.allowBirthDate, 'RU allows birthDate');
+    assert.ok(ru.allowNationality, 'RU allows citizenship');
+    assert.ok(ru.allowTelegram, 'RU allows telegram');
+    assert.notOk(ru.allowSignatureBlock, 'RU disables signature block');
+    assert.ok(ru.compactMode, 'RU defaults to 1-page compact mode');
+
+    const uz = getCountryFieldRules('UZ');
+    assert.ok(uz.allowPhoto, 'UZ allows photo');
+    assert.ok(uz.allowWorkPermission, 'UZ enables workPermission by default');
+    assert.ok(uz.allowTelegram, 'UZ allows telegram');
+    assert.notOk(uz.allowSignatureBlock, 'UZ disables signature block');
+  });
 }

@@ -238,4 +238,42 @@ export function runPreviewRendererTests(assert) {
     assert.equal(expDate.textContent.trim(), '', 'empty experience dates do not render dangling " – "');
     assert.equal(eduDate.textContent.trim(), '', 'empty education dates do not render dangling " – "');
   });
+
+  assert.test('renders Russian and Uzbek headings, test strings, opt-in fields, and proper lang attributes', () => {
+    const ruCv = createEmptyCV();
+    ruCv.meta.targetCountry = 'RU';
+    ruCv.meta.language = 'ru';
+    ruCv.personal.firstName = 'Щукин';
+    ruCv.personal.lastName = 'Ёлкин';
+    ruCv.personal.patronymic = 'Юрьевич';
+    ruCv.personal.telegram = '@shchukin';
+    ruCv.personal.desiredSalary = '200 000 ₽';
+    ruCv.summary = 'Объём съёмки: Щукин, Юрьев, Ёлкин. Электроинженер. Жизнь, шёлк, чаща.';
+    ruCv.skills.languages = [{ language: 'Русский', level: 'Native / Bilingual' }];
+
+    const container = document.createElement('div');
+    renderCVPreview(ruCv, container);
+    assert.equal(container.getAttribute('lang'), 'ru', 'sets lang="ru"');
+    assert.ok(container.textContent.includes('Опыт работы'), 'renders Russian experience heading');
+    assert.ok(container.textContent.includes('Родной'), 'renders Родной for Native language level');
+    assert.notOk(container.textContent.includes('Юрьевич'), 'hides patronymic when opt-in toggle is off');
+    assert.notOk(container.textContent.includes('200 000 ₽'), 'hides desired salary when opt-in toggle is off');
+
+    ruCv.meta.showPatronymic = true;
+    ruCv.meta.showSalary = true;
+    renderCVPreview(ruCv, container);
+    assert.ok(container.textContent.includes('Юрьевич'), 'renders patronymic when toggled on');
+    assert.ok(container.textContent.includes('200 000 ₽'), 'renders desired salary when toggled on');
+
+    const uzCv = createEmptyCV();
+    uzCv.meta.targetCountry = 'UZ';
+    uzCv.meta.language = 'uz';
+    uzCv.summary = 'Oʻzbekiston Respublikasi, Gʻijduvon, Toʻraqoʻrgʻon, maʼlumot, Shahrisabz.';
+    uzCv.skills.languages = [{ language: 'Oʻzbek tili', level: 'Native / Bilingual' }];
+    renderCVPreview(uzCv, container);
+    assert.equal(container.getAttribute('lang'), 'uz', 'sets lang="uz"');
+    assert.ok(container.textContent.includes('Ish tajribasi'), 'renders Uzbek experience heading');
+    assert.ok(container.textContent.includes('Ona tili'), 'renders Ona tili for Native language level');
+    assert.ok(container.textContent.includes('maʼlumot'), 'preserves U+02BC in Uzbek text');
+  });
 }

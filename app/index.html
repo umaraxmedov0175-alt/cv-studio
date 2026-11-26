@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>European CV Studio</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='2' y='1' width='20' height='22' rx='4' fill='%23ffffff' stroke='%2316161b' stroke-width='1.8'/%3E%3Crect x='5' y='4.5' width='3' height='15' rx='1.5' fill='%232b3fe8'/%3E%3Cline x1='10.5' y1='7.5' x2='18.5' y2='7.5' stroke='%2316161b' stroke-width='1.8' stroke-linecap='round'/%3E%3Cline x1='10.5' y1='11.8' x2='18.5' y2='11.8' stroke='%23595964' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='10.5' y1='16' x2='15.5' y2='16' stroke='%23595964' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Noto+Serif:ital,wght@0,400;0,500;0,600;1,400&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/print-a4.css">
   <link rel="stylesheet" href="../css/templates.css">
   <link rel="stylesheet" href="../css/app.css">
@@ -128,6 +131,22 @@
                 </span>
                 <span class="studio-menu-check" aria-hidden="true">✓</span>
               </button>
+              <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-country-val="RU">
+                <span class="iso-tag">RU</span>
+                <span class="studio-menu-copy">
+                  <span class="studio-menu-name">Russia, 1-page</span>
+                  <span class="studio-menu-desc">One A4 page; photo, salary &amp; citizenship optional</span>
+                </span>
+                <span class="studio-menu-check" aria-hidden="true">✓</span>
+              </button>
+              <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-country-val="UZ">
+                <span class="iso-tag">UZ</span>
+                <span class="studio-menu-copy">
+                  <span class="studio-menu-name">Uzbekistan, formal</span>
+                  <span class="studio-menu-desc">Formal personal block; photo, citizenship &amp; work permission supported</span>
+                </span>
+                <span class="studio-menu-check" aria-hidden="true">✓</span>
+              </button>
             </div>
           </div>
         </div>
@@ -163,6 +182,20 @@
                 </span>
                 <span class="studio-menu-check" aria-hidden="true">✓</span>
               </button>
+              <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-lang-val="ru">
+                <span class="studio-menu-copy">
+                  <span class="studio-menu-name">Русский</span>
+                  <span class="studio-menu-desc">Russian CV headings</span>
+                </span>
+                <span class="studio-menu-check" aria-hidden="true">✓</span>
+              </button>
+              <button type="button" class="studio-menu-item" role="option" aria-selected="false" data-lang-val="uz">
+                <span class="studio-menu-copy">
+                  <span class="studio-menu-name">Oʻzbekcha</span>
+                  <span class="studio-menu-desc">Uzbek (Latin) CV headings</span>
+                </span>
+                <span class="studio-menu-check" aria-hidden="true">✓</span>
+              </button>
             </div>
           </div>
         </div>
@@ -182,16 +215,37 @@
             <span>Compliance</span>
             <svg class="trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </button>
-          <div class="toolbar-popover" id="popover-regional" style="width: 300px;">
-            <div class="popover-title">European formatting &amp; compliance</div>
+          <div class="toolbar-popover" id="popover-regional" style="width: 310px;">
+            <div class="popover-title">Regional formatting</div>
             <div id="formal-toggles-section">
               <label class="toggle-row" id="row-toggle-photo" for="toggle-photo">
                 <span>Include Candidate Photo</span>
                 <input type="checkbox" id="toggle-photo" checked>
               </label>
+              <div id="photo-toggle-hint" style="display:none; font-size:11px; color:var(--text-secondary); margin: -4px 0 8px;"></div>
               <label class="toggle-row" id="row-toggle-signature" for="toggle-signature">
                 <span>Closing Signature Block</span>
                 <input type="checkbox" id="toggle-signature" checked>
+              </label>
+              <label class="toggle-row" id="row-toggle-patronymic" for="toggle-patronymic" style="display:none;">
+                <span>Patronymic (middle name)</span>
+                <input type="checkbox" id="toggle-patronymic">
+              </label>
+              <label class="toggle-row" id="row-toggle-work-permission" for="toggle-work-permission" style="display:none;">
+                <span>Work permission</span>
+                <input type="checkbox" id="toggle-work-permission">
+              </label>
+              <label class="toggle-row" id="row-toggle-marital-status" for="toggle-marital-status" style="display:none;">
+                <span>Marital status &amp; children</span>
+                <input type="checkbox" id="toggle-marital-status">
+              </label>
+              <label class="toggle-row" id="row-toggle-gender" for="toggle-gender" style="display:none;">
+                <span>Gender</span>
+                <input type="checkbox" id="toggle-gender">
+              </label>
+              <label class="toggle-row" id="row-toggle-salary" for="toggle-salary" style="display:none;">
+                <span>Desired salary</span>
+                <input type="checkbox" id="toggle-salary">
               </label>
             </div>
             <div id="compliance-note-box" class="compliance-note-box">
@@ -424,8 +478,34 @@
                 <input type="text" id="p-birth" class="field-input" placeholder="DD.MM.YYYY">
               </div>
               <div class="field-group" id="group-nationality">
-                <label class="field-label" for="p-nationality">Nationality</label>
+                <label class="field-label" id="label-nationality" for="p-nationality">Nationality</label>
                 <input type="text" id="p-nationality" class="field-input" placeholder="e.g. German">
+              </div>
+            </div>
+            <div class="field-grid-2" id="regional-extra-fields">
+              <div class="field-group" id="group-telegram" style="display:none;">
+                <label class="field-label" for="p-telegram">Telegram</label>
+                <input type="text" id="p-telegram" class="field-input" placeholder="@username">
+              </div>
+              <div class="field-group" id="group-patronymic" style="display:none;">
+                <label class="field-label" for="p-patronymic">Patronymic</label>
+                <input type="text" id="p-patronymic" class="field-input" placeholder="Optional middle name">
+              </div>
+              <div class="field-group" id="group-work-permission" style="display:none;">
+                <label class="field-label" for="p-work-permission">Work permission</label>
+                <input type="text" id="p-work-permission" class="field-input" placeholder="e.g. Uzbekistan">
+              </div>
+              <div class="field-group" id="group-salary" style="display:none;">
+                <label class="field-label" for="p-salary">Desired salary</label>
+                <input type="text" id="p-salary" class="field-input" placeholder="e.g. 220 000 ₽">
+              </div>
+              <div class="field-group" id="group-marital-status" style="display:none;">
+                <label class="field-label" for="p-marital-status">Marital status &amp; children</label>
+                <input type="text" id="p-marital-status" class="field-input" placeholder="Optional">
+              </div>
+              <div class="field-group" id="group-gender" style="display:none;">
+                <label class="field-label" for="p-gender">Gender</label>
+                <input type="text" id="p-gender" class="field-input" placeholder="Optional">
               </div>
             </div>
             <div class="field-group" id="group-photo-upload">
@@ -437,6 +517,20 @@
                 <input type="file" id="p-photo-file" accept="image/*" style="display: none;">
                 <button class="btn btn-outline btn-compact" id="btn-upload-photo" type="button">Upload photo</button>
                 <button class="btn btn-ghost btn-compact" id="btn-clear-photo" type="button" style="color: var(--danger);">Clear</button>
+              </div>
+            </div>
+            <div class="field-grid-2" id="additional-info-fields" style="margin-top: 8px;">
+              <div class="field-group">
+                <label class="field-label" for="a-driving">Driving licence (optional)</label>
+                <input type="text" id="a-driving" class="field-input" placeholder="e.g. Category B">
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="a-trips">Business trips (optional)</label>
+                <input type="text" id="a-trips" class="field-input" placeholder="e.g. Ready for business trips">
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="a-relocation">Willing to relocate (optional)</label>
+                <input type="text" id="a-relocation" class="field-input" placeholder="e.g. Open to relocation">
               </div>
             </div>
             <div class="step-nav-footer">
@@ -644,7 +738,7 @@
             </div>
             <div class="accordion-body" id="body-languages" role="region" aria-labelledby="heading-languages">
               <div style="display:flex; justify-content:space-between; align-items:center; gap: 8px;">
-                <span style="font-size:12px; color:var(--text-secondary);">European employers look for CEFR tiers (A1–C2).</span>
+                <span style="font-size:12px; color:var(--text-secondary);">CEFR tiers (A1–C2) plus Native / Родной / Ona tili.</span>
                 <button class="btn btn-outline btn-compact" id="btn-add-lang" type="button">+ Add language</button>
               </div>
               <div id="language-card-list" style="display:flex; flex-direction:column; gap:10px;"></div>

@@ -22,20 +22,38 @@ export const ACTION_VERBS = {
   fr: [
     'conçu', 'développé', 'automatisé', 'optimisé', 'réduit', 'déployé',
     'piloté', 'coordonné', 'dirigé', 'géré', 'amélioré', 'réalisé', 'conception'
+  ],
+  ru: [
+    'разработал', 'разработала', 'создал', 'создала', 'внедрил', 'внедрила',
+    'оптимизировал', 'оптимизировала', 'сократил', 'сократила', 'увеличил', 'увеличила',
+    'запустил', 'запустила', 'спроектировал', 'спроектировала', 'руководил', 'руководила',
+    'автоматизировал', 'автоматизировала', 'настроил', 'настроила', 'построил', 'построила',
+    'реализовал', 'реализовала', 'ускорил', 'ускорила', 'снизил', 'снизила'
+  ],
+  uz: [
+    'ishlab chiqdi', 'ishlab chiqdim', 'yaratdi', 'yaratdim', 'joriy qildi', 'joriy qildim',
+    'optimallashtirdi', 'optimallashtirdim', 'qisqartirdi', 'qisqartirdim', 'oshirdi', 'oshirdim',
+    'boshqardi', 'boshqardim', 'avtomatlashtirdi', 'avtomatlashtirdim', 'loyihaladi', 'loyihaladim',
+    'amalga oshirdi', 'tashkil etdi', 'tezlashtirdi', 'kamaytirdi'
   ]
 };
 
-const ALL_ACTION_VERBS = [...ACTION_VERBS.en, ...ACTION_VERBS.de, ...ACTION_VERBS.fr]
-  .map(v => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+const ALL_ACTION_VERBS = [
+  ...ACTION_VERBS.en,
+  ...ACTION_VERBS.de,
+  ...ACTION_VERBS.fr,
+  ...ACTION_VERBS.ru,
+  ...ACTION_VERBS.uz
+].map(v => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
 
 export const ACTION_VERB_REGEX = new RegExp(
   `(?:^|[^\\p{L}])(${ALL_ACTION_VERBS.join('|')})(?=$|[^\\p{L}])`,
   'iu'
 );
 
-export const METRIC_REGEX = /(?:^|[^\p{L}\d])(?:\d+(?:[.,]\d+)?\s*%|[€$£]\s*\d+(?:[.,]\d+)?(?:\s*(?:k|m|b|mio|bn))?|\d+(?:[.,]\d+)?\s*(?:\+|x(?=$|[^\p{L}\d])|[€$£]|(?:k|m|mio|bn|ms|s|hrs?|hours?|minutes?|seconds?|days?|months?|years?|percent|jahre?n?|monate?n?|tage?n?|prozent|std\.?|ans?|mois|users?|engineers?|developers?|clients?|customers?|teams?|members?|projects?|nutzer|entwickler|kunden|utilisateurs?|ingénieurs?)(?=$|[^\p{L}\d]))|(?!19\d{2}(?=$|[^\p{L}\d])|20\d{2}(?=$|[^\p{L}\d]))\d{2,}(?=$|[^\p{L}\d]))/iu;
+export const METRIC_REGEX = /(?:^|[^\p{L}\d])(?:\d+(?:[.,]\d+)?\s*%|[€$£₽]\s*\d+(?:[.,]\d+)?(?:\s*(?:k|m|b|mio|bn|тыс|млн))?|\d+(?:[.,]\d+)?\s*(?:\+|x(?=$|[^\p{L}\d])|[€$£₽]|(?:k|m|mio|bn|ms|s|hrs?|hours?|minutes?|seconds?|days?|months?|years?|percent|jahre?n?|monate?n?|tage?n?|prozent|std\.?|ans?|mois|users?|engineers?|developers?|clients?|customers?|teams?|members?|projects?|nutzer|entwickler|kunden|utilisateurs?|ingénieurs?|тыс\.?|млн|руб\.?|₽|лет|года?|мес\.?|чел\.?|пользовател\p{L}*|клиент\p{L}*|сотрудник\p{L}*|проект\p{L}*|so[ʻʼ']?m|mln|ming|yil|oy|kishi|foydalanuvchi\p{L}*|loyiha\p{L}*)(?=$|[^\p{L}\d]))|(?!19\d{2}(?=$|[^\p{L}\d])|20\d{2}(?=$|[^\p{L}\d]))\d{2,}(?=$|[^\p{L}\d]))/iu;
 
-const CEFR_LEVEL_REGEX = /^(A[12]|B[12]|C[12]|Native\b)/i;
+const CEFR_LEVEL_REGEX = /^(A[12]|B[12]|C[12]|Native\b|Родной\b|Ona tili\b)/iu;
 
 export function hasActionVerb(text) {
   return typeof text === 'string' && ACTION_VERB_REGEX.test(text);

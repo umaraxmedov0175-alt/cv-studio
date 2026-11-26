@@ -9,6 +9,8 @@ All visual assets are self-hosted locally in `assets/` (never hotlinked) under v
 | `city-uk` | London terraced brick street | Wikimedia Commons | CC BY-SA 4.0 |
 | `city-fr` | Angle Boulevard Haussmann–Rue de Rome à Paris (septembre 2023) | Wikimedia Commons | CC BY-SA 4.0 |
 | `city-nl` | Amsterdam Keizersgracht from the Metz roof | Wikimedia Commons | CC BY-SA 3.0 |
+| `city-ru` | Kotelnicheskaya Embankment Building, Moscow (`Goshan1433`) | Wikimedia Commons | CC0 |
+| `city-uz` | Decorated walls of Registan Square in Samarkand (`Koshkinhome`) | Wikimedia Commons | CC BY-SA 4.0 |
 | `people-window-reading` | Reading glasses & open book (`Camera Eye Photography`) | Openverse / Flickr (`live.staticflickr.com/7158/6628934195`) | CC BY 2.0 |
 | `card-frankfurt` | Top of Commerzbank Tower Frankfurt Main Hesse Germany (2015) | Wikimedia Commons | CC BY-SA 4.0 |
 | `card-zurich` | Lake Zurich & Alpine horizon | Wikimedia Commons | CC BY-SA 4.0 |

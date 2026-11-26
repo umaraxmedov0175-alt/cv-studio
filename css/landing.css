@@ -1038,23 +1038,22 @@ section[id] {
 }
 
 @media (min-width: 900px) {
-  /* City Expanding Panels on Desktop */
+  /* 3x2 City Grid on Desktop */
   .city-panels {
-    flex-direction: row;
-    height: 520px;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
   }
   .city-panel {
-    flex: 1 1 0%;
-    min-height: 520px;
+    min-height: 380px;
   }
   .city-panel.is-active {
-    flex: 2.35 1 0%;
+    min-height: 380px;
   }
   .city-sheet-slide {
-    width: 190px;
-    right: 22px;
-    top: 24px;
+    width: 170px;
+    right: 18px;
+    top: 20px;
   }
 
   /* How It Works Sticky Crossfade */

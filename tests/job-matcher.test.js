@@ -92,4 +92,21 @@ export function runJobMatcherTests(assert) {
     assert.equal(matchResult.matched.length, 0, 'no matched');
     assert.equal(matchResult.missing.length, 0, 'no missing');
   });
+
+  assert.test('calculateJobMatch matches Russian and Uzbek Unicode tokens, stems, and ignores stop words', () => {
+    const ruCv = createSampleGermanCV();
+    ruCv.summary = 'Разработка высоконагруженных микросервисов и оптимизация баз данных.';
+    ruCv.skills.technical = ['Go', 'PostgreSQL', 'микросервисы'];
+    const ruMatch = calculateJobMatch(ruCv, 'Требуется опыт разработки и оптимизации микросервисов на Go.');
+    assert.ok(ruMatch.matched.includes('go'), 'matches Go');
+    assert.ok(ruMatch.matched.some(k => k.startsWith('разработ')), 'matches inflected Russian stem разработки -> разработка');
+    assert.notOk(ruMatch.missing.includes('и'), 'ignores Russian stop word');
+
+    const uzCv = createSampleGermanCV();
+    uzCv.summary = 'Veb-dasturlash va maʼlumotlar bazasini optimallashtirish.';
+    const uzMatch = calculateJobMatch(uzCv, 'Dasturlash va ma\'lumotlar bazasi uchun tajriba kerak.');
+    assert.ok(uzMatch.matched.some(k => k.startsWith('dasturlash')), 'matches Uzbek keyword');
+    assert.ok(uzMatch.matched.some(k => k.startsWith('ма') || k.startsWith('maʼlumot')), 'normalizes Uzbek apostrophe variants');
+    assert.notOk(uzMatch.missing.includes('uchun'), 'ignores Uzbek stop word');
+  });
 }

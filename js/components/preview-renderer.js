@@ -24,7 +24,7 @@ export function renderCVPreview(cv, containerElement) {
   const spacingClass = spacingMode !== 'normal' ? `spacing-${spacingMode}` : '';
 
   const rawLang = typeof adaptedCV.meta?.language === 'string' ? adaptedCV.meta.language.trim().toLowerCase() : '';
-  const docLang = ['en', 'de', 'fr'].includes(rawLang) ? rawLang : 'en';
+  const docLang = ['en', 'de', 'fr', 'ru', 'uz'].includes(rawLang) ? rawLang : 'en';
   const rawAccent = typeof adaptedCV.meta?.accentColor === 'string' ? adaptedCV.meta.accentColor.trim() : '';
   const safeAccent = /^#[0-9a-f]{3,8}$/i.test(rawAccent) ? rawAccent : '#1e3a8a';
 
@@ -35,7 +35,10 @@ export function renderCVPreview(cv, containerElement) {
   const L = getLocalizedLabels(adaptedCV);
   const headerHTML = buildTemplateHeaderHTML(adaptedCV, templateId, L);
   const sectionOrder = normalizeSectionOrder(adaptedCV.meta?.sectionOrder);
-  const sectionsHTML = sectionOrder
+  const effectiveOrder = sectionOrder.includes('additional')
+    ? sectionOrder
+    : [...sectionOrder, 'additional'];
+  const sectionsHTML = effectiveOrder
     .map(sectionId => buildSectionHTML(sectionId, adaptedCV, L, templateId))
     .filter(Boolean)
     .join('');
@@ -56,6 +59,7 @@ function getLocalizedLabels(cv) {
   const lang = cv.meta?.language || 'en';
   const countryCode = cv.meta?.targetCountry || 'DE';
   const isUK = countryCode === 'UK';
+  const useCitizenship = countryCode === 'RU' || countryCode === 'UZ';
 
   if (lang === 'de') {
     return {
@@ -65,14 +69,24 @@ function getLocalizedLabels(cv) {
       languages: 'Sprachkenntnisse (GER / CEFR)',
       projects: 'Ausgewählte Projekte',
       certifications: 'Zertifizierungen',
+      additional: 'Weitere Angaben',
       projectTag: 'Projekt',
       addExp: '+ Station hinzufügen',
       addEdu: '+ Abschluss hinzufügen',
       email: 'E-Mail:',
       phone: 'Tel:',
+      telegram: 'Telegram:',
       location: 'Wohnort:',
       birth: 'Geburtsdatum:',
-      nationality: 'Staatsangehörigkeit:',
+      nationality: useCitizenship ? 'Staatsangehörigkeit:' : 'Staatsangehörigkeit:',
+      workPermission: 'Arbeitserlaubnis:',
+      maritalStatus: 'Familienstand:',
+      gender: 'Geschlecht:',
+      desiredSalary: 'Gehaltswunsch:',
+      drivingLicence: 'Führerschein:',
+      businessTrips: 'Dienstreisen:',
+      relocation: 'Umzugsbereitschaft:',
+      nativeLabel: 'Native / Bilingual',
       grade: 'Abschlussnote:',
       present: 'Heute'
     };
@@ -86,16 +100,88 @@ function getLocalizedLabels(cv) {
       languages: 'Langues (CECRL)',
       projects: 'Projets',
       certifications: 'Certifications',
+      additional: 'Informations complémentaires',
       projectTag: 'Projet',
       addExp: '+ Ajouter une expérience',
       addEdu: '+ Ajouter une formation',
       email: 'E-mail :',
       phone: 'Tél :',
+      telegram: 'Telegram :',
       location: 'Ville :',
       birth: 'Date de naissance :',
       nationality: 'Nationalité :',
+      workPermission: 'Autorisation de travail :',
+      maritalStatus: 'Situation familiale :',
+      gender: 'Genre :',
+      desiredSalary: 'Prétentions salariales :',
+      drivingLicence: 'Permis de conduire :',
+      businessTrips: 'Déplacements :',
+      relocation: 'Mobilité :',
+      nativeLabel: 'Native / Bilingual',
       grade: 'Mention :',
       present: 'Présent'
+    };
+  }
+
+  if (lang === 'ru') {
+    return {
+      experience: 'Опыт работы',
+      education: 'Образование',
+      skills: 'Навыки',
+      languages: 'Языки',
+      projects: 'Проекты',
+      certifications: 'Сертификаты',
+      additional: 'Дополнительная информация',
+      projectTag: 'Проект',
+      addExp: '+ Добавить опыт',
+      addEdu: '+ Добавить образование',
+      email: 'Эл. почта:',
+      phone: 'Тел:',
+      telegram: 'Telegram:',
+      location: 'Город:',
+      birth: 'Дата рождения:',
+      nationality: 'Гражданство:',
+      workPermission: 'Разрешение на работу:',
+      maritalStatus: 'Семейное положение:',
+      gender: 'Пол:',
+      desiredSalary: 'Желаемая зарплата:',
+      drivingLicence: 'Водительские права:',
+      businessTrips: 'Командировки:',
+      relocation: 'Готовность к переезду:',
+      nativeLabel: 'Родной',
+      grade: 'Оценка:',
+      present: 'по настоящее время'
+    };
+  }
+
+  if (lang === 'uz') {
+    return {
+      experience: 'Ish tajribasi',
+      education: 'Taʼlim',
+      skills: 'Koʻnikmalar',
+      languages: 'Tillar',
+      projects: 'Loyihalar',
+      certifications: 'Sertifikatlar',
+      additional: 'Qoʻshimcha maʼlumotlar',
+      projectTag: 'Loyiha',
+      addExp: '+ Tajriba qoʻshish',
+      addEdu: '+ Taʼlim qoʻshish',
+      email: 'Elektron pochta:',
+      phone: 'Tel:',
+      telegram: 'Telegram:',
+      location: 'Shahar:',
+      birth: 'Tugʻilgan sana:',
+      nationality: 'Fuqarolik:',
+      workPermission: 'Ishlash uchun ruxsatnoma:',
+      maritalStatus: 'Oilaviy ahvoli:',
+      gender: 'Jinsi:',
+      desiredSalary: 'Kutilayotgan maosh:',
+      drivingLicence: 'Haydovchilik guvohnomasi:',
+      businessTrips: 'Xizmat safarlari:',
+      relocation: 'Koʻchib oʻtishga tayyorlik:',
+      nativeLabel: 'Ona tili',
+      grade: 'Baho:',
+      present: 'hozirgacha'
     };
   }
 
@@ -106,14 +192,24 @@ function getLocalizedLabels(cv) {
     languages: 'Languages (CEFR)',
     projects: 'Selected Projects',
     certifications: 'Certifications',
+    additional: 'Additional Information',
     projectTag: 'Project',
     addExp: '+ Add Position',
     addEdu: '+ Add Degree',
     email: 'Email:',
     phone: 'Phone:',
+    telegram: 'Telegram:',
     location: 'Location:',
     birth: 'Date of Birth:',
-    nationality: 'Nationality:',
+    nationality: useCitizenship ? 'Citizenship:' : 'Nationality:',
+    workPermission: 'Work permission:',
+    maritalStatus: 'Marital status:',
+    gender: 'Gender:',
+    desiredSalary: 'Desired salary:',
+    drivingLicence: 'Driving licence:',
+    businessTrips: 'Business trips:',
+    relocation: 'Willing to relocate:',
+    nativeLabel: 'Native / Bilingual',
     grade: 'Grade:',
     present: 'Present'
   };
@@ -131,21 +227,46 @@ function buildPhotoPlaceholderSVG() {
 function buildTemplateHeaderHTML(cv, templateId, L) {
   const p = cv.personal && typeof cv.personal === 'object' ? cv.personal : {};
   const rules = cv.rules || {};
+  const meta = cv.meta || {};
   const first = typeof p.firstName === 'string' ? p.firstName : '';
+  const patronymic = (meta.showPatronymic && typeof p.patronymic === 'string' && p.patronymic.trim()) ? p.patronymic.trim() : '';
   const last = typeof p.lastName === 'string' ? p.lastName : '';
-  const fullName = `${escapePreviewHTML(first)} ${escapePreviewHTML(last)}`.trim() || 'Your Name';
+  const fullName = [first, patronymic, last].filter(Boolean).map(escapePreviewHTML).join(' ').trim() || 'Your Name';
   const roleTitle = (typeof p.title === 'string' && p.title.trim()) ? escapePreviewHTML(p.title) : 'Target Job Title';
+
+  const extraMetaItems = [];
+  if (rules.allowBirthDate && typeof p.birthDate === 'string' && p.birthDate.trim()) {
+    extraMetaItems.push({ label: L.birth, val: p.birthDate, bind: 'personal.birthDate', aria: 'Date of birth' });
+  }
+  if (rules.allowNationality && typeof p.nationality === 'string' && p.nationality.trim()) {
+    extraMetaItems.push({ label: L.nationality, val: p.nationality, bind: 'personal.nationality', aria: 'Citizenship or nationality' });
+  }
+  if ((rules.allowWorkPermission || meta.showWorkPermission) && typeof p.workPermission === 'string' && p.workPermission.trim()) {
+    extraMetaItems.push({ label: L.workPermission, val: p.workPermission, bind: 'personal.workPermission', aria: 'Work permission' });
+  }
+  if (meta.showMaritalStatus && (typeof p.maritalStatus === 'string' && p.maritalStatus.trim() || typeof p.children === 'string' && p.children.trim())) {
+    const combined = [p.maritalStatus, p.children].filter(v => typeof v === 'string' && v.trim()).join(', ');
+    extraMetaItems.push({ label: L.maritalStatus, val: combined, bind: 'personal.maritalStatus', aria: 'Marital status' });
+  }
+  if (meta.showGender && typeof p.gender === 'string' && p.gender.trim()) {
+    extraMetaItems.push({ label: L.gender, val: p.gender, bind: 'personal.gender', aria: 'Gender' });
+  }
+  if (meta.showSalary && typeof p.desiredSalary === 'string' && p.desiredSalary.trim()) {
+    extraMetaItems.push({ label: L.desiredSalary, val: p.desiredSalary, bind: 'personal.desiredSalary', aria: 'Desired salary' });
+  }
 
   if (templateId === TEMPLATE_IDS.MINIMAL_SWISS) {
     return `
       <header class="swiss-header">
         <h1 class="applicant-name" contenteditable="true" role="textbox" aria-label="Full name" data-bind="personal.fullName">${fullName}</h1>
         <div class="applicant-title" contenteditable="true" role="textbox" aria-label="Target job title" data-bind="personal.title">${roleTitle}</div>
-        <div style="display: flex; flex-wrap: wrap; gap: 14pt; font-size: 8.5pt; color: #475569; margin-top: 6pt;">
+        <div style="display: flex; flex-wrap: wrap; gap: 10pt 14pt; font-size: 8.5pt; color: #475569; margin-top: 6pt;">
           ${typeof p.email === 'string' && p.email ? `<span contenteditable="true" role="textbox" aria-label="Email address" data-bind="personal.email">${escapePreviewHTML(p.email)}</span>` : ''}
           ${typeof p.phone === 'string' && p.phone ? `<span contenteditable="true" role="textbox" aria-label="Phone number" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span>` : ''}
+          ${typeof p.telegram === 'string' && p.telegram ? `<span contenteditable="true" role="textbox" aria-label="Telegram handle" data-bind="personal.telegram">${escapePreviewHTML(p.telegram)}</span>` : ''}
           ${typeof p.city === 'string' && p.city ? `<span contenteditable="true" role="textbox" aria-label="Location" data-bind="personal.city">${escapePreviewHTML(p.city)}</span>` : ''}
           ${typeof p.linkedin === 'string' && p.linkedin ? `<span contenteditable="true" role="textbox" aria-label="LinkedIn profile" data-bind="personal.linkedin">${escapePreviewHTML(p.linkedin)}</span>` : ''}
+          ${extraMetaItems.map(it => `<span><strong>${it.label}</strong> <span contenteditable="true" role="textbox" aria-label="${it.aria}" data-bind="${it.bind}">${escapePreviewHTML(it.val)}</span></span>`).join('')}
         </div>
       </header>
     `;
@@ -156,14 +277,19 @@ function buildTemplateHeaderHTML(cv, templateId, L) {
       typeof p.city === 'string' && p.city ? `<span contenteditable="true" role="textbox" aria-label="Location" data-bind="personal.city">${escapePreviewHTML(p.city)}</span>` : '',
       typeof p.email === 'string' && p.email ? `<span contenteditable="true" role="textbox" aria-label="Email address" data-bind="personal.email">${escapePreviewHTML(p.email)}</span>` : '',
       typeof p.phone === 'string' && p.phone ? `<span contenteditable="true" role="textbox" aria-label="Phone number" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span>` : '',
+      typeof p.telegram === 'string' && p.telegram ? `<span contenteditable="true" role="textbox" aria-label="Telegram handle" data-bind="personal.telegram">${escapePreviewHTML(p.telegram)}</span>` : '',
       typeof p.linkedin === 'string' && p.linkedin ? `<span contenteditable="true" role="textbox" aria-label="LinkedIn profile" data-bind="personal.linkedin">${escapePreviewHTML(p.linkedin)}</span>` : ''
     ].filter(Boolean).join(' · ');
+    const extraLine = extraMetaItems.length
+      ? `<div style="font-size: 8pt; color: #4b5563; margin-top: 3pt;">${extraMetaItems.map(it => `<span><strong>${it.label}</strong> ${escapePreviewHTML(it.val)}</span>`).join(' · ')}</div>`
+      : '';
 
     return `
       <header style="text-align: center; border-bottom: 0.5pt solid #111827; padding-bottom: 12pt; margin-bottom: 14pt;">
         <h1 class="applicant-name" contenteditable="true" role="textbox" aria-label="Full name" data-bind="personal.fullName">${fullName}</h1>
         <div class="applicant-title" contenteditable="true" role="textbox" aria-label="Target job title" data-bind="personal.title">${roleTitle}</div>
         <div style="font-size: 8.3pt; color: #4b5563; letter-spacing: 0.02em; margin-top: 4pt;">${items}</div>
+        ${extraLine}
       </header>
     `;
   }
@@ -176,14 +302,14 @@ function buildTemplateHeaderHTML(cv, templateId, L) {
   if (typeof p.phone === 'string' && p.phone) {
     contactParts.push(`<span class="contact-meta-item"><strong>${L.phone}</strong> <span contenteditable="true" role="textbox" aria-label="Phone number" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span></span>`);
   }
+  if (typeof p.telegram === 'string' && p.telegram) {
+    contactParts.push(`<span class="contact-meta-item"><strong>${L.telegram}</strong> <span contenteditable="true" role="textbox" aria-label="Telegram handle" data-bind="personal.telegram">${escapePreviewHTML(p.telegram)}</span></span>`);
+  }
   if (typeof p.city === 'string' && p.city) {
     contactParts.push(`<span class="contact-meta-item"><strong>${L.location}</strong> <span contenteditable="true" role="textbox" aria-label="Location" data-bind="personal.city">${escapePreviewHTML(p.city)}</span></span>`);
   }
-  if (rules.allowBirthDate && typeof p.birthDate === 'string' && p.birthDate) {
-    contactParts.push(`<span class="contact-meta-item"><strong>${L.birth}</strong> <span contenteditable="true" role="textbox" aria-label="Date of birth" data-bind="personal.birthDate">${escapePreviewHTML(p.birthDate)}</span></span>`);
-  }
-  if (rules.allowNationality && typeof p.nationality === 'string' && p.nationality) {
-    contactParts.push(`<span class="contact-meta-item"><strong>${L.nationality}</strong> <span contenteditable="true" role="textbox" aria-label="Nationality" data-bind="personal.nationality">${escapePreviewHTML(p.nationality)}</span></span>`);
+  for (const it of extraMetaItems) {
+    contactParts.push(`<span class="contact-meta-item"><strong>${it.label}</strong> <span contenteditable="true" role="textbox" aria-label="${it.aria}" data-bind="${it.bind}">${escapePreviewHTML(it.val)}</span></span>`);
   }
   if (typeof p.linkedin === 'string' && p.linkedin) {
     contactParts.push(`<span class="contact-meta-item"><strong>LinkedIn:</strong> <span contenteditable="true" role="textbox" aria-label="LinkedIn profile" data-bind="personal.linkedin">${escapePreviewHTML(p.linkedin)}</span></span>`);
@@ -226,6 +352,8 @@ function buildSectionHTML(sectionId, cv, L, templateId) {
       return buildProjectsSectionHTML(cv, L);
     case 'certifications':
       return buildCertificationsSectionHTML(cv, L);
+    case 'additional':
+      return buildAdditionalSectionHTML(cv, L);
     default:
       return '';
   }
@@ -363,12 +491,16 @@ function buildLanguagesSectionHTML(cv, L) {
     <section class="cv-section" data-section-id="languages">
       <h2 class="section-heading">${L.languages}</h2>
       <div class="lang-grid">
-        ${langs.map(l => `
+        ${langs.map(l => {
+          const rawLvl = typeof l.level === 'string' ? l.level : '';
+          const displayLvl = /^native/i.test(rawLvl.trim()) ? L.nativeLabel : rawLvl;
+          return `
           <div class="lang-item">
             <span class="lang-name">${escapePreviewHTML(typeof l.language === 'string' ? l.language : '')}</span>
-            <span class="lang-level">${escapePreviewHTML(typeof l.level === 'string' ? l.level : '')}</span>
+            <span class="lang-level">${escapePreviewHTML(displayLvl)}</span>
           </div>
-        `).join('')}
+        `;
+        }).join('')}
       </div>
     </section>
   `;
@@ -417,6 +549,29 @@ function buildCertificationsSectionHTML(cv, L) {
           </div>
         </div>
       `).join('')}
+    </section>
+  `;
+}
+
+function buildAdditionalSectionHTML(cv, L) {
+  const add = cv.additional && typeof cv.additional === 'object' ? cv.additional : {};
+  const rows = [
+    add.drivingLicence && typeof add.drivingLicence === 'string' && add.drivingLicence.trim()
+      ? `<div class="lang-item"><span class="lang-name">${L.drivingLicence}</span><span class="lang-level">${escapePreviewHTML(add.drivingLicence)}</span></div>`
+      : '',
+    add.businessTrips && typeof add.businessTrips === 'string' && add.businessTrips.trim()
+      ? `<div class="lang-item"><span class="lang-name">${L.businessTrips}</span><span class="lang-level">${escapePreviewHTML(add.businessTrips)}</span></div>`
+      : '',
+    add.relocation && typeof add.relocation === 'string' && add.relocation.trim()
+      ? `<div class="lang-item"><span class="lang-name">${L.relocation}</span><span class="lang-level">${escapePreviewHTML(add.relocation)}</span></div>`
+      : ''
+  ].filter(Boolean);
+
+  if (!rows.length) return '';
+  return `
+    <section class="cv-section" data-section-id="additional">
+      <h2 class="section-heading">${L.additional}</h2>
+      <div class="lang-grid">${rows.join('')}</div>
     </section>
   `;
 }

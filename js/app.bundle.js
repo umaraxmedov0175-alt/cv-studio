@@ -26,8 +26,8 @@ const TEMPLATE_IDS = {
 };
 
 const VALID_TEMPLATES = new Set(Object.values(TEMPLATE_IDS));
-const VALID_LANGUAGES = new Set(['en', 'de', 'fr']);
-const VALID_COUNTRIES = new Set(['DE', 'UK', 'FR', 'NL']);
+const VALID_LANGUAGES = new Set(['en', 'de', 'fr', 'ru', 'uz']);
+const VALID_COUNTRIES = new Set(['DE', 'UK', 'FR', 'NL', 'RU', 'UZ']);
 const VALID_SPACING = new Set(['compact', 'normal', 'spacious']);
 const MAX_EMBEDDED_PHOTO_DATA_URL_LENGTH = 180_000;
 const DEFAULT_SECTION_ORDER = [
@@ -37,7 +37,7 @@ const DEFAULT_SECTION_ORDER = [
   'skills',
   'languages'
 ];
-const OPTIONAL_SECTION_IDS = ['projects', 'certifications'];
+const OPTIONAL_SECTION_IDS = ['projects', 'certifications', 'additional'];
 
 const ALL_BODY_SECTIONS = [...DEFAULT_SECTION_ORDER, ...OPTIONAL_SECTION_IDS];
 
@@ -103,7 +103,7 @@ function asString(val, fallback = '') {
 function createEmptyCV() {
   return {
     meta: {
-      version: '2.0.0',
+      version: '2.1.0',
       template: TEMPLATE_IDS.GERMAN_DIN,
       language: 'en',
       targetCountry: 'DE',
@@ -111,14 +111,21 @@ function createEmptyCV() {
       spacing: 'normal',
       showPhoto: true,
       includeSignatureBlock: true,
+      showPatronymic: false,
+      showMaritalStatus: false,
+      showGender: false,
+      showSalary: false,
+      showWorkPermission: false,
       sectionOrder: [...DEFAULT_SECTION_ORDER]
     },
     personal: {
       firstName: '',
       lastName: '',
+      patronymic: '',
       title: '',
       email: '',
       phone: '',
+      telegram: '',
       address: '',
       city: '',
       postalCode: '',
@@ -126,6 +133,11 @@ function createEmptyCV() {
       birthDate: '',
       birthPlace: '',
       nationality: '',
+      workPermission: '',
+      maritalStatus: '',
+      children: '',
+      gender: '',
+      desiredSalary: '',
       website: '',
       linkedin: '',
       github: '',
@@ -141,6 +153,11 @@ function createEmptyCV() {
     },
     certifications: [],
     projects: [],
+    additional: {
+      drivingLicence: '',
+      businessTrips: '',
+      relocation: ''
+    },
     signature: {
       place: 'Berlin',
       date: new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }),
@@ -280,6 +297,223 @@ function createSampleEuropeanCV() {
 
 // Backward compatibility alias
 const createSampleGermanCV = createSampleEuropeanCV;
+function createSampleRussianCV() {
+  return {
+    meta: {
+      version: '2.1.0',
+      template: TEMPLATE_IDS.MINIMAL_SWISS,
+      language: 'ru',
+      targetCountry: 'RU',
+      accentColor: '#2b3fe8',
+      spacing: 'compact',
+      showPhoto: true,
+      includeSignatureBlock: false,
+      showPatronymic: false,
+      showMaritalStatus: false,
+      showGender: false,
+      showSalary: false,
+      showWorkPermission: false,
+      sectionOrder: [...DEFAULT_SECTION_ORDER]
+    },
+    personal: {
+      firstName: 'Алексей',
+      lastName: 'Воронов',
+      patronymic: '',
+      title: 'Старший backend-разработчик (Go / PostgreSQL)',
+      email: 'a.voronov.dev@example.com',
+      phone: '+7 900 000-00-00',
+      telegram: '@voronov_dev',
+      address: '',
+      city: 'Москва',
+      postalCode: '',
+      country: 'Россия',
+      birthDate: '12.04.1993',
+      birthPlace: '',
+      nationality: 'Россия',
+      workPermission: '',
+      maritalStatus: '',
+      children: '',
+      gender: '',
+      desiredSalary: '',
+      website: '',
+      linkedin: 'hh.ru/resume/voronov-example',
+      github: 'github.com/avoronov-dev',
+      photoUrl: '/assets/portrait-03.webp'
+    },
+    summary: 'Backend-разработчик с опытом более 6 лет в проектировании высоконагруженных микросервисов и платёжных систем. Специализируюсь на Go, PostgreSQL, Kafka и отказоустойчивой инфраструктуре.',
+    experience: [
+      {
+        id: 'exp-1',
+        position: 'Старший разработчик Go',
+        company: 'ООО «СеверПлатформа»',
+        city: 'Москва',
+        startDate: '04.2022',
+        endDate: 'по настоящее время',
+        current: true,
+        bullets: [
+          'Разработал биллинговый сервис на Go с нагрузкой 450 000+ транзакций в сутки и доступностью 99.98%.',
+          'Сократил время отклика ключевых API на 38% за счёт оптимизации запросов PostgreSQL и кэширования в Redis.',
+          'Внедрил автоматическое тестирование и CI/CD-пайплайны, ускорив выкладку релизов в 2 раза.'
+        ],
+        technologies: ['Go', 'PostgreSQL', 'Redis', 'Kafka', 'Docker', 'Kubernetes']
+      },
+      {
+        id: 'exp-2',
+        position: 'Backend-разработчик',
+        company: 'АО «ТехноМетрика»',
+        city: 'Санкт-Петербург',
+        startDate: '09.2019',
+        endDate: '03.2022',
+        current: false,
+        bullets: [
+          'Создал модуль аналитики событий на Python и ClickHouse для 120 корпоративных клиентов.',
+          'Оптимизировал фоновые очереди обработки данных, снизив потребление памяти на 30%.'
+        ],
+        technologies: ['Python', 'Go', 'PostgreSQL', 'Linux', 'GitLab CI']
+      }
+    ],
+    education: [
+      {
+        id: 'edu-1',
+        degree: 'Магистр информатики и вычислительной техники',
+        institution: 'Московский технический университет (учебный пример)',
+        city: 'Москва',
+        startDate: '09.2015',
+        endDate: '06.2017',
+        grade: '',
+        thesis: ''
+      }
+    ],
+    skills: {
+      technical: ['Go', 'PostgreSQL', 'Redis', 'Kafka', 'Docker', 'Kubernetes', 'REST / gRPC', 'Linux', 'Git'],
+      languages: [
+        { language: 'Русский', level: 'Native / Bilingual' },
+        { language: 'Английский', level: 'B2 – Vantage / Professional Working' }
+      ],
+      tools: ['Docker', 'GitLab CI', 'Prometheus']
+    },
+    certifications: [],
+    projects: [],
+    additional: {
+      drivingLicence: '',
+      businessTrips: '',
+      relocation: ''
+    },
+    signature: { place: 'Москва', date: '26.11.2026', signeeName: 'Алексей Воронов' }
+  };
+}
+function createSampleUzbekCV() {
+  return {
+    meta: {
+      version: '2.1.0',
+      template: TEMPLATE_IDS.GERMAN_DIN,
+      language: 'uz',
+      targetCountry: 'UZ',
+      accentColor: '#2b3fe8',
+      spacing: 'compact',
+      showPhoto: true,
+      includeSignatureBlock: false,
+      showPatronymic: false,
+      showMaritalStatus: false,
+      showGender: false,
+      showSalary: false,
+      showWorkPermission: true,
+      sectionOrder: [...DEFAULT_SECTION_ORDER]
+    },
+    personal: {
+      firstName: 'Jasurbek',
+      lastName: 'Tursunov',
+      patronymic: '',
+      title: 'Frontend va Full-Stack dasturchi (React / TypeScript)',
+      email: 'j.tursunov.dev@example.com',
+      phone: '+998 90 000 00 00',
+      telegram: '@jtursunov_dev',
+      address: '',
+      city: 'Toshkent',
+      postalCode: '',
+      country: 'Oʻzbekiston',
+      birthDate: '18.08.1995',
+      birthPlace: '',
+      nationality: 'Oʻzbekiston',
+      workPermission: 'Oʻzbekiston',
+      maritalStatus: '',
+      children: '',
+      gender: '',
+      desiredSalary: '',
+      website: '',
+      linkedin: 'hh.uz/resume/tursunov-example',
+      github: 'github.com/jtursunov-dev',
+      photoUrl: '/assets/portrait-05.webp'
+    },
+    summary: '5 yildan ortiq tajribaga ega Full-Stack dasturchi. TypeScript, React va Node.js asosida tezkor hamda ishonchli veb-tizimlarni loyihalash va ishlab chiqish boʻyicha mutaxassis.',
+    experience: [
+      {
+        id: 'exp-1',
+        position: 'Katta Frontend dasturchi',
+        company: '«Navoiy Digital Solutions» MChJ',
+        city: 'Toshkent',
+        startDate: '02.2022',
+        endDate: 'hozirgacha',
+        current: true,
+        bullets: [
+          '150 000 dan ortiq foydalanuvchiga xizmat koʻrsatuvchi toʻlov kabinetini React va TypeScript asosida ishlab chiqdi.',
+          'Sahifa yuklanish tezligini 42% ga oshirdi va avtomatlashtirilgan UI test qamrovini 88% ga yetkazdi.'
+        ],
+        technologies: ['TypeScript', 'React', 'Next.js', 'REST API', 'Playwright']
+      },
+      {
+        id: 'exp-2',
+        position: 'Veb-dasturchi',
+        company: '«Samarqand Tech Lab» MChJ',
+        city: 'Samarqand',
+        startDate: '09.2019',
+        endDate: '01.2022',
+        current: false,
+        bullets: [
+          'Korporativ boshqaruv paneli va hisobotlar modulini Node.js hamda PostgreSQL yordamida yaratdi.',
+          'Maʼlumotlar bazasi soʻrovlarini optimallashtirib, hisobot tayyorlash vaqtini 3 baravar qisqartirdi.'
+        ],
+        technologies: ['JavaScript', 'Node.js', 'PostgreSQL', 'Docker', 'Git']
+      }
+    ],
+    education: [
+      {
+        id: 'edu-1',
+        degree: 'Bakalavr, Axborot texnologiyalari',
+        institution: 'Toshkent axborot texnologiyalari universiteti (namuna)',
+        city: 'Toshkent',
+        startDate: '09.2014',
+        endDate: '06.2018',
+        grade: '',
+        thesis: ''
+      }
+    ],
+    skills: {
+      technical: ['TypeScript', 'React', 'Next.js', 'Node.js', 'PostgreSQL', 'REST API', 'Docker', 'Git'],
+      languages: [
+        { language: 'Oʻzbek tili', level: 'Native / Bilingual' },
+        { language: 'Rus tili', level: 'C2 – Mastery / Native-like' },
+        { language: 'Ingliz tili', level: 'B2 – Vantage / Professional Working' }
+      ],
+      tools: ['VS Code', 'Figma', 'GitHub Actions']
+    },
+    certifications: [],
+    projects: [],
+    additional: {
+      drivingLicence: 'B toifa',
+      businessTrips: 'Xizmat safarlariga tayyor',
+      relocation: ''
+    },
+    signature: { place: 'Toshkent', date: '26.11.2026', signeeName: 'Jasurbek Tursunov' }
+  };
+}
+function createSampleCVForMarket(countryCode = 'DE', languageCode = 'en') {
+  const c = typeof countryCode === 'string' ? countryCode.trim().toUpperCase() : 'DE';
+  const l = typeof languageCode === 'string' ? languageCode.trim().toLowerCase() : 'en';
+  if (c === 'RU' || l === 'ru') return createSampleRussianCV();
+  if (c === 'UZ' || l === 'uz') return createSampleUzbekCV();
+  return createSampleEuropeanCV();
+}
 
 /**
  * Coerces untrusted or partial CV payloads into a safe, well-typed CV object.
@@ -305,6 +539,13 @@ function sanitizeCVData(raw) {
     includeSignatureBlock: typeof rawMeta.includeSignatureBlock === 'boolean'
       ? rawMeta.includeSignatureBlock
       : base.meta.includeSignatureBlock,
+    showPatronymic: typeof rawMeta.showPatronymic === 'boolean' ? rawMeta.showPatronymic : false,
+    showMaritalStatus: typeof rawMeta.showMaritalStatus === 'boolean' ? rawMeta.showMaritalStatus : false,
+    showGender: typeof rawMeta.showGender === 'boolean' ? rawMeta.showGender : false,
+    showSalary: typeof rawMeta.showSalary === 'boolean' ? rawMeta.showSalary : false,
+    showWorkPermission: typeof rawMeta.showWorkPermission === 'boolean'
+      ? rawMeta.showWorkPermission
+      : (VALID_COUNTRIES.has(rawCountry) && rawCountry === 'UZ'),
     sectionOrder: normalizeSectionOrder(rawMeta.sectionOrder)
   };
 
@@ -313,9 +554,11 @@ function sanitizeCVData(raw) {
   const personal = {
     firstName: asString(rawPersonal.firstName),
     lastName: asString(rawPersonal.lastName),
+    patronymic: asString(rawPersonal.patronymic),
     title: asString(rawPersonal.title),
     email: asString(rawPersonal.email),
     phone: asString(rawPersonal.phone),
+    telegram: asString(rawPersonal.telegram),
     address: asString(rawPersonal.address),
     city: asString(rawPersonal.city),
     postalCode: asString(rawPersonal.postalCode),
@@ -324,7 +567,12 @@ function sanitizeCVData(raw) {
       : asString(rawPersonal.country),
     birthDate: asString(rawPersonal.birthDate),
     birthPlace: asString(rawPersonal.birthPlace),
-    nationality: asString(rawPersonal.nationality),
+    nationality: asString(rawPersonal.nationality || rawPersonal.citizenship),
+    workPermission: asString(rawPersonal.workPermission),
+    maritalStatus: asString(rawPersonal.maritalStatus),
+    children: asString(rawPersonal.children),
+    gender: asString(rawPersonal.gender),
+    desiredSalary: asString(rawPersonal.desiredSalary),
     website: asString(rawPersonal.website),
     linkedin: asString(rawPersonal.linkedin),
     github: asString(rawPersonal.github),
@@ -397,6 +645,13 @@ function sanitizeCVData(raw) {
       link: asString(p.link)
     }));
 
+  const rawAdditional = asPlainObject(raw.additional);
+  const additional = {
+    drivingLicence: asString(rawAdditional.drivingLicence),
+    businessTrips: asString(rawAdditional.businessTrips),
+    relocation: asString(rawAdditional.relocation)
+  };
+
   const rawSig = asPlainObject(raw.signature);
   const signature = {
     place: typeof rawSig.place === 'string' ? rawSig.place : base.signature.place,
@@ -413,6 +668,7 @@ function sanitizeCVData(raw) {
     skills,
     certifications,
     projects,
+    additional,
     signature
   };
 }
@@ -425,6 +681,12 @@ function validateCV(cv, options = {}) {
   }
   if (!cv.personal || typeof cv.personal !== 'object' || Array.isArray(cv.personal)) {
     return { valid: false, errors: ['Personal details object is missing or invalid.'] };
+  }
+
+  const rawVer = typeof cv.meta?.version === 'string' ? cv.meta.version.trim() : '';
+  const majorVer = rawVer ? Number.parseInt(rawVer.split('.')[0], 10) : 2;
+  if (Number.isFinite(majorVer) && majorVer > 2) {
+    return { valid: false, errors: [`Unsupported CV schema version (${rawVer}). Please update the app to import this file.`] };
   }
 
   const p = cv.personal;
@@ -646,6 +908,54 @@ const COUNTRY_STANDARDS = {
     languageCode: 'en',
     templateDefault: 'minimal-swiss',
     complianceNote: 'Dutch Standard: Pragmatic, direct layout highlighting measurable achievements and technical depth.'
+  },
+  RU: {
+    code: 'RU',
+    name: 'Russia (1-Page)',
+    flag: 'RU',
+    allowPhoto: true,
+    recommendPhoto: true,
+    allowBirthDate: true,
+    allowNationality: true,
+    allowWorkPermission: false,
+    allowTelegram: true,
+    allowPatronymic: false,
+    allowMaritalStatus: false,
+    allowGender: false,
+    allowSalary: false,
+    allowSignatureBlock: false,
+    recommendSignatureBlock: false,
+    compactMode: true,
+    languageCode: 'ru',
+    templateDefault: 'minimal-swiss',
+    dateFormat: 'DD.MM.YYYY',
+    phonePlaceholder: '+7 900 000-00-00',
+    profileLinkLabel: 'Portfolio, hh.ru, LinkedIn or GitHub',
+    complianceNote: 'Russian market practice: One A4 page is standard. Photo, date of birth, citizenship, and desired salary are optional.'
+  },
+  UZ: {
+    code: 'UZ',
+    name: 'Uzbekistan (Formal)',
+    flag: 'UZ',
+    allowPhoto: true,
+    recommendPhoto: true,
+    allowBirthDate: true,
+    allowNationality: true,
+    allowWorkPermission: true,
+    allowTelegram: true,
+    allowPatronymic: false,
+    allowMaritalStatus: false,
+    allowGender: false,
+    allowSalary: false,
+    allowSignatureBlock: false,
+    recommendSignatureBlock: false,
+    compactMode: false,
+    languageCode: 'uz',
+    templateDefault: 'german-din-5008',
+    dateFormat: 'DD.MM.YYYY',
+    phonePlaceholder: '+998 90 000 00 00',
+    profileLinkLabel: 'Portfolio, hh.uz, LinkedIn or GitHub',
+    complianceNote: 'Uzbekistan market practice: Formal personal block supports photo, citizenship, and work permission; extra personal fields are opt-in.'
   }
 };
 
@@ -663,6 +973,12 @@ function getCountryFieldRules(countryCode = 'DE') {
     allowPhoto: standard.allowPhoto,
     allowBirthDate: standard.allowBirthDate,
     allowNationality: standard.allowNationality,
+    allowWorkPermission: Boolean(standard.allowWorkPermission),
+    allowTelegram: Boolean(standard.allowTelegram),
+    allowPatronymic: Boolean(standard.allowPatronymic),
+    allowMaritalStatus: Boolean(standard.allowMaritalStatus),
+    allowGender: Boolean(standard.allowGender),
+    allowSalary: Boolean(standard.allowSalary),
     allowSignatureBlock: standard.allowSignatureBlock,
     compactMode: standard.compactMode
   };
@@ -737,18 +1053,36 @@ const ACTION_VERBS = {
   fr: [
     'conçu', 'développé', 'automatisé', 'optimisé', 'réduit', 'déployé',
     'piloté', 'coordonné', 'dirigé', 'géré', 'amélioré', 'réalisé', 'conception'
+  ],
+  ru: [
+    'разработал', 'разработала', 'создал', 'создала', 'внедрил', 'внедрила',
+    'оптимизировал', 'оптимизировала', 'сократил', 'сократила', 'увеличил', 'увеличила',
+    'запустил', 'запустила', 'спроектировал', 'спроектировала', 'руководил', 'руководила',
+    'автоматизировал', 'автоматизировала', 'настроил', 'настроила', 'построил', 'построила',
+    'реализовал', 'реализовала', 'ускорил', 'ускорила', 'снизил', 'снизила'
+  ],
+  uz: [
+    'ishlab chiqdi', 'ishlab chiqdim', 'yaratdi', 'yaratdim', 'joriy qildi', 'joriy qildim',
+    'optimallashtirdi', 'optimallashtirdim', 'qisqartirdi', 'qisqartirdim', 'oshirdi', 'oshirdim',
+    'boshqardi', 'boshqardim', 'avtomatlashtirdi', 'avtomatlashtirdim', 'loyihaladi', 'loyihaladim',
+    'amalga oshirdi', 'tashkil etdi', 'tezlashtirdi', 'kamaytirdi'
   ]
 };
 
-const ALL_ACTION_VERBS = [...ACTION_VERBS.en, ...ACTION_VERBS.de, ...ACTION_VERBS.fr]
-  .map(v => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+const ALL_ACTION_VERBS = [
+  ...ACTION_VERBS.en,
+  ...ACTION_VERBS.de,
+  ...ACTION_VERBS.fr,
+  ...ACTION_VERBS.ru,
+  ...ACTION_VERBS.uz
+].map(v => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
 const ACTION_VERB_REGEX = new RegExp(
   `(?:^|[^\\p{L}])(${ALL_ACTION_VERBS.join('|')})(?=$|[^\\p{L}])`,
   'iu'
 );
-const METRIC_REGEX = /(?:^|[^\p{L}\d])(?:\d+(?:[.,]\d+)?\s*%|[€$£]\s*\d+(?:[.,]\d+)?(?:\s*(?:k|m|b|mio|bn))?|\d+(?:[.,]\d+)?\s*(?:\+|x(?=$|[^\p{L}\d])|[€$£]|(?:k|m|mio|bn|ms|s|hrs?|hours?|minutes?|seconds?|days?|months?|years?|percent|jahre?n?|monate?n?|tage?n?|prozent|std\.?|ans?|mois|users?|engineers?|developers?|clients?|customers?|teams?|members?|projects?|nutzer|entwickler|kunden|utilisateurs?|ingénieurs?)(?=$|[^\p{L}\d]))|(?!19\d{2}(?=$|[^\p{L}\d])|20\d{2}(?=$|[^\p{L}\d]))\d{2,}(?=$|[^\p{L}\d]))/iu;
+const METRIC_REGEX = /(?:^|[^\p{L}\d])(?:\d+(?:[.,]\d+)?\s*%|[€$£₽]\s*\d+(?:[.,]\d+)?(?:\s*(?:k|m|b|mio|bn|тыс|млн))?|\d+(?:[.,]\d+)?\s*(?:\+|x(?=$|[^\p{L}\d])|[€$£₽]|(?:k|m|mio|bn|ms|s|hrs?|hours?|minutes?|seconds?|days?|months?|years?|percent|jahre?n?|monate?n?|tage?n?|prozent|std\.?|ans?|mois|users?|engineers?|developers?|clients?|customers?|teams?|members?|projects?|nutzer|entwickler|kunden|utilisateurs?|ingénieurs?|тыс\.?|млн|руб\.?|₽|лет|года?|мес\.?|чел\.?|пользовател\p{L}*|клиент\p{L}*|сотрудник\p{L}*|проект\p{L}*|so[ʻʼ']?m|mln|ming|yil|oy|kishi|foydalanuvchi\p{L}*|loyiha\p{L}*)(?=$|[^\p{L}\d]))|(?!19\d{2}(?=$|[^\p{L}\d])|20\d{2}(?=$|[^\p{L}\d]))\d{2,}(?=$|[^\p{L}\d]))/iu;
 
-const CEFR_LEVEL_REGEX = /^(A[12]|B[12]|C[12]|Native\b)/i;
+const CEFR_LEVEL_REGEX = /^(A[12]|B[12]|C[12]|Native\b|Родной\b|Ona tili\b)/iu;
 function hasActionVerb(text) {
   return typeof text === 'string' && ACTION_VERB_REGEX.test(text);
 }
@@ -1034,6 +1368,80 @@ const AMBIGUOUS_PROSE_MATCHERS = {
     /(?:^|[^a-z0-9#+.])in the cloud(?=$|[^a-z0-9#+.])/i.test(text)
 };
 
+const RU_STOP_WORDS = new Set([
+  'и', 'в', 'во', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все',
+  'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'же', 'вы', 'за', 'бы', 'по',
+  'только', 'ее', 'мне', 'было', 'вот', 'от', 'меня', 'еще', 'нет', 'о', 'из',
+  'ему', 'теперь', 'когда', 'даже', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или',
+  'ни', 'быть', 'был', 'него', 'до', 'вас', 'нибудь', 'опять', 'уж', 'вам',
+  'ведь', 'там', 'потом', 'себя', 'ничего', 'ей', 'может', 'они', 'тут', 'где',
+  'есть', 'надо', 'ней', 'для', 'мы', 'тебя', 'их', 'чем', 'была', 'сам', 'чтоб',
+  'без', 'будто', 'чего', 'раз', 'тоже', 'себе', 'под', 'будет', 'ж', 'тогда',
+  'кто', 'этот', 'того', 'потому', 'этого', 'какой', 'совсем', 'ним', 'здесь',
+  'этом', 'один', 'почти', 'мой', 'тем', 'чтобы', 'нее', 'сейчас', 'были', 'куда',
+  'зачем', 'всех', 'никогда', 'можно', 'при', 'наконец', 'два', 'об', 'другой',
+  'хоть', 'после', 'над', 'больше', 'тот', 'через', 'эти', 'нас', 'про', 'всего',
+  'них', 'какая', 'много', 'разве', 'три', 'эту', 'моя', 'впрочем', 'хорошо',
+  'свою', 'этой', 'перед', 'иногда', 'лучше', 'чуть', 'том', 'нельзя', 'такой',
+  'им', 'более', 'всегда', 'конечно', 'всю', 'между', 'опыт', 'работы', 'работа',
+  'требования', 'обязанности', 'условия', 'умение', 'знание', 'навыки'
+]);
+
+const UZ_STOP_WORDS = new Set([
+  'va', 'ham', 'bilan', 'uchun', 'bu', 'u', 'esa', 'yoki', 'lekin', 'ammo', 'biroq',
+  'agar', 'chunki', 'shuningdek', 'hamda', 'qadar', 'kabi', 'boʼyicha', 'orqali',
+  'boshqa', 'barcha', 'har', 'bir', 'ikki', 'uch', 'bor', 'yoʼq', 'kerak', 'lozim',
+  'mumkin', 'haqida', 'ichida', 'ustida', 'oldin', 'keyin', 'soʻng', 'doim',
+  'tajriba', 'bilim', 'koʻnikma', 'ish', 'talablar', 'vazifalar', 'sharoitlar',
+  'oʼz', 'biz', 'siz', 'ular', 'men', 'sen', 'uni', 'buni', 'shuni', 'nima', 'kim'
+]);
+function normalizeUnicodeText(text) {
+  if (typeof text !== 'string') return '';
+  return text
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[ʻʼ'‘’`]/g, 'ʼ');
+}
+
+function detectPostingLanguage(jobText) {
+  const norm = normalizeUnicodeText(jobText);
+  if (/[а-я]/i.test(norm)) return 'ru';
+  if (/[ʻʼ]/.test(jobText) || /\b(?:uchun|bilan|tajriba|koʼnikma|lavozim|bilim|ishlab)\b/i.test(norm)) {
+    return 'uz';
+  }
+  return 'latin';
+}
+
+// Heuristic: prefix-stem matching for inflected Russian and Uzbek words
+function tokensMatchHeuristic(a, b) {
+  if (a === b) return true;
+  if (a.length >= 5 && b.length >= 5) {
+    const minLen = Math.min(a.length, b.length);
+    const prefixLen = Math.max(4, Math.min(6, minLen - 1));
+    if (a.slice(0, prefixLen) === b.slice(0, prefixLen)) return true;
+  }
+  return false;
+}
+
+function tokenizeUnicodeTerms(text, lang) {
+  const norm = normalizeUnicodeText(text);
+  const matches = norm.match(/[\p{L}\p{N}ʼ#+.]{2,}/gu) || [];
+  const stops = lang === 'ru' ? RU_STOP_WORDS : (lang === 'uz' ? UZ_STOP_WORDS : new Set());
+  const seen = new Set();
+  const out = [];
+  for (const rawTok of matches) {
+    const tok = rawTok.replace(/^[.-]+|[.-]+$/g, '');
+    if (tok.length < 3) continue;
+    if (/^\d+$/.test(tok)) continue;
+    if (stops.has(tok) || RU_STOP_WORDS.has(tok) || UZ_STOP_WORDS.has(tok)) continue;
+    if (!seen.has(tok)) {
+      seen.add(tok);
+      out.push(tok);
+    }
+  }
+  return out;
+}
+
 function normalizeMatchText(text) {
   if (typeof text !== 'string' || !text.trim()) return '';
   return text
@@ -1078,7 +1486,16 @@ function collectKeywordsFromText(rawText, { isStructured = false } = {}) {
 }
 function extractKeywordsFromJob(jobText) {
   if (!jobText || typeof jobText !== 'string') return [];
-  return Array.from(collectKeywordsFromText(jobText, { isStructured: false }));
+  const techKeywords = Array.from(collectKeywordsFromText(jobText, { isStructured: false }));
+  const lang = detectPostingLanguage(jobText);
+  if (lang === 'latin') return techKeywords;
+
+  const unicodeTerms = tokenizeUnicodeTerms(jobText, lang).slice(0, 24);
+  const combined = new Set(techKeywords);
+  for (const term of unicodeTerms) {
+    combined.add(term);
+  }
+  return Array.from(combined);
 }
 function extractCVKeywords(cv) {
   if (!cv || typeof cv !== 'object' || Array.isArray(cv)) return new Set();
@@ -1158,11 +1575,27 @@ function calculateJobMatch(cv, jobText) {
   }
 
   const cvKeywords = extractCVKeywords(cv);
+  const lang = detectPostingLanguage(jobText);
+  const cvUnicodeTokens = lang === 'latin'
+    ? []
+    : tokenizeUnicodeTerms([
+      cv?.personal?.title,
+      cv?.summary,
+      ...(Array.isArray(cv?.skills?.technical) ? cv.skills.technical : []),
+      ...(Array.isArray(cv?.skills?.tools) ? cv.skills.tools : []),
+      ...(Array.isArray(cv?.experience) ? cv.experience.flatMap(e => [e?.position, e?.company, ...(e?.bullets || []), ...(e?.technologies || [])]) : []),
+      ...(Array.isArray(cv?.education) ? cv.education.flatMap(e => [e?.degree, e?.thesis]) : []),
+      ...(Array.isArray(cv?.projects) ? cv.projects.flatMap(p => [p?.name, p?.description, p?.technologies]) : [])
+    ].filter(Boolean).join(' '), lang);
+
   const matched = [];
   const missing = [];
 
   for (const kw of targetKeywords) {
-    if (cvKeywords.has(kw)) {
+    const isMatched = cvKeywords.has(kw) || (
+      lang !== 'latin' && cvUnicodeTokens.some(cvTok => tokensMatchHeuristic(kw, cvTok))
+    );
+    if (isMatched) {
       matched.push(kw);
     } else {
       missing.push(kw);
@@ -1429,7 +1862,7 @@ function renderCVPreview(cv, containerElement) {
   const spacingClass = spacingMode !== 'normal' ? `spacing-${spacingMode}` : '';
 
   const rawLang = typeof adaptedCV.meta?.language === 'string' ? adaptedCV.meta.language.trim().toLowerCase() : '';
-  const docLang = ['en', 'de', 'fr'].includes(rawLang) ? rawLang : 'en';
+  const docLang = ['en', 'de', 'fr', 'ru', 'uz'].includes(rawLang) ? rawLang : 'en';
   const rawAccent = typeof adaptedCV.meta?.accentColor === 'string' ? adaptedCV.meta.accentColor.trim() : '';
   const safeAccent = /^#[0-9a-f]{3,8}$/i.test(rawAccent) ? rawAccent : '#1e3a8a';
 
@@ -1440,7 +1873,10 @@ function renderCVPreview(cv, containerElement) {
   const L = getLocalizedLabels(adaptedCV);
   const headerHTML = buildTemplateHeaderHTML(adaptedCV, templateId, L);
   const sectionOrder = normalizeSectionOrder(adaptedCV.meta?.sectionOrder);
-  const sectionsHTML = sectionOrder
+  const effectiveOrder = sectionOrder.includes('additional')
+    ? sectionOrder
+    : [...sectionOrder, 'additional'];
+  const sectionsHTML = effectiveOrder
     .map(sectionId => buildSectionHTML(sectionId, adaptedCV, L, templateId))
     .filter(Boolean)
     .join('');
@@ -1461,6 +1897,7 @@ function getLocalizedLabels(cv) {
   const lang = cv.meta?.language || 'en';
   const countryCode = cv.meta?.targetCountry || 'DE';
   const isUK = countryCode === 'UK';
+  const useCitizenship = countryCode === 'RU' || countryCode === 'UZ';
 
   if (lang === 'de') {
     return {
@@ -1470,14 +1907,24 @@ function getLocalizedLabels(cv) {
       languages: 'Sprachkenntnisse (GER / CEFR)',
       projects: 'Ausgewählte Projekte',
       certifications: 'Zertifizierungen',
+      additional: 'Weitere Angaben',
       projectTag: 'Projekt',
       addExp: '+ Station hinzufügen',
       addEdu: '+ Abschluss hinzufügen',
       email: 'E-Mail:',
       phone: 'Tel:',
+      telegram: 'Telegram:',
       location: 'Wohnort:',
       birth: 'Geburtsdatum:',
-      nationality: 'Staatsangehörigkeit:',
+      nationality: useCitizenship ? 'Staatsangehörigkeit:' : 'Staatsangehörigkeit:',
+      workPermission: 'Arbeitserlaubnis:',
+      maritalStatus: 'Familienstand:',
+      gender: 'Geschlecht:',
+      desiredSalary: 'Gehaltswunsch:',
+      drivingLicence: 'Führerschein:',
+      businessTrips: 'Dienstreisen:',
+      relocation: 'Umzugsbereitschaft:',
+      nativeLabel: 'Native / Bilingual',
       grade: 'Abschlussnote:',
       present: 'Heute'
     };
@@ -1491,16 +1938,88 @@ function getLocalizedLabels(cv) {
       languages: 'Langues (CECRL)',
       projects: 'Projets',
       certifications: 'Certifications',
+      additional: 'Informations complémentaires',
       projectTag: 'Projet',
       addExp: '+ Ajouter une expérience',
       addEdu: '+ Ajouter une formation',
       email: 'E-mail :',
       phone: 'Tél :',
+      telegram: 'Telegram :',
       location: 'Ville :',
       birth: 'Date de naissance :',
       nationality: 'Nationalité :',
+      workPermission: 'Autorisation de travail :',
+      maritalStatus: 'Situation familiale :',
+      gender: 'Genre :',
+      desiredSalary: 'Prétentions salariales :',
+      drivingLicence: 'Permis de conduire :',
+      businessTrips: 'Déplacements :',
+      relocation: 'Mobilité :',
+      nativeLabel: 'Native / Bilingual',
       grade: 'Mention :',
       present: 'Présent'
+    };
+  }
+
+  if (lang === 'ru') {
+    return {
+      experience: 'Опыт работы',
+      education: 'Образование',
+      skills: 'Навыки',
+      languages: 'Языки',
+      projects: 'Проекты',
+      certifications: 'Сертификаты',
+      additional: 'Дополнительная информация',
+      projectTag: 'Проект',
+      addExp: '+ Добавить опыт',
+      addEdu: '+ Добавить образование',
+      email: 'Эл. почта:',
+      phone: 'Тел:',
+      telegram: 'Telegram:',
+      location: 'Город:',
+      birth: 'Дата рождения:',
+      nationality: 'Гражданство:',
+      workPermission: 'Разрешение на работу:',
+      maritalStatus: 'Семейное положение:',
+      gender: 'Пол:',
+      desiredSalary: 'Желаемая зарплата:',
+      drivingLicence: 'Водительские права:',
+      businessTrips: 'Командировки:',
+      relocation: 'Готовность к переезду:',
+      nativeLabel: 'Родной',
+      grade: 'Оценка:',
+      present: 'по настоящее время'
+    };
+  }
+
+  if (lang === 'uz') {
+    return {
+      experience: 'Ish tajribasi',
+      education: 'Taʼlim',
+      skills: 'Koʻnikmalar',
+      languages: 'Tillar',
+      projects: 'Loyihalar',
+      certifications: 'Sertifikatlar',
+      additional: 'Qoʻshimcha maʼlumotlar',
+      projectTag: 'Loyiha',
+      addExp: '+ Tajriba qoʻshish',
+      addEdu: '+ Taʼlim qoʻshish',
+      email: 'Elektron pochta:',
+      phone: 'Tel:',
+      telegram: 'Telegram:',
+      location: 'Shahar:',
+      birth: 'Tugʻilgan sana:',
+      nationality: 'Fuqarolik:',
+      workPermission: 'Ishlash uchun ruxsatnoma:',
+      maritalStatus: 'Oilaviy ahvoli:',
+      gender: 'Jinsi:',
+      desiredSalary: 'Kutilayotgan maosh:',
+      drivingLicence: 'Haydovchilik guvohnomasi:',
+      businessTrips: 'Xizmat safarlari:',
+      relocation: 'Koʻchib oʻtishga tayyorlik:',
+      nativeLabel: 'Ona tili',
+      grade: 'Baho:',
+      present: 'hozirgacha'
     };
   }
 
@@ -1511,14 +2030,24 @@ function getLocalizedLabels(cv) {
     languages: 'Languages (CEFR)',
     projects: 'Selected Projects',
     certifications: 'Certifications',
+    additional: 'Additional Information',
     projectTag: 'Project',
     addExp: '+ Add Position',
     addEdu: '+ Add Degree',
     email: 'Email:',
     phone: 'Phone:',
+    telegram: 'Telegram:',
     location: 'Location:',
     birth: 'Date of Birth:',
-    nationality: 'Nationality:',
+    nationality: useCitizenship ? 'Citizenship:' : 'Nationality:',
+    workPermission: 'Work permission:',
+    maritalStatus: 'Marital status:',
+    gender: 'Gender:',
+    desiredSalary: 'Desired salary:',
+    drivingLicence: 'Driving licence:',
+    businessTrips: 'Business trips:',
+    relocation: 'Willing to relocate:',
+    nativeLabel: 'Native / Bilingual',
     grade: 'Grade:',
     present: 'Present'
   };
@@ -1536,21 +2065,46 @@ function buildPhotoPlaceholderSVG() {
 function buildTemplateHeaderHTML(cv, templateId, L) {
   const p = cv.personal && typeof cv.personal === 'object' ? cv.personal : {};
   const rules = cv.rules || {};
+  const meta = cv.meta || {};
   const first = typeof p.firstName === 'string' ? p.firstName : '';
+  const patronymic = (meta.showPatronymic && typeof p.patronymic === 'string' && p.patronymic.trim()) ? p.patronymic.trim() : '';
   const last = typeof p.lastName === 'string' ? p.lastName : '';
-  const fullName = `${escapePreviewHTML(first)} ${escapePreviewHTML(last)}`.trim() || 'Your Name';
+  const fullName = [first, patronymic, last].filter(Boolean).map(escapePreviewHTML).join(' ').trim() || 'Your Name';
   const roleTitle = (typeof p.title === 'string' && p.title.trim()) ? escapePreviewHTML(p.title) : 'Target Job Title';
+
+  const extraMetaItems = [];
+  if (rules.allowBirthDate && typeof p.birthDate === 'string' && p.birthDate.trim()) {
+    extraMetaItems.push({ label: L.birth, val: p.birthDate, bind: 'personal.birthDate', aria: 'Date of birth' });
+  }
+  if (rules.allowNationality && typeof p.nationality === 'string' && p.nationality.trim()) {
+    extraMetaItems.push({ label: L.nationality, val: p.nationality, bind: 'personal.nationality', aria: 'Citizenship or nationality' });
+  }
+  if ((rules.allowWorkPermission || meta.showWorkPermission) && typeof p.workPermission === 'string' && p.workPermission.trim()) {
+    extraMetaItems.push({ label: L.workPermission, val: p.workPermission, bind: 'personal.workPermission', aria: 'Work permission' });
+  }
+  if (meta.showMaritalStatus && (typeof p.maritalStatus === 'string' && p.maritalStatus.trim() || typeof p.children === 'string' && p.children.trim())) {
+    const combined = [p.maritalStatus, p.children].filter(v => typeof v === 'string' && v.trim()).join(', ');
+    extraMetaItems.push({ label: L.maritalStatus, val: combined, bind: 'personal.maritalStatus', aria: 'Marital status' });
+  }
+  if (meta.showGender && typeof p.gender === 'string' && p.gender.trim()) {
+    extraMetaItems.push({ label: L.gender, val: p.gender, bind: 'personal.gender', aria: 'Gender' });
+  }
+  if (meta.showSalary && typeof p.desiredSalary === 'string' && p.desiredSalary.trim()) {
+    extraMetaItems.push({ label: L.desiredSalary, val: p.desiredSalary, bind: 'personal.desiredSalary', aria: 'Desired salary' });
+  }
 
   if (templateId === TEMPLATE_IDS.MINIMAL_SWISS) {
     return `
       <header class="swiss-header">
         <h1 class="applicant-name" contenteditable="true" role="textbox" aria-label="Full name" data-bind="personal.fullName">${fullName}</h1>
         <div class="applicant-title" contenteditable="true" role="textbox" aria-label="Target job title" data-bind="personal.title">${roleTitle}</div>
-        <div style="display: flex; flex-wrap: wrap; gap: 14pt; font-size: 8.5pt; color: #475569; margin-top: 6pt;">
+        <div style="display: flex; flex-wrap: wrap; gap: 10pt 14pt; font-size: 8.5pt; color: #475569; margin-top: 6pt;">
           ${typeof p.email === 'string' && p.email ? `<span contenteditable="true" role="textbox" aria-label="Email address" data-bind="personal.email">${escapePreviewHTML(p.email)}</span>` : ''}
           ${typeof p.phone === 'string' && p.phone ? `<span contenteditable="true" role="textbox" aria-label="Phone number" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span>` : ''}
+          ${typeof p.telegram === 'string' && p.telegram ? `<span contenteditable="true" role="textbox" aria-label="Telegram handle" data-bind="personal.telegram">${escapePreviewHTML(p.telegram)}</span>` : ''}
           ${typeof p.city === 'string' && p.city ? `<span contenteditable="true" role="textbox" aria-label="Location" data-bind="personal.city">${escapePreviewHTML(p.city)}</span>` : ''}
           ${typeof p.linkedin === 'string' && p.linkedin ? `<span contenteditable="true" role="textbox" aria-label="LinkedIn profile" data-bind="personal.linkedin">${escapePreviewHTML(p.linkedin)}</span>` : ''}
+          ${extraMetaItems.map(it => `<span><strong>${it.label}</strong> <span contenteditable="true" role="textbox" aria-label="${it.aria}" data-bind="${it.bind}">${escapePreviewHTML(it.val)}</span></span>`).join('')}
         </div>
       </header>
     `;
@@ -1561,14 +2115,19 @@ function buildTemplateHeaderHTML(cv, templateId, L) {
       typeof p.city === 'string' && p.city ? `<span contenteditable="true" role="textbox" aria-label="Location" data-bind="personal.city">${escapePreviewHTML(p.city)}</span>` : '',
       typeof p.email === 'string' && p.email ? `<span contenteditable="true" role="textbox" aria-label="Email address" data-bind="personal.email">${escapePreviewHTML(p.email)}</span>` : '',
       typeof p.phone === 'string' && p.phone ? `<span contenteditable="true" role="textbox" aria-label="Phone number" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span>` : '',
+      typeof p.telegram === 'string' && p.telegram ? `<span contenteditable="true" role="textbox" aria-label="Telegram handle" data-bind="personal.telegram">${escapePreviewHTML(p.telegram)}</span>` : '',
       typeof p.linkedin === 'string' && p.linkedin ? `<span contenteditable="true" role="textbox" aria-label="LinkedIn profile" data-bind="personal.linkedin">${escapePreviewHTML(p.linkedin)}</span>` : ''
     ].filter(Boolean).join(' · ');
+    const extraLine = extraMetaItems.length
+      ? `<div style="font-size: 8pt; color: #4b5563; margin-top: 3pt;">${extraMetaItems.map(it => `<span><strong>${it.label}</strong> ${escapePreviewHTML(it.val)}</span>`).join(' · ')}</div>`
+      : '';
 
     return `
       <header style="text-align: center; border-bottom: 0.5pt solid #111827; padding-bottom: 12pt; margin-bottom: 14pt;">
         <h1 class="applicant-name" contenteditable="true" role="textbox" aria-label="Full name" data-bind="personal.fullName">${fullName}</h1>
         <div class="applicant-title" contenteditable="true" role="textbox" aria-label="Target job title" data-bind="personal.title">${roleTitle}</div>
         <div style="font-size: 8.3pt; color: #4b5563; letter-spacing: 0.02em; margin-top: 4pt;">${items}</div>
+        ${extraLine}
       </header>
     `;
   }
@@ -1581,14 +2140,14 @@ function buildTemplateHeaderHTML(cv, templateId, L) {
   if (typeof p.phone === 'string' && p.phone) {
     contactParts.push(`<span class="contact-meta-item"><strong>${L.phone}</strong> <span contenteditable="true" role="textbox" aria-label="Phone number" data-bind="personal.phone">${escapePreviewHTML(p.phone)}</span></span>`);
   }
+  if (typeof p.telegram === 'string' && p.telegram) {
+    contactParts.push(`<span class="contact-meta-item"><strong>${L.telegram}</strong> <span contenteditable="true" role="textbox" aria-label="Telegram handle" data-bind="personal.telegram">${escapePreviewHTML(p.telegram)}</span></span>`);
+  }
   if (typeof p.city === 'string' && p.city) {
     contactParts.push(`<span class="contact-meta-item"><strong>${L.location}</strong> <span contenteditable="true" role="textbox" aria-label="Location" data-bind="personal.city">${escapePreviewHTML(p.city)}</span></span>`);
   }
-  if (rules.allowBirthDate && typeof p.birthDate === 'string' && p.birthDate) {
-    contactParts.push(`<span class="contact-meta-item"><strong>${L.birth}</strong> <span contenteditable="true" role="textbox" aria-label="Date of birth" data-bind="personal.birthDate">${escapePreviewHTML(p.birthDate)}</span></span>`);
-  }
-  if (rules.allowNationality && typeof p.nationality === 'string' && p.nationality) {
-    contactParts.push(`<span class="contact-meta-item"><strong>${L.nationality}</strong> <span contenteditable="true" role="textbox" aria-label="Nationality" data-bind="personal.nationality">${escapePreviewHTML(p.nationality)}</span></span>`);
+  for (const it of extraMetaItems) {
+    contactParts.push(`<span class="contact-meta-item"><strong>${it.label}</strong> <span contenteditable="true" role="textbox" aria-label="${it.aria}" data-bind="${it.bind}">${escapePreviewHTML(it.val)}</span></span>`);
   }
   if (typeof p.linkedin === 'string' && p.linkedin) {
     contactParts.push(`<span class="contact-meta-item"><strong>LinkedIn:</strong> <span contenteditable="true" role="textbox" aria-label="LinkedIn profile" data-bind="personal.linkedin">${escapePreviewHTML(p.linkedin)}</span></span>`);
@@ -1631,6 +2190,8 @@ function buildSectionHTML(sectionId, cv, L, templateId) {
       return buildProjectsSectionHTML(cv, L);
     case 'certifications':
       return buildCertificationsSectionHTML(cv, L);
+    case 'additional':
+      return buildAdditionalSectionHTML(cv, L);
     default:
       return '';
   }
@@ -1768,12 +2329,16 @@ function buildLanguagesSectionHTML(cv, L) {
     <section class="cv-section" data-section-id="languages">
       <h2 class="section-heading">${L.languages}</h2>
       <div class="lang-grid">
-        ${langs.map(l => `
+        ${langs.map(l => {
+          const rawLvl = typeof l.level === 'string' ? l.level : '';
+          const displayLvl = /^native/i.test(rawLvl.trim()) ? L.nativeLabel : rawLvl;
+          return `
           <div class="lang-item">
             <span class="lang-name">${escapePreviewHTML(typeof l.language === 'string' ? l.language : '')}</span>
-            <span class="lang-level">${escapePreviewHTML(typeof l.level === 'string' ? l.level : '')}</span>
+            <span class="lang-level">${escapePreviewHTML(displayLvl)}</span>
           </div>
-        `).join('')}
+        `;
+        }).join('')}
       </div>
     </section>
   `;
@@ -1822,6 +2387,29 @@ function buildCertificationsSectionHTML(cv, L) {
           </div>
         </div>
       `).join('')}
+    </section>
+  `;
+}
+
+function buildAdditionalSectionHTML(cv, L) {
+  const add = cv.additional && typeof cv.additional === 'object' ? cv.additional : {};
+  const rows = [
+    add.drivingLicence && typeof add.drivingLicence === 'string' && add.drivingLicence.trim()
+      ? `<div class="lang-item"><span class="lang-name">${L.drivingLicence}</span><span class="lang-level">${escapePreviewHTML(add.drivingLicence)}</span></div>`
+      : '',
+    add.businessTrips && typeof add.businessTrips === 'string' && add.businessTrips.trim()
+      ? `<div class="lang-item"><span class="lang-name">${L.businessTrips}</span><span class="lang-level">${escapePreviewHTML(add.businessTrips)}</span></div>`
+      : '',
+    add.relocation && typeof add.relocation === 'string' && add.relocation.trim()
+      ? `<div class="lang-item"><span class="lang-name">${L.relocation}</span><span class="lang-level">${escapePreviewHTML(add.relocation)}</span></div>`
+      : ''
+  ].filter(Boolean);
+
+  if (!rows.length) return '';
+  return `
+    <section class="cv-section" data-section-id="additional">
+      <h2 class="section-heading">${L.additional}</h2>
+      <div class="lang-grid">${rows.join('')}</div>
     </section>
   `;
 }
@@ -2569,7 +3157,8 @@ const SECTION_LABELS = {
   skills: 'Skills',
   languages: 'Languages',
   projects: 'Projects',
-  certifications: 'Certifications'
+  certifications: 'Certifications',
+  additional: 'Additional'
 };
 
 const TEMPLATE_NAMES = {
@@ -2582,13 +3171,17 @@ const COUNTRY_SHORT_LABELS = {
   DE: 'Germany (DIN 5008)',
   UK: 'UK & Ireland',
   FR: 'France (1-Page)',
-  NL: 'Netherlands'
+  NL: 'Netherlands',
+  RU: 'Russia, 1-page',
+  UZ: 'Uzbekistan, formal'
 };
 
 const LANGUAGE_LABELS = {
   en: 'English',
   de: 'Deutsch',
-  fr: 'Français'
+  fr: 'Français',
+  ru: 'Русский',
+  uz: 'Oʻzbekcha'
 };
 
 const SPACING_LABELS = {
@@ -3039,7 +3632,16 @@ function initStudio() {
       'p-city': currentCV.personal.city || '',
       'p-birth': currentCV.personal.birthDate || '',
       'p-nationality': currentCV.personal.nationality || '',
+      'p-telegram': currentCV.personal.telegram || '',
+      'p-patronymic': currentCV.personal.patronymic || '',
+      'p-work-permission': currentCV.personal.workPermission || '',
+      'p-salary': currentCV.personal.desiredSalary || '',
+      'p-marital-status': currentCV.personal.maritalStatus || '',
+      'p-gender': currentCV.personal.gender || '',
       'p-linkedin': currentCV.personal.linkedin || '',
+      'a-driving': currentCV.additional?.drivingLicence || '',
+      'a-trips': currentCV.additional?.businessTrips || '',
+      'a-relocation': currentCV.additional?.relocation || '',
       'f-summary': currentCV.summary || '',
       'f-skills-tech': (currentCV.skills.technical || []).join(', ')
     };
@@ -3103,6 +3705,16 @@ function initStudio() {
 
     if (togglePhoto) togglePhoto.checked = currentCV.meta.showPhoto !== false;
     if (toggleSignature) toggleSignature.checked = currentCV.meta.includeSignatureBlock !== false;
+    const togglePatronymic = document.getElementById('toggle-patronymic');
+    const toggleWorkPerm = document.getElementById('toggle-work-permission');
+    const toggleMarital = document.getElementById('toggle-marital-status');
+    const toggleGender = document.getElementById('toggle-gender');
+    const toggleSalary = document.getElementById('toggle-salary');
+    if (togglePatronymic) togglePatronymic.checked = Boolean(currentCV.meta.showPatronymic);
+    if (toggleWorkPerm) toggleWorkPerm.checked = Boolean(currentCV.meta.showWorkPermission || rules.allowWorkPermission);
+    if (toggleMarital) toggleMarital.checked = Boolean(currentCV.meta.showMaritalStatus);
+    if (toggleGender) toggleGender.checked = Boolean(currentCV.meta.showGender);
+    if (toggleSalary) toggleSalary.checked = Boolean(currentCV.meta.showSalary);
 
     const std = COUNTRY_STANDARDS[country] || COUNTRY_STANDARDS.DE;
     let complianceText = std.complianceNote;
@@ -3114,21 +3726,78 @@ function initStudio() {
     }
     if (complianceBox) complianceBox.textContent = complianceText;
 
+    const isRuOrUz = country === 'RU' || country === 'UZ';
+    const photoHint = document.getElementById('photo-toggle-hint');
+    if (photoHint) {
+      if (country === 'RU') {
+        photoHint.textContent = 'In Russia a photo is optional. If you add one, use a neutral business portrait.';
+        photoHint.style.display = 'block';
+      } else if (country === 'UZ') {
+        photoHint.textContent = 'A neutral business portrait is common in Uzbekistan; you can switch it off anytime.';
+        photoHint.style.display = 'block';
+      } else {
+        photoHint.style.display = 'none';
+      }
+    }
+
     const regIdentity = document.getElementById('regional-identity-fields');
     const groupBirth = document.getElementById('group-birth');
     const groupNationality = document.getElementById('group-nationality');
+    const labelNationality = document.getElementById('label-nationality');
+    const inputNationality = document.getElementById('p-nationality');
+    const inputPhone = document.getElementById('p-phone');
+    const inputLinkedin = document.getElementById('p-linkedin');
     const photoUploadGrp = document.getElementById('group-photo-upload');
     const rowTogglePhoto = document.getElementById('row-toggle-photo');
     const rowToggleSignature = document.getElementById('row-toggle-signature');
+    const rowTogglePatronymic = document.getElementById('row-toggle-patronymic');
+    const rowToggleWorkPerm = document.getElementById('row-toggle-work-permission');
+    const rowToggleMarital = document.getElementById('row-toggle-marital-status');
+    const rowToggleGender = document.getElementById('row-toggle-gender');
+    const rowToggleSalary = document.getElementById('row-toggle-salary');
     const formalSection = document.getElementById('formal-toggles-section');
+
+    if (labelNationality) labelNationality.textContent = isRuOrUz ? 'Citizenship' : 'Nationality';
+    if (inputNationality) inputNationality.placeholder = country === 'RU' ? 'e.g. Russia' : (country === 'UZ' ? 'e.g. Uzbekistan' : 'e.g. German');
+    if (inputPhone && std.phonePlaceholder) inputPhone.placeholder = std.phonePlaceholder;
+    else if (inputPhone) inputPhone.placeholder = '+49 170 12345678';
+    if (inputLinkedin && std.profileLinkLabel) inputLinkedin.placeholder = std.profileLinkLabel;
+    else if (inputLinkedin) inputLinkedin.placeholder = 'linkedin.com/in/yourname';
 
     if (groupBirth) groupBirth.style.display = rules.allowBirthDate ? '' : 'none';
     if (groupNationality) groupNationality.style.display = rules.allowNationality ? '' : 'none';
     if (regIdentity) regIdentity.style.display = (rules.allowBirthDate || rules.allowNationality) ? 'grid' : 'none';
+
+    const showTelegram = Boolean(rules.allowTelegram || (currentCV.personal.telegram || '').trim());
+    const showPatronymic = Boolean(currentCV.meta.showPatronymic);
+    const showWorkPerm = Boolean(rules.allowWorkPermission || currentCV.meta.showWorkPermission);
+    const showMarital = Boolean(currentCV.meta.showMaritalStatus);
+    const showGender = Boolean(currentCV.meta.showGender);
+    const showSalary = Boolean(currentCV.meta.showSalary);
+
+    const setDisp = (id, show) => { const el = document.getElementById(id); if (el) el.style.display = show ? '' : 'none'; };
+    setDisp('group-telegram', showTelegram);
+    setDisp('group-patronymic', showPatronymic);
+    setDisp('group-work-permission', showWorkPerm);
+    setDisp('group-marital-status', showMarital);
+    setDisp('group-gender', showGender);
+    setDisp('group-salary', showSalary);
+    const hasAdditional = Boolean(
+      (currentCV.additional?.drivingLicence || '').trim() ||
+      (currentCV.additional?.businessTrips || '').trim() ||
+      (currentCV.additional?.relocation || '').trim()
+    );
+    setDisp('additional-info-fields', isRuOrUz || hasAdditional);
+
     if (photoUploadGrp) photoUploadGrp.style.display = rules.allowPhoto ? 'flex' : 'none';
     if (rowTogglePhoto) rowTogglePhoto.style.display = rules.allowPhoto ? 'flex' : 'none';
     if (rowToggleSignature) rowToggleSignature.style.display = rules.allowSignatureBlock ? 'flex' : 'none';
-    if (formalSection) formalSection.style.display = (rules.allowPhoto || rules.allowSignatureBlock) ? 'block' : 'none';
+    if (rowTogglePatronymic) rowTogglePatronymic.style.display = isRuOrUz ? 'flex' : 'none';
+    if (rowToggleWorkPerm) rowToggleWorkPerm.style.display = isRuOrUz ? 'flex' : 'none';
+    if (rowToggleMarital) rowToggleMarital.style.display = isRuOrUz ? 'flex' : 'none';
+    if (rowToggleGender) rowToggleGender.style.display = country === 'UZ' ? 'flex' : 'none';
+    if (rowToggleSalary) rowToggleSalary.style.display = isRuOrUz ? 'flex' : 'none';
+    if (formalSection) formalSection.style.display = (rules.allowPhoto || rules.allowSignatureBlock || isRuOrUz) ? 'block' : 'none';
 
     const tplLabel = document.getElementById('active-template-label');
     if (tplLabel) tplLabel.textContent = TEMPLATE_NAMES[tplId] || 'Frankfurt';
@@ -3573,7 +4242,16 @@ function initStudio() {
   });
   bindStaticField('p-birth', val => { currentCV.personal.birthDate = val; });
   bindStaticField('p-nationality', val => { currentCV.personal.nationality = val; });
+  bindStaticField('p-telegram', val => { currentCV.personal.telegram = val; });
+  bindStaticField('p-patronymic', val => { currentCV.personal.patronymic = val; });
+  bindStaticField('p-work-permission', val => { currentCV.personal.workPermission = val; });
+  bindStaticField('p-salary', val => { currentCV.personal.desiredSalary = val; });
+  bindStaticField('p-marital-status', val => { currentCV.personal.maritalStatus = val; });
+  bindStaticField('p-gender', val => { currentCV.personal.gender = val; });
   bindStaticField('p-linkedin', val => { currentCV.personal.linkedin = val; });
+  bindStaticField('a-driving', val => { currentCV.additional = currentCV.additional || {}; currentCV.additional.drivingLicence = val; });
+  bindStaticField('a-trips', val => { currentCV.additional = currentCV.additional || {}; currentCV.additional.businessTrips = val; });
+  bindStaticField('a-relocation', val => { currentCV.additional = currentCV.additional || {}; currentCV.additional.relocation = val; });
   bindStaticField('f-summary', val => { currentCV.summary = val; });
 
   document.getElementById('f-skills-tech')?.addEventListener('input', (e) => {
@@ -4090,6 +4768,12 @@ function initStudio() {
       const nextCountry = btn.getAttribute('data-country-val');
       currentCV.meta.targetCountry = nextCountry;
       const nextRules = getCountryFieldRules(nextCountry);
+      const std = COUNTRY_STANDARDS[nextCountry];
+      if (nextCountry === 'RU' || nextCountry === 'UZ') {
+        currentCV.meta.language = std.languageCode;
+        currentCV.meta.template = std.templateDefault;
+        currentCV.meta.showWorkPermission = nextCountry === 'UZ';
+      }
       if (nextRules.compactMode && !manualSpacingOverride && currentCV.meta.spacing === 'normal') {
         currentCV.meta.spacing = 'compact';
         autoAppliedCompact = true;
@@ -4159,6 +4843,21 @@ function initStudio() {
     currentCV.meta.includeSignatureBlock = e.target.checked;
     persistCV();
     refreshCanvas();
+  });
+
+  [
+    ['toggle-patronymic', 'showPatronymic'],
+    ['toggle-work-permission', 'showWorkPermission'],
+    ['toggle-marital-status', 'showMaritalStatus'],
+    ['toggle-gender', 'showGender'],
+    ['toggle-salary', 'showSalary']
+  ].forEach(([elId, metaKey]) => {
+    document.getElementById(elId)?.addEventListener('change', (e) => {
+      currentCV.meta[metaKey] = e.target.checked;
+      persistCV();
+      syncToolbarState();
+      refreshCanvas();
+    });
   });
 
   btnAutoFit?.addEventListener('click', () => {
@@ -4308,7 +5007,9 @@ function initStudio() {
   });
 
   document.getElementById('btn-start-sample')?.addEventListener('click', () => {
-    currentCV = createSampleEuropeanCV();
+    const activeCountry = currentCV?.meta?.targetCountry || 'DE';
+    const activeLang = currentCV?.meta?.language || 'en';
+    currentCV = createSampleCVForMarket(activeCountry, activeLang);
     sectionEditors.setCurrentCV(currentCV);
     manualSpacingOverride = false;
     autoAppliedCompact = false;
@@ -4316,7 +5017,10 @@ function initStudio() {
     hydrateAll({ clearJobMatch: true });
     closeLaunchModal({ restoreFocus: false });
     setActiveSection('experience', { focusInput: true });
-    showToast('Sample European CV loaded.');
+    const sampleLabel = activeCountry === 'RU' || activeLang === 'ru'
+      ? 'Russian'
+      : (activeCountry === 'UZ' || activeLang === 'uz' ? 'Uzbek' : 'European');
+    showToast(`Sample ${sampleLabel} CV loaded.`);
   });
 
   const importFileInput = document.getElementById('import-json-file');

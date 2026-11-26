@@ -20,7 +20,7 @@
   visitor's own saved CV.
 -->
 <script type="module">
-  import { createSampleEuropeanCV, createEmptyCV } from '../js/model/cv-schema.js';
+  import { createSampleEuropeanCV, createSampleRussianCV, createSampleUzbekCV, createEmptyCV } from '../js/model/cv-schema.js';
   import { saveCVDirect } from '../js/model/storage.js';
 
   const localHosts = ['localhost', '127.0.0.1', '[::1]'];
@@ -34,6 +34,10 @@
 
     if (mode === 'empty') {
       cv = createEmptyCV();
+    } else if (mode === 'ru') {
+      cv = createSampleRussianCV();
+    } else if (mode === 'uz') {
+      cv = createSampleUzbekCV();
     } else if (mode === 'long') {
       const base = cv.experience.slice(0, 2);
       cv.experience = [];

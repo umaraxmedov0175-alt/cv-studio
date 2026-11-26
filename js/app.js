@@ -7,6 +7,7 @@
 import { loadStoredCV, saveCVWithStatus, hasStoredCV, exportCVAsJSON, importCVFromJSON } from './model/storage.js';
 import {
   createSampleEuropeanCV,
+  createSampleCVForMarket,
   createEmptyCV,
   TEMPLATE_IDS,
   CEFR_LEVELS,
@@ -32,7 +33,8 @@ const SECTION_LABELS = {
   skills: 'Skills',
   languages: 'Languages',
   projects: 'Projects',
-  certifications: 'Certifications'
+  certifications: 'Certifications',
+  additional: 'Additional'
 };
 
 const TEMPLATE_NAMES = {
@@ -45,13 +47,17 @@ const COUNTRY_SHORT_LABELS = {
   DE: 'Germany (DIN 5008)',
   UK: 'UK & Ireland',
   FR: 'France (1-Page)',
-  NL: 'Netherlands'
+  NL: 'Netherlands',
+  RU: 'Russia, 1-page',
+  UZ: 'Uzbekistan, formal'
 };
 
 const LANGUAGE_LABELS = {
   en: 'English',
   de: 'Deutsch',
-  fr: 'Français'
+  fr: 'Français',
+  ru: 'Русский',
+  uz: 'Oʻzbekcha'
 };
 
 const SPACING_LABELS = {
@@ -502,7 +508,16 @@ function initStudio() {
       'p-city': currentCV.personal.city || '',
       'p-birth': currentCV.personal.birthDate || '',
       'p-nationality': currentCV.personal.nationality || '',
+      'p-telegram': currentCV.personal.telegram || '',
+      'p-patronymic': currentCV.personal.patronymic || '',
+      'p-work-permission': currentCV.personal.workPermission || '',
+      'p-salary': currentCV.personal.desiredSalary || '',
+      'p-marital-status': currentCV.personal.maritalStatus || '',
+      'p-gender': currentCV.personal.gender || '',
       'p-linkedin': currentCV.personal.linkedin || '',
+      'a-driving': currentCV.additional?.drivingLicence || '',
+      'a-trips': currentCV.additional?.businessTrips || '',
+      'a-relocation': currentCV.additional?.relocation || '',
       'f-summary': currentCV.summary || '',
       'f-skills-tech': (currentCV.skills.technical || []).join(', ')
     };
@@ -566,6 +581,16 @@ function initStudio() {
 
     if (togglePhoto) togglePhoto.checked = currentCV.meta.showPhoto !== false;
     if (toggleSignature) toggleSignature.checked = currentCV.meta.includeSignatureBlock !== false;
+    const togglePatronymic = document.getElementById('toggle-patronymic');
+    const toggleWorkPerm = document.getElementById('toggle-work-permission');
+    const toggleMarital = document.getElementById('toggle-marital-status');
+    const toggleGender = document.getElementById('toggle-gender');
+    const toggleSalary = document.getElementById('toggle-salary');
+    if (togglePatronymic) togglePatronymic.checked = Boolean(currentCV.meta.showPatronymic);
+    if (toggleWorkPerm) toggleWorkPerm.checked = Boolean(currentCV.meta.showWorkPermission || rules.allowWorkPermission);
+    if (toggleMarital) toggleMarital.checked = Boolean(currentCV.meta.showMaritalStatus);
+    if (toggleGender) toggleGender.checked = Boolean(currentCV.meta.showGender);
+    if (toggleSalary) toggleSalary.checked = Boolean(currentCV.meta.showSalary);
 
     const std = COUNTRY_STANDARDS[country] || COUNTRY_STANDARDS.DE;
     let complianceText = std.complianceNote;
@@ -577,21 +602,78 @@ function initStudio() {
     }
     if (complianceBox) complianceBox.textContent = complianceText;
 
+    const isRuOrUz = country === 'RU' || country === 'UZ';
+    const photoHint = document.getElementById('photo-toggle-hint');
+    if (photoHint) {
+      if (country === 'RU') {
+        photoHint.textContent = 'In Russia a photo is optional. If you add one, use a neutral business portrait.';
+        photoHint.style.display = 'block';
+      } else if (country === 'UZ') {
+        photoHint.textContent = 'A neutral business portrait is common in Uzbekistan; you can switch it off anytime.';
+        photoHint.style.display = 'block';
+      } else {
+        photoHint.style.display = 'none';
+      }
+    }
+
     const regIdentity = document.getElementById('regional-identity-fields');
     const groupBirth = document.getElementById('group-birth');
     const groupNationality = document.getElementById('group-nationality');
+    const labelNationality = document.getElementById('label-nationality');
+    const inputNationality = document.getElementById('p-nationality');
+    const inputPhone = document.getElementById('p-phone');
+    const inputLinkedin = document.getElementById('p-linkedin');
     const photoUploadGrp = document.getElementById('group-photo-upload');
     const rowTogglePhoto = document.getElementById('row-toggle-photo');
     const rowToggleSignature = document.getElementById('row-toggle-signature');
+    const rowTogglePatronymic = document.getElementById('row-toggle-patronymic');
+    const rowToggleWorkPerm = document.getElementById('row-toggle-work-permission');
+    const rowToggleMarital = document.getElementById('row-toggle-marital-status');
+    const rowToggleGender = document.getElementById('row-toggle-gender');
+    const rowToggleSalary = document.getElementById('row-toggle-salary');
     const formalSection = document.getElementById('formal-toggles-section');
+
+    if (labelNationality) labelNationality.textContent = isRuOrUz ? 'Citizenship' : 'Nationality';
+    if (inputNationality) inputNationality.placeholder = country === 'RU' ? 'e.g. Russia' : (country === 'UZ' ? 'e.g. Uzbekistan' : 'e.g. German');
+    if (inputPhone && std.phonePlaceholder) inputPhone.placeholder = std.phonePlaceholder;
+    else if (inputPhone) inputPhone.placeholder = '+49 170 12345678';
+    if (inputLinkedin && std.profileLinkLabel) inputLinkedin.placeholder = std.profileLinkLabel;
+    else if (inputLinkedin) inputLinkedin.placeholder = 'linkedin.com/in/yourname';
 
     if (groupBirth) groupBirth.style.display = rules.allowBirthDate ? '' : 'none';
     if (groupNationality) groupNationality.style.display = rules.allowNationality ? '' : 'none';
     if (regIdentity) regIdentity.style.display = (rules.allowBirthDate || rules.allowNationality) ? 'grid' : 'none';
+
+    const showTelegram = Boolean(rules.allowTelegram || (currentCV.personal.telegram || '').trim());
+    const showPatronymic = Boolean(currentCV.meta.showPatronymic);
+    const showWorkPerm = Boolean(rules.allowWorkPermission || currentCV.meta.showWorkPermission);
+    const showMarital = Boolean(currentCV.meta.showMaritalStatus);
+    const showGender = Boolean(currentCV.meta.showGender);
+    const showSalary = Boolean(currentCV.meta.showSalary);
+
+    const setDisp = (id, show) => { const el = document.getElementById(id); if (el) el.style.display = show ? '' : 'none'; };
+    setDisp('group-telegram', showTelegram);
+    setDisp('group-patronymic', showPatronymic);
+    setDisp('group-work-permission', showWorkPerm);
+    setDisp('group-marital-status', showMarital);
+    setDisp('group-gender', showGender);
+    setDisp('group-salary', showSalary);
+    const hasAdditional = Boolean(
+      (currentCV.additional?.drivingLicence || '').trim() ||
+      (currentCV.additional?.businessTrips || '').trim() ||
+      (currentCV.additional?.relocation || '').trim()
+    );
+    setDisp('additional-info-fields', isRuOrUz || hasAdditional);
+
     if (photoUploadGrp) photoUploadGrp.style.display = rules.allowPhoto ? 'flex' : 'none';
     if (rowTogglePhoto) rowTogglePhoto.style.display = rules.allowPhoto ? 'flex' : 'none';
     if (rowToggleSignature) rowToggleSignature.style.display = rules.allowSignatureBlock ? 'flex' : 'none';
-    if (formalSection) formalSection.style.display = (rules.allowPhoto || rules.allowSignatureBlock) ? 'block' : 'none';
+    if (rowTogglePatronymic) rowTogglePatronymic.style.display = isRuOrUz ? 'flex' : 'none';
+    if (rowToggleWorkPerm) rowToggleWorkPerm.style.display = isRuOrUz ? 'flex' : 'none';
+    if (rowToggleMarital) rowToggleMarital.style.display = isRuOrUz ? 'flex' : 'none';
+    if (rowToggleGender) rowToggleGender.style.display = country === 'UZ' ? 'flex' : 'none';
+    if (rowToggleSalary) rowToggleSalary.style.display = isRuOrUz ? 'flex' : 'none';
+    if (formalSection) formalSection.style.display = (rules.allowPhoto || rules.allowSignatureBlock || isRuOrUz) ? 'block' : 'none';
 
     const tplLabel = document.getElementById('active-template-label');
     if (tplLabel) tplLabel.textContent = TEMPLATE_NAMES[tplId] || 'Frankfurt';
@@ -1036,7 +1118,16 @@ function initStudio() {
   });
   bindStaticField('p-birth', val => { currentCV.personal.birthDate = val; });
   bindStaticField('p-nationality', val => { currentCV.personal.nationality = val; });
+  bindStaticField('p-telegram', val => { currentCV.personal.telegram = val; });
+  bindStaticField('p-patronymic', val => { currentCV.personal.patronymic = val; });
+  bindStaticField('p-work-permission', val => { currentCV.personal.workPermission = val; });
+  bindStaticField('p-salary', val => { currentCV.personal.desiredSalary = val; });
+  bindStaticField('p-marital-status', val => { currentCV.personal.maritalStatus = val; });
+  bindStaticField('p-gender', val => { currentCV.personal.gender = val; });
   bindStaticField('p-linkedin', val => { currentCV.personal.linkedin = val; });
+  bindStaticField('a-driving', val => { currentCV.additional = currentCV.additional || {}; currentCV.additional.drivingLicence = val; });
+  bindStaticField('a-trips', val => { currentCV.additional = currentCV.additional || {}; currentCV.additional.businessTrips = val; });
+  bindStaticField('a-relocation', val => { currentCV.additional = currentCV.additional || {}; currentCV.additional.relocation = val; });
   bindStaticField('f-summary', val => { currentCV.summary = val; });
 
   document.getElementById('f-skills-tech')?.addEventListener('input', (e) => {
@@ -1553,6 +1644,12 @@ function initStudio() {
       const nextCountry = btn.getAttribute('data-country-val');
       currentCV.meta.targetCountry = nextCountry;
       const nextRules = getCountryFieldRules(nextCountry);
+      const std = COUNTRY_STANDARDS[nextCountry];
+      if (nextCountry === 'RU' || nextCountry === 'UZ') {
+        currentCV.meta.language = std.languageCode;
+        currentCV.meta.template = std.templateDefault;
+        currentCV.meta.showWorkPermission = nextCountry === 'UZ';
+      }
       if (nextRules.compactMode && !manualSpacingOverride && currentCV.meta.spacing === 'normal') {
         currentCV.meta.spacing = 'compact';
         autoAppliedCompact = true;
@@ -1622,6 +1719,21 @@ function initStudio() {
     currentCV.meta.includeSignatureBlock = e.target.checked;
     persistCV();
     refreshCanvas();
+  });
+
+  [
+    ['toggle-patronymic', 'showPatronymic'],
+    ['toggle-work-permission', 'showWorkPermission'],
+    ['toggle-marital-status', 'showMaritalStatus'],
+    ['toggle-gender', 'showGender'],
+    ['toggle-salary', 'showSalary']
+  ].forEach(([elId, metaKey]) => {
+    document.getElementById(elId)?.addEventListener('change', (e) => {
+      currentCV.meta[metaKey] = e.target.checked;
+      persistCV();
+      syncToolbarState();
+      refreshCanvas();
+    });
   });
 
   btnAutoFit?.addEventListener('click', () => {
@@ -1771,7 +1883,9 @@ function initStudio() {
   });
 
   document.getElementById('btn-start-sample')?.addEventListener('click', () => {
-    currentCV = createSampleEuropeanCV();
+    const activeCountry = currentCV?.meta?.targetCountry || 'DE';
+    const activeLang = currentCV?.meta?.language || 'en';
+    currentCV = createSampleCVForMarket(activeCountry, activeLang);
     sectionEditors.setCurrentCV(currentCV);
     manualSpacingOverride = false;
     autoAppliedCompact = false;
@@ -1779,7 +1893,10 @@ function initStudio() {
     hydrateAll({ clearJobMatch: true });
     closeLaunchModal({ restoreFocus: false });
     setActiveSection('experience', { focusInput: true });
-    showToast('Sample European CV loaded.');
+    const sampleLabel = activeCountry === 'RU' || activeLang === 'ru'
+      ? 'Russian'
+      : (activeCountry === 'UZ' || activeLang === 'uz' ? 'Uzbek' : 'European');
+    showToast(`Sample ${sampleLabel} CV loaded.`);
   });
 
   const importFileInput = document.getElementById('import-json-file');

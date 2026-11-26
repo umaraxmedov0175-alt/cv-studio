@@ -21,8 +21,8 @@ export const TEMPLATE_IDS = {
 };
 
 const VALID_TEMPLATES = new Set(Object.values(TEMPLATE_IDS));
-const VALID_LANGUAGES = new Set(['en', 'de', 'fr']);
-const VALID_COUNTRIES = new Set(['DE', 'UK', 'FR', 'NL']);
+const VALID_LANGUAGES = new Set(['en', 'de', 'fr', 'ru', 'uz']);
+const VALID_COUNTRIES = new Set(['DE', 'UK', 'FR', 'NL', 'RU', 'UZ']);
 const VALID_SPACING = new Set(['compact', 'normal', 'spacious']);
 export const MAX_EMBEDDED_PHOTO_DATA_URL_LENGTH = 180_000;
 
@@ -34,7 +34,7 @@ export const DEFAULT_SECTION_ORDER = [
   'languages'
 ];
 
-export const OPTIONAL_SECTION_IDS = ['projects', 'certifications'];
+export const OPTIONAL_SECTION_IDS = ['projects', 'certifications', 'additional'];
 
 const ALL_BODY_SECTIONS = [...DEFAULT_SECTION_ORDER, ...OPTIONAL_SECTION_IDS];
 
@@ -102,7 +102,7 @@ function asString(val, fallback = '') {
 export function createEmptyCV() {
   return {
     meta: {
-      version: '2.0.0',
+      version: '2.1.0',
       template: TEMPLATE_IDS.GERMAN_DIN,
       language: 'en',
       targetCountry: 'DE',
@@ -110,14 +110,21 @@ export function createEmptyCV() {
       spacing: 'normal',
       showPhoto: true,
       includeSignatureBlock: true,
+      showPatronymic: false,
+      showMaritalStatus: false,
+      showGender: false,
+      showSalary: false,
+      showWorkPermission: false,
       sectionOrder: [...DEFAULT_SECTION_ORDER]
     },
     personal: {
       firstName: '',
       lastName: '',
+      patronymic: '',
       title: '',
       email: '',
       phone: '',
+      telegram: '',
       address: '',
       city: '',
       postalCode: '',
@@ -125,6 +132,11 @@ export function createEmptyCV() {
       birthDate: '',
       birthPlace: '',
       nationality: '',
+      workPermission: '',
+      maritalStatus: '',
+      children: '',
+      gender: '',
+      desiredSalary: '',
       website: '',
       linkedin: '',
       github: '',
@@ -140,6 +152,11 @@ export function createEmptyCV() {
     },
     certifications: [],
     projects: [],
+    additional: {
+      drivingLicence: '',
+      businessTrips: '',
+      relocation: ''
+    },
     signature: {
       place: 'Berlin',
       date: new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }),
@@ -281,6 +298,226 @@ export function createSampleEuropeanCV() {
 // Backward compatibility alias
 export const createSampleGermanCV = createSampleEuropeanCV;
 
+export function createSampleRussianCV() {
+  return {
+    meta: {
+      version: '2.1.0',
+      template: TEMPLATE_IDS.MINIMAL_SWISS,
+      language: 'ru',
+      targetCountry: 'RU',
+      accentColor: '#2b3fe8',
+      spacing: 'compact',
+      showPhoto: true,
+      includeSignatureBlock: false,
+      showPatronymic: false,
+      showMaritalStatus: false,
+      showGender: false,
+      showSalary: false,
+      showWorkPermission: false,
+      sectionOrder: [...DEFAULT_SECTION_ORDER]
+    },
+    personal: {
+      firstName: 'Алексей',
+      lastName: 'Воронов',
+      patronymic: '',
+      title: 'Старший backend-разработчик (Go / PostgreSQL)',
+      email: 'a.voronov.dev@example.com',
+      phone: '+7 900 000-00-00',
+      telegram: '@voronov_dev',
+      address: '',
+      city: 'Москва',
+      postalCode: '',
+      country: 'Россия',
+      birthDate: '12.04.1993',
+      birthPlace: '',
+      nationality: 'Россия',
+      workPermission: '',
+      maritalStatus: '',
+      children: '',
+      gender: '',
+      desiredSalary: '',
+      website: '',
+      linkedin: 'hh.ru/resume/voronov-example',
+      github: 'github.com/avoronov-dev',
+      photoUrl: '/assets/portrait-03.webp'
+    },
+    summary: 'Backend-разработчик с опытом более 6 лет в проектировании высоконагруженных микросервисов и платёжных систем. Специализируюсь на Go, PostgreSQL, Kafka и отказоустойчивой инфраструктуре.',
+    experience: [
+      {
+        id: 'exp-1',
+        position: 'Старший разработчик Go',
+        company: 'ООО «СеверПлатформа»',
+        city: 'Москва',
+        startDate: '04.2022',
+        endDate: 'по настоящее время',
+        current: true,
+        bullets: [
+          'Разработал биллинговый сервис на Go с нагрузкой 450 000+ транзакций в сутки и доступностью 99.98%.',
+          'Сократил время отклика ключевых API на 38% за счёт оптимизации запросов PostgreSQL и кэширования в Redis.',
+          'Внедрил автоматическое тестирование и CI/CD-пайплайны, ускорив выкладку релизов в 2 раза.'
+        ],
+        technologies: ['Go', 'PostgreSQL', 'Redis', 'Kafka', 'Docker', 'Kubernetes']
+      },
+      {
+        id: 'exp-2',
+        position: 'Backend-разработчик',
+        company: 'АО «ТехноМетрика»',
+        city: 'Санкт-Петербург',
+        startDate: '09.2019',
+        endDate: '03.2022',
+        current: false,
+        bullets: [
+          'Создал модуль аналитики событий на Python и ClickHouse для 120 корпоративных клиентов.',
+          'Оптимизировал фоновые очереди обработки данных, снизив потребление памяти на 30%.'
+        ],
+        technologies: ['Python', 'Go', 'PostgreSQL', 'Linux', 'GitLab CI']
+      }
+    ],
+    education: [
+      {
+        id: 'edu-1',
+        degree: 'Магистр информатики и вычислительной техники',
+        institution: 'Московский технический университет (учебный пример)',
+        city: 'Москва',
+        startDate: '09.2015',
+        endDate: '06.2017',
+        grade: '',
+        thesis: ''
+      }
+    ],
+    skills: {
+      technical: ['Go', 'PostgreSQL', 'Redis', 'Kafka', 'Docker', 'Kubernetes', 'REST / gRPC', 'Linux', 'Git'],
+      languages: [
+        { language: 'Русский', level: 'Native / Bilingual' },
+        { language: 'Английский', level: 'B2 – Vantage / Professional Working' }
+      ],
+      tools: ['Docker', 'GitLab CI', 'Prometheus']
+    },
+    certifications: [],
+    projects: [],
+    additional: {
+      drivingLicence: '',
+      businessTrips: '',
+      relocation: ''
+    },
+    signature: { place: 'Москва', date: '26.11.2026', signeeName: 'Алексей Воронов' }
+  };
+}
+
+export function createSampleUzbekCV() {
+  return {
+    meta: {
+      version: '2.1.0',
+      template: TEMPLATE_IDS.GERMAN_DIN,
+      language: 'uz',
+      targetCountry: 'UZ',
+      accentColor: '#2b3fe8',
+      spacing: 'compact',
+      showPhoto: true,
+      includeSignatureBlock: false,
+      showPatronymic: false,
+      showMaritalStatus: false,
+      showGender: false,
+      showSalary: false,
+      showWorkPermission: true,
+      sectionOrder: [...DEFAULT_SECTION_ORDER]
+    },
+    personal: {
+      firstName: 'Jasurbek',
+      lastName: 'Tursunov',
+      patronymic: '',
+      title: 'Frontend va Full-Stack dasturchi (React / TypeScript)',
+      email: 'j.tursunov.dev@example.com',
+      phone: '+998 90 000 00 00',
+      telegram: '@jtursunov_dev',
+      address: '',
+      city: 'Toshkent',
+      postalCode: '',
+      country: 'Oʻzbekiston',
+      birthDate: '18.08.1995',
+      birthPlace: '',
+      nationality: 'Oʻzbekiston',
+      workPermission: 'Oʻzbekiston',
+      maritalStatus: '',
+      children: '',
+      gender: '',
+      desiredSalary: '',
+      website: '',
+      linkedin: 'hh.uz/resume/tursunov-example',
+      github: 'github.com/jtursunov-dev',
+      photoUrl: '/assets/portrait-05.webp'
+    },
+    summary: '5 yildan ortiq tajribaga ega Full-Stack dasturchi. TypeScript, React va Node.js asosida tezkor hamda ishonchli veb-tizimlarni loyihalash va ishlab chiqish boʻyicha mutaxassis.',
+    experience: [
+      {
+        id: 'exp-1',
+        position: 'Katta Frontend dasturchi',
+        company: '«Navoiy Digital Solutions» MChJ',
+        city: 'Toshkent',
+        startDate: '02.2022',
+        endDate: 'hozirgacha',
+        current: true,
+        bullets: [
+          '150 000 dan ortiq foydalanuvchiga xizmat koʻrsatuvchi toʻlov kabinetini React va TypeScript asosida ishlab chiqdi.',
+          'Sahifa yuklanish tezligini 42% ga oshirdi va avtomatlashtirilgan UI test qamrovini 88% ga yetkazdi.'
+        ],
+        technologies: ['TypeScript', 'React', 'Next.js', 'REST API', 'Playwright']
+      },
+      {
+        id: 'exp-2',
+        position: 'Veb-dasturchi',
+        company: '«Samarqand Tech Lab» MChJ',
+        city: 'Samarqand',
+        startDate: '09.2019',
+        endDate: '01.2022',
+        current: false,
+        bullets: [
+          'Korporativ boshqaruv paneli va hisobotlar modulini Node.js hamda PostgreSQL yordamida yaratdi.',
+          'Maʼlumotlar bazasi soʻrovlarini optimallashtirib, hisobot tayyorlash vaqtini 3 baravar qisqartirdi.'
+        ],
+        technologies: ['JavaScript', 'Node.js', 'PostgreSQL', 'Docker', 'Git']
+      }
+    ],
+    education: [
+      {
+        id: 'edu-1',
+        degree: 'Bakalavr, Axborot texnologiyalari',
+        institution: 'Toshkent axborot texnologiyalari universiteti (namuna)',
+        city: 'Toshkent',
+        startDate: '09.2014',
+        endDate: '06.2018',
+        grade: '',
+        thesis: ''
+      }
+    ],
+    skills: {
+      technical: ['TypeScript', 'React', 'Next.js', 'Node.js', 'PostgreSQL', 'REST API', 'Docker', 'Git'],
+      languages: [
+        { language: 'Oʻzbek tili', level: 'Native / Bilingual' },
+        { language: 'Rus tili', level: 'C2 – Mastery / Native-like' },
+        { language: 'Ingliz tili', level: 'B2 – Vantage / Professional Working' }
+      ],
+      tools: ['VS Code', 'Figma', 'GitHub Actions']
+    },
+    certifications: [],
+    projects: [],
+    additional: {
+      drivingLicence: 'B toifa',
+      businessTrips: 'Xizmat safarlariga tayyor',
+      relocation: ''
+    },
+    signature: { place: 'Toshkent', date: '26.11.2026', signeeName: 'Jasurbek Tursunov' }
+  };
+}
+
+export function createSampleCVForMarket(countryCode = 'DE', languageCode = 'en') {
+  const c = typeof countryCode === 'string' ? countryCode.trim().toUpperCase() : 'DE';
+  const l = typeof languageCode === 'string' ? languageCode.trim().toLowerCase() : 'en';
+  if (c === 'RU' || l === 'ru') return createSampleRussianCV();
+  if (c === 'UZ' || l === 'uz') return createSampleUzbekCV();
+  return createSampleEuropeanCV();
+}
+
 /**
  * Coerces untrusted or partial CV payloads into a safe, well-typed CV object.
  */
@@ -305,6 +542,13 @@ export function sanitizeCVData(raw) {
     includeSignatureBlock: typeof rawMeta.includeSignatureBlock === 'boolean'
       ? rawMeta.includeSignatureBlock
       : base.meta.includeSignatureBlock,
+    showPatronymic: typeof rawMeta.showPatronymic === 'boolean' ? rawMeta.showPatronymic : false,
+    showMaritalStatus: typeof rawMeta.showMaritalStatus === 'boolean' ? rawMeta.showMaritalStatus : false,
+    showGender: typeof rawMeta.showGender === 'boolean' ? rawMeta.showGender : false,
+    showSalary: typeof rawMeta.showSalary === 'boolean' ? rawMeta.showSalary : false,
+    showWorkPermission: typeof rawMeta.showWorkPermission === 'boolean'
+      ? rawMeta.showWorkPermission
+      : (VALID_COUNTRIES.has(rawCountry) && rawCountry === 'UZ'),
     sectionOrder: normalizeSectionOrder(rawMeta.sectionOrder)
   };
 
@@ -313,9 +557,11 @@ export function sanitizeCVData(raw) {
   const personal = {
     firstName: asString(rawPersonal.firstName),
     lastName: asString(rawPersonal.lastName),
+    patronymic: asString(rawPersonal.patronymic),
     title: asString(rawPersonal.title),
     email: asString(rawPersonal.email),
     phone: asString(rawPersonal.phone),
+    telegram: asString(rawPersonal.telegram),
     address: asString(rawPersonal.address),
     city: asString(rawPersonal.city),
     postalCode: asString(rawPersonal.postalCode),
@@ -324,7 +570,12 @@ export function sanitizeCVData(raw) {
       : asString(rawPersonal.country),
     birthDate: asString(rawPersonal.birthDate),
     birthPlace: asString(rawPersonal.birthPlace),
-    nationality: asString(rawPersonal.nationality),
+    nationality: asString(rawPersonal.nationality || rawPersonal.citizenship),
+    workPermission: asString(rawPersonal.workPermission),
+    maritalStatus: asString(rawPersonal.maritalStatus),
+    children: asString(rawPersonal.children),
+    gender: asString(rawPersonal.gender),
+    desiredSalary: asString(rawPersonal.desiredSalary),
     website: asString(rawPersonal.website),
     linkedin: asString(rawPersonal.linkedin),
     github: asString(rawPersonal.github),
@@ -397,6 +648,13 @@ export function sanitizeCVData(raw) {
       link: asString(p.link)
     }));
 
+  const rawAdditional = asPlainObject(raw.additional);
+  const additional = {
+    drivingLicence: asString(rawAdditional.drivingLicence),
+    businessTrips: asString(rawAdditional.businessTrips),
+    relocation: asString(rawAdditional.relocation)
+  };
+
   const rawSig = asPlainObject(raw.signature);
   const signature = {
     place: typeof rawSig.place === 'string' ? rawSig.place : base.signature.place,
@@ -413,6 +671,7 @@ export function sanitizeCVData(raw) {
     skills,
     certifications,
     projects,
+    additional,
     signature
   };
 }
@@ -426,6 +685,12 @@ export function validateCV(cv, options = {}) {
   }
   if (!cv.personal || typeof cv.personal !== 'object' || Array.isArray(cv.personal)) {
     return { valid: false, errors: ['Personal details object is missing or invalid.'] };
+  }
+
+  const rawVer = typeof cv.meta?.version === 'string' ? cv.meta.version.trim() : '';
+  const majorVer = rawVer ? Number.parseInt(rawVer.split('.')[0], 10) : 2;
+  if (Number.isFinite(majorVer) && majorVer > 2) {
+    return { valid: false, errors: [`Unsupported CV schema version (${rawVer}). Please update the app to import this file.`] };
   }
 
   const p = cv.personal;
